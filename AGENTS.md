@@ -6,6 +6,12 @@ Read these files before you change the application:
 2. `docs/architecture.md`
 3. `docs/domain-model.md`
 4. `docs/first-milestone.md`
+5. `docs/api-v1.md`
+6. `docs/turso-databases.md`
+
+For coordinated follow-on work, also read `docs/implementation/README.md` and
+the assigned workstream document. `migrations/001_initial.sql` has been applied
+and is immutable.
 
 The visual reference is `/home/josh/Downloads/learn-ui-reference.tar.gz`.
 Inspect `tokens.css`, `app.css`, `components.html`, and `README.md` in that

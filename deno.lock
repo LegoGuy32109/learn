@@ -4,6 +4,7 @@
     "jsr:@std/assert@*": "1.0.19",
     "jsr:@std/internal@^1.0.12": "1.0.14",
     "npm:@playwright/test@1.63.0": "1.63.0",
+    "npm:@tursodatabase/serverless@1.4.0": "1.4.0",
     "npm:playwright@1.63.0": "1.63.0"
   },
   "jsr": {
@@ -25,6 +26,9 @@
       ],
       "bin": true
     },
+    "@tursodatabase/serverless@1.4.0": {
+      "integrity": "sha512-ZU3T76NG/E0NTKULqJ9TggJfbdPgRaChOS4HDOu3Srds7w7fSPie7jbPHzz+CLGrxs2TtMYtYB1lH5Bh6q1w7A=="
+    },
     "playwright-core@1.63.0": {
       "integrity": "sha512-rYCsBF/M5HjUch52bbtVONEFjv6Xu8sm8h72dNlR5bzIE1fvC/bxgspzkjSfU+MweEMmPM8KJebG6nnyxo5mCg==",
       "bin": true
@@ -39,7 +43,8 @@
   },
   "workspace": {
     "dependencies": [
-      "npm:@playwright/test@1.63.0"
+      "npm:@playwright/test@1.63.0",
+      "npm:@tursodatabase/serverless@1.4.0"
     ]
   }
 }

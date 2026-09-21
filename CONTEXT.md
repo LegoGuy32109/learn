@@ -32,9 +32,18 @@ include MCQ, numeric, and short-answer Questions.
   the IndexedDB foundation. A service worker comes later.
 - Copy conventions from `/home/josh/Projects/painting`; do not copy its code.
 
-## Current milestone
+## Current state
 
-Build only what `docs/first-milestone.md` specifies. In particular, do not add
-accounts, Turso, lesson upload, authoring APIs, Library Listings, publication,
-verification, FSRS scheduling, activity tracking, or a service worker.
+The local learning-loop milestone in `docs/first-milestone.md` is implemented.
+The application also has a Turso-backed alpha authoring slice: owner accounts,
+scoped personal tokens, immutable Lesson Revisions, structured sources, a pure
+JSON resolver, draft APIs, API discovery, and a downloadable validator.
 
+`learn-local` and `learn-dev` are provisioned. Production is not. See
+`docs/turso-databases.md` and `docs/api-v1.md` before changing this layer.
+
+The next coordinated stage is defined in `docs/implementation/README.md`. It
+hardens the authoring contract and adds progress synchronization and token
+operations. Library Listings, publication, verification, FSRS scheduling,
+activity tracking, passkey account creation, and a service worker remain later
+work.

@@ -80,16 +80,17 @@ needs a Library surface and a Learning surface.
 
 ## Content ownership
 
-The future database owns normalized Lesson records. Markdown is not canonical.
-A deterministic resolver will accept one authoring format, validate it,
-normalize it, and return diagnostics, schema version, and a fingerprint. A
-separate authenticated endpoint will persist a private draft. All authoring
-interfaces will call the same resolver logic.
+The database owns normalized Lesson records. Markdown is not canonical. The
+alpha authoring contract accepts JSON `lesson/v1` documents. A deterministic
+resolver validates and normalizes input and returns diagnostics, schema
+version, and a fingerprint. Separate authenticated endpoints rerun that same
+resolver before they persist a private draft.
 
-Do not choose the 1.0 authoring syntax in this milestone. JSON is acceptable
-only for the normalized demo fixture. A later prototype must compare JSON,
-YAML, and a Markdown-like format with realistic code fences, multiline text,
-parser failures, and agent-generated samples.
+The immutable revision envelope is relational. The complete normalized Lesson
+content is stored as one JSON document because it is small, loaded as a unit,
+fingerprinted as a unit, and copied to IndexedDB as a unit. Structured sources,
+ownership, token metadata, and lifecycle fields remain relational. SQL
+projection tables can be added if later discovery or reporting needs them.
 
 ## Offline and synchronization boundary
 
@@ -123,4 +124,3 @@ tables now.
 Keep durable project context in `CONTEXT.md`, architecture here, and executable
 scope in `docs/first-milestone.md`. Add an ADR only for a decision with a real,
 long-lived alternative and consequence. Do not create an ADR for every choice.
-

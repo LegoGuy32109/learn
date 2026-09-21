@@ -1,6 +1,11 @@
 {
+  "schema": "lesson/v1",
   "lessonId": "7a1f7700-0000-4000-8000-000000000001", "revisionId": "7a1f7700-0000-4000-8000-000000000002", "schemaVersion": 1,
   "title": "How browser HTTP caching works", "assumedKnowledge": "You can read HTTP request and response headers.",
+  "sources": [
+    {"type":"specification","title":"HTTP Caching","locator":"https://www.rfc-editor.org/rfc/rfc9111","capturedText":null}
+  ],
+  "provenance": {"status":"provided","client":"Codex","harness":"Codex CLI","model":"gpt-5.6-terra","client_version":"unknown","session_reference":"initial-demo"},
   "concepts": [
     {"id":"7a1f7700-0000-4000-8000-000000000011","title":"Freshness and age","cards":[
       {"id":"7a1f7700-0000-4000-8000-000000000111","heading":"A fresh response can be reused","body":"A cache may use a stored response without contacting the origin while it is fresh. Freshness is a permission to reuse, not a promise that the bytes are newest."},
