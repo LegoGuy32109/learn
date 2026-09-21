@@ -1,39 +1,55 @@
 // @ts-check
-import { localRepository } from "/js/repository.js";
-import { evaluateAnswer } from "/js/evaluate.js";
-import { reduceProgress } from "/js/progress.js";
-import { shuffled } from "/js/shuffle.js";
-import { reduceCheckpoint } from "/js/checkpoint.js";
+// Boot module: loads the session, picks the surface from the URL and routes between surface entries.
+import { createSession } from "../../src/client/learning/session.js";
+import { atFirstCard } from "../../src/client/learning/flow.js";
+import { renderShelf } from "./shelf.js";
+import { renderOverview } from "./overview.js";
+import { renderLearning } from "./learn.js";
 
-/** @type {any} */ const lesson=(/** @type {any} */ (window)).__LESSON__; /** @type {HTMLElement} */ const app=/** @type {HTMLElement} */(document.querySelector("#app"));
-let learningEvents=[], flow=null, savedCheckpoint=null, surface="shelf";
-const icon=(path)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"/></svg>`;
-const uuid=()=>crypto.randomUUID(), now=()=>new Date().toISOString();
-async function event(type, data={}) { const e={id:uuid(),type,lessonRevisionId:lesson.revisionId,epoch:0,occurredAt:now(),...data}; learningEvents.push(e); await localRepository.append("learning_events",e); await rebuild(); }
-async function checkpoint() { if (!flow) return; const saved={...structuredClone(flow),learningEventFrontier:learningEvents.map(e=>e.id)}; const e={id:uuid(),type:"navigation_checkpointed",lessonRevisionId:lesson.revisionId,epoch:0,occurredAt:now(),checkpoint:saved}; savedCheckpoint=saved; await localRepository.append("navigation_events",e); await localRepository.projection("checkpoint",e.checkpoint); }
-async function rebuild() { const progress=reduceProgress(lesson,learningEvents); await localRepository.projection("progress",progress); return progress; }
-function stateName(p) { return ({not_started:"Not started",in_progress:"In progress",seen:"Seen",learned:"Learned"})[p.state]; }
-function action(label, fn, quiet=false) { return `<button class="go${quiet?" quiet":""}" data-action="${fn}">${label}</button>`; }
-function rail(progress) { const concepts=lesson.concepts.map(c=>`<i><b style="width:${progress.learnedConcepts.has(c.id)||progress.cardsSeen.has(c.cards.at(-1).id)?100:progress.cardsSeen.has(c.cards[0].id)?40:0}%"></b></i>`).join(""); const wrap=flow?.flowKind==="wrap_up" ? `<i aria-label="Wrap-up progress"><b style="width:${Math.min(100,Math.round(100*((flow.wrapTotal-flow.queue.length+(flow.feedback?.correct?1:0))/(flow.wrapTotal||1))))}%"></b></i>` : ""; return `<div class="rail" aria-label="Concept progress">${concepts}${wrap}</div>`; }
-async function render() { const p=await rebuild(); if (surface === "shelf") { app.innerHTML=`<section class="page shelf"><div class="libhead"><div><p class="eyebrow">Your learning</p><h1 class="libtitle">Mine</h1></div></div><button class="lesson" data-action="overview"><span class="lmain"><span class="lname">${lesson.title}</span><span class="lmeta">3 concepts · 9 questions</span><span class="lstatus"><span class="status ${p.state}">${stateName(p)}</span></span></span><span class="chev">${icon("M9 6l6 6l-6 6")}</span></button></section>`; return bind(); }
- if(surface === "overview") { app.innerHTML=`<section class="page overview"><button class="back" data-action="shelf" aria-label="Back to shelf">${icon("M12 4l-6 6 6 6")}</button><div><p class="eyebrow">Lesson</p><h1>${lesson.title}</h1><p>${lesson.assumedKnowledge}</p></div><div class="facts"><strong>3 concepts</strong><br><span class="state">${stateName(p)}</span></div><div class="actions">${action(p.state==="not_started"?"Start lesson":"Resume","start")}</div></section>`; return bind(); }
- const cur=current(); const concept=(flow.screen!=="card"&&flow.screen!=="corrective"&&cur?.conceptId?lesson.concepts.find(c=>c.id===cur.conceptId):lesson.concepts[flow.conceptIndex]) || lesson.concepts.at(-1); let region="";
- if(flow.screen === "summary") region=`<div class="lessonhero"><p class="eyebrow">Complete</p><h1>Learned</h1><p>You completed all three concepts and their Wrap-up questions.</p></div><div class="summary"><div class="line"><span>Concepts learned</span><b>3 of 3</b></div></div>`;
- else if(flow.screen === "card" || flow.screen === "corrective") region=`${flow.screen==="corrective"?'<div class="notice"><span><strong>Correcting card.</strong> Review this idea, then return to the question.</span></div>':""}<div class="cardbody"><p class="eyebrow">${concept.title} · Card ${flow.cardIndex+1} of ${concept.cards.length}</p><h2>${cur.heading}</h2><p>${cur.body}</p></div>`;
- else if(flow.feedback) region=`<div class="feedback ${flow.feedback.correct?"good":""}"><p class="verdict">${flow.feedback.correct?"Correct":"Not quite"}</p><p>${flow.feedback.text}</p></div>${!flow.feedback.correct?`<button class="source" data-action="corrective">Review the correcting card</button>`:""}`;
- else region=`<div class="prompt"><p class="from">${flow.flowKind==="check"?"Concept check":"Wrap-up"} · ${concept?.title||"Review"}</p><p class="qhead">${cur.stem}</p></div>${answerForm(cur)}`;
- app.innerHTML=`<section class="shell"><header class="shellhead"><button class="back" data-action="back" aria-label="Back">${icon("M12 4l-6 6 6 6")}</button><h1>${lesson.title}</h1><button class="close" data-action="shelf" aria-label="Close lesson">${icon("M18 6l-12 12 M6 6l12 12")}</button></header>${rail(p)}<main class="region">${region}</main><footer class="footer">${footer()}</footer></section>`; bind(); }
-function current() { if(flow.screen === "card" || flow.screen === "corrective") return lesson.concepts[flow.conceptIndex].cards[flow.cardIndex]; return lesson.questions.find(q=>q.id===flow.queue[0]); }
-function answerForm(q) { if(q.type==="mcq") return `<div class="opts">${shuffled(q.options,flow.seed).map(o=>`<button class="opt" data-answer="${o.id}">${o.text}</button>`).join("")}</div>`; return `<div class="fieldwrap"><span class="hintline">${q.unit?`answer in ${q.unit}`:"one word or short phrase"}</span><input class="field" id="answer" ${q.type==="numeric"?'inputmode="decimal"':''} aria-label="Answer"><button class="go" data-action="submit">Answer</button></div>`; }
-function backAction() { return `<button class="back" data-action="back" aria-label="Back">${icon("M12 4l-6 6 6 6")}</button>`; }
-function footer() { if(flow.screen === "summary") return `<div class="actions">${action("Back to shelf","shelf")}</div>`; if(flow.screen === "card") return `<div class="actions">${backAction()}${action("Continue","continue")}</div>`; if(flow.screen === "corrective") return `<div class="actions">${backAction()}${action("Return to questions","return")}</div>`; if(flow.feedback) return `<div class="actions">${backAction()}${action(flow.feedback.correct||flow.feedback.idk?"Continue":"Try another from this concept","advance")}</div>`; return `<div class="actions">${backAction()}<button class="idk" data-action="idk">I don't know</button></div>`; }
-function bind() { app.querySelectorAll("[data-action]").forEach(el=>{const button=/** @type {HTMLElement} */(el);button.addEventListener("click",()=>handle(button.dataset.action));}); app.querySelectorAll("[data-answer]").forEach(el=>{const button=/** @type {HTMLElement} */(el);button.addEventListener("click",()=>submit(button.dataset.answer));}); }
-async function handle(a) { if(a==="shelf") {surface="shelf";flow=null;history.pushState({surface},"", "/");return render();} if(a==="overview") {surface="overview";history.pushState({surface},"",`/learn/${lesson.lessonId}`);return render();} if(a==="start") return start(); if(a==="continue") return nextCard(); if(a==="submit") return submit((/** @type {HTMLInputElement} */(document.querySelector("#answer"))).value); if(a==="idk") return submit(null,true); if(a==="advance") return advance(); if(a==="corrective") {const q=current();flow.detour=structuredClone(flow);const ci=lesson.concepts.findIndex(c=>c.cards.some(card=>card.id===q.correctingCardId));flow.conceptIndex=ci;flow.cardIndex=lesson.concepts[ci].cards.findIndex(card=>card.id===q.correctingCardId);flow.screen="corrective";await checkpoint();return render();} if(a==="return") {flow=flow.detour;flow.detour=null;await checkpoint();return render();} if(a==="back") return goBack(); }
-async function start() { surface="learn"; if(!learningEvents.some(e=>e.type==="lesson_started")) await event("lesson_started"); if(!flow) flow=savedCheckpoint||{screen:"card",conceptIndex:0,cardIndex:0,flowKind:"cards",seed:0,attemptId:"",queue:[],feedback:null,detour:null}; await checkpoint(); history.pushState({surface},"",`/learn/${lesson.lessonId}`); render(); }
-async function nextCard() { const c=lesson.concepts[flow.conceptIndex], card=c.cards[flow.cardIndex]; if(!learningEvents.some(e=>e.type==="card_seen"&&e.cardId===card.id)) await event("card_seen",{cardId:card.id,conceptId:c.id}); if(flow.cardIndex<c.cards.length-1) flow.cardIndex++; else { const seed=Math.floor(Math.random()*2**31), qs=lesson.questions.filter(q=>q.conceptId===c.id); flow={...flow,screen:"question",flowKind:"check",seed,attemptId:uuid(),queue:shuffled(qs.map(q=>q.id),seed),feedback:null}; } await checkpoint(); render(); }
-async function submit(answer, idk=false) { const q=current(), correct=!idk&&evaluateAnswer(q,answer); await event("question_answered",{flowKind:flow.flowKind,conceptId:q.conceptId,poolId:q.poolId,questionId:q.id,attemptId:flow.attemptId,answer,correct}); const option=q.options?.find(o=>o.id===answer); flow.feedback={correct,idk,text:idk?`The answer is ${q.answer ?? q.options.find(o=>o.correct).text}. ${q.feedback||""}`:(option?.feedback||q.feedback)}; await checkpoint(); render(); }
-async function advance() { const q=current(); if(flow.flowKind==="check") { if(flow.feedback.correct || flow.feedback.idk || flow.queue.length===1) { if(flow.conceptIndex===lesson.concepts.length-1) flow=startWrap(); else flow={screen:"card",conceptIndex:flow.conceptIndex+1,cardIndex:0,flowKind:"cards",seed:0,attemptId:"",queue:[],feedback:null,detour:null}; } else { flow.queue=flow.queue.slice(1); flow.feedback=null; } } else { if(flow.feedback.correct) { flow.queue=flow.queue.slice(1); if(!flow.queue.length) flow={...flow,screen:"summary",feedback:null}; else flow.feedback=null; } else { flow.queue=shuffled([...flow.queue.slice(1),q.id],flow.seed+flow.queue.length); flow.feedback=null; } } await checkpoint(); render(); }
-function startWrap() { const seed=Math.floor(Math.random()*2**31), queue=lesson.concepts.map((c,i)=>shuffled(lesson.questions.filter(q=>q.conceptId===c.id).map(q=>q.id),seed+i)[0]); return {screen:"question",conceptIndex:2,cardIndex:0,flowKind:"wrap_up",seed,attemptId:uuid(),queue,wrapTotal:queue.length,feedback:null,detour:null}; }
-async function goBack() { if(flow.screen==="card"&&flow.conceptIndex===0&&flow.cardIndex===0) {surface="overview";flow=null;return render();} if(flow.screen==="card"&&flow.cardIndex>0) flow.cardIndex--; await render(); }
-window.addEventListener("popstate",()=>{ if(surface==="learn"&&flow?.screen==="card"&&flow.conceptIndex===0&&flow.cardIndex===0){surface="shelf";flow=null;} render(); });
-async function boot(){await localRepository.seed(lesson); learningEvents=await localRepository.events("learning_events"); savedCheckpoint=await localRepository.projection("checkpoint"); if(!savedCheckpoint){savedCheckpoint=reduceCheckpoint(await localRepository.events("navigation_events")); if(savedCheckpoint) await localRepository.projection("checkpoint",savedCheckpoint);} if(location.pathname.startsWith("/learn/")){flow=savedCheckpoint||null;surface=savedCheckpoint?"learn":"overview";} render();} boot();
+/** @type {any} */
+const lesson = (/** @type {any} */ (window)).__LESSON__;
+const root = /** @type {HTMLElement} */ (document.querySelector("#app"));
+const session = createSession(lesson);
+
+const nav = {
+  lessonPath: `/learn/${lesson.lessonId}`,
+  /**
+   * Switch surface. A path pushes a history entry; without one the URL stays as it is.
+   * @param {"shelf"|"overview"|"learn"} surface
+   * @param {string} [path]
+   */
+  async show(surface, path) {
+    session.surface = surface;
+    if (path !== undefined) history.pushState({ surface }, "", path);
+    await render();
+  },
+  async refresh() {
+    await render();
+  },
+};
+
+async function render() {
+  const progress = await session.rebuildProgress();
+  if (session.surface === "shelf") return renderShelf(root, session, progress, nav);
+  if (session.surface === "overview") return renderOverview(root, session, progress, nav);
+  return renderLearning(root, session, progress, nav);
+}
+
+window.addEventListener("popstate", () => {
+  if (session.surface === "learn" && session.flow && atFirstCard(session.flow)) {
+    session.surface = "shelf";
+    session.flow = null;
+  }
+  render();
+});
+
+async function boot() {
+  await session.load();
+  if (location.pathname.startsWith("/learn/")) {
+    session.flow = session.savedCheckpoint || null;
+    session.surface = session.savedCheckpoint ? "learn" : "overview";
+  }
+  await render();
+}
+
+boot();

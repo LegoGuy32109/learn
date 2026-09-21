@@ -75,8 +75,18 @@ Shared domain modules must not import DOM, IndexedDB, HTTP-server, or database
 code. Repository contracts use domain-shaped values. IndexedDB and future Turso
 adapters must not expose storage row shapes to the domain.
 
-Use a separate browser entry module for each major surface. The first milestone
-needs a Library surface and a Learning surface.
+Use a separate browser entry module for each major surface. The entry modules
+live in `public/js` (`app.js` boots and routes; `shelf.js`, `overview.js` and
+`learn.js` each render one surface). They import the flow controller, views and
+session from `src/client` and the pure reducers from `src/shared` with relative
+paths. The static asset route serves `src/client` and `src/shared` to the
+browser under `/src/client/` and `/src/shared/`; `src/server` is never served.
+No browser module is duplicated into `public/js`.
+
+Server routes are grouped by domain in `src/server/routes` (`pages`,
+`discovery`, `lessons`, `assets`). Each group exports a function returning
+`Route` values; `src/app.ts` only composes them and maps errors to problem
+responses.
 
 ## Content ownership
 
