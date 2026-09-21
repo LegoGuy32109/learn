@@ -1,0 +1,10 @@
+{
+  "tasks": {
+    "dev": "deno run --allow-net --allow-read --watch main.ts",
+    "check": "deno check main.ts src/app.ts public/js/*.js src/shared/**/*.js",
+    "test": "deno test --allow-read tests/shared",
+    "e2e": "deno test --allow-all tests/e2e"
+  },
+  "imports": { "@playwright/test": "npm:@playwright/test@1.63.0", "/js/": "./public/js/" },
+  "compilerOptions": { "lib": ["deno.ns", "dom", "dom.iterable"], "noImplicitAny": false }
+}

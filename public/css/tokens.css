@@ -1,0 +1,162 @@
+/* learn.joshhale.me — tokens.css
+   Sand Contrast (light) and Dusk (dark), measured as a matched pair:
+     body 9.03:1 / 10.24:1   heading 16.00:1 / 16.46:1   position line 6.30:1 / 6.31:1
+   Three states, in this order and no other:
+     1. :root                                   light
+     2. prefers-color-scheme + :not([data-theme="light"])   device preference
+     3. [data-theme="dark"]                     explicit choice wins both ways
+   --a-award is intentionally NOT derived from the accent, so an unlocked theme
+   cannot dilute the award. */
+
+:root {
+  --a-bg: #f2ede3;
+  --a-surface: #fbf9f4;
+  --a-bar: #eae2d3;
+  --a-hover: #e2d8c5;
+  --a-line: #d6ccba;
+  --a-ink: #161209;
+  --a-ink-2: #463e31;
+  --a-ink-3: #5d5547;
+  --a-acc: #6b4a1a;
+  --a-acc-ink: #fffdf8;
+  --a-good: #2f5636;
+  --a-bad: #8c3220;
+  --a-codebg: #e4dbca;
+  --a-codeink: #563a10;
+  --a-award: #a8201a;
+
+  --a-body: "Instrument Sans", system-ui, -apple-system, sans-serif;
+  --a-display: var(--a-body);
+  --a-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --a-dw: 600;
+
+  --a-r: 10px;    /* corner radius */
+  --a-pad: 18px;  /* density */
+  --a-fs: 17px;   /* base size; 16px is the iOS input-zoom floor */
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --a-bg: #17140f;
+    --a-surface: #211c15;
+    --a-bar: #1c1812;
+    --a-hover: #282219;
+    --a-line: #3a3228;
+    --a-ink: #f7f2e8;
+    --a-ink-2: #ccc0ad;
+    --a-ink-3: #a19684;
+    --a-acc: #d9aa55;
+    --a-acc-ink: #17120b;
+    --a-good: #8cc39a;
+    --a-bad: #e8968a;
+    --a-codebg: #272118;
+    --a-codeink: #e4bd75;
+    --a-award: #f5705a;
+  }
+}
+
+[data-theme="dark"] {
+  --a-bg: #17140f;
+  --a-surface: #211c15;
+  --a-bar: #1c1812;
+  --a-hover: #282219;
+  --a-line: #3a3228;
+  --a-ink: #f7f2e8;
+  --a-ink-2: #ccc0ad;
+  --a-ink-3: #a19684;
+  --a-acc: #d9aa55;
+  --a-acc-ink: #17120b;
+  --a-good: #8cc39a;
+  --a-bad: #e8968a;
+  --a-codebg: #272118;
+  --a-codeink: #e4bd75;
+  --a-award: #f5705a;
+}
+
+/* ---------------------------------------------------------------- accents
+   Unlockable themes. Bronze and Ink ship unlocked. data-accent goes on <html>,
+   the same element as data-theme.
+   Each is a measured light/dark pair; all clear AA on the continue label and
+   3:1 for the rail on its own ground. */
+
+:root[data-accent="bronze"] {
+  --a-acc: #6b4a1a;
+  --a-codeink: #563a10;
+  --a-acc-ink: #fffdf8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"])[data-accent="bronze"] {
+    --a-acc: #d9aa55;
+    --a-codeink: #e4bd75;
+    --a-acc-ink: #17120b;
+  }
+}
+[data-theme="dark"][data-accent="bronze"] {
+  --a-acc: #d9aa55;
+  --a-codeink: #e4bd75;
+  --a-acc-ink: #17120b;
+}
+
+:root[data-accent="ink"] {
+  --a-acc: #3d3227;
+  --a-codeink: #4a3c2c;
+  --a-acc-ink: #f7f3ea;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"])[data-accent="ink"] {
+    --a-acc: #ddd0ba;
+    --a-codeink: #cbbda4;
+    --a-acc-ink: #1a150e;
+  }
+}
+[data-theme="dark"][data-accent="ink"] {
+  --a-acc: #ddd0ba;
+  --a-codeink: #cbbda4;
+  --a-acc-ink: #1a150e;
+}
+
+/* unlocks: Learned your first lesson */
+:root[data-accent="brick"] {
+  --a-acc: #8c3f2b;
+  --a-codeink: #7b3422;
+  --a-acc-ink: #fffaf7;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"])[data-accent="brick"] {
+    --a-acc: #e59685;
+    --a-codeink: #eaa899;
+    --a-acc-ink: #1c100b;
+  }
+}
+[data-theme="dark"][data-accent="brick"] {
+  --a-acc: #e59685;
+  --a-codeink: #eaa899;
+  --a-acc-ink: #1c100b;
+}
+
+/* unlocks: Passed a review after a delay */
+:root[data-accent="olive"] {
+  --a-acc: #47591f;
+  --a-codeink: #3b4a19;
+  --a-acc-ink: #fbfcf5;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"])[data-accent="olive"] {
+    --a-acc: #adc77a;
+    --a-codeink: #bed492;
+    --a-acc-ink: #131807;
+  }
+}
+[data-theme="dark"][data-accent="olive"] {
+  --a-acc: #adc77a;
+  --a-codeink: #bed492;
+  --a-acc-ink: #131807;
+}
+
+/* ------------------------------------------------------------ PWA note
+   The document needs both, or the status bar fights the app on one scheme:
+   <meta name="theme-color" content="#eae2d3" media="(prefers-color-scheme: light)">
+   <meta name="theme-color" content="#1c1812"  media="(prefers-color-scheme: dark)">
+*/
