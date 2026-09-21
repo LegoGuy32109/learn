@@ -1,0 +1,14 @@
+{
+  "name": "quiz",
+  "version": "0.2.0",
+  "description": "Generate a retrieval-practice quiz on any topic, rendered through a fixed interface so the pedagogy cannot regress between invocations.",
+  "author": {
+    "name": "Josh Hale"
+  },
+  "keywords": [
+    "learning",
+    "retrieval-practice",
+    "quiz",
+    "spaced-repetition"
+  ]
+}

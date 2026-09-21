@@ -25,3 +25,7 @@ pure and usable in the browser and on the server.
 Run the checks in `docs/first-milestone.md` before you report completion. Do not
 implement deferred systems merely to make their future directories exist.
 
+## Ticketed work
+
+Open tickets for the phone-portal stage live in `issues/`. Read `issues/README.md`
+for the order, the blocking edges, and how to work a ticket.

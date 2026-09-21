@@ -1,0 +1,213 @@
+<h2 class="sro">__SRO__</h2>
+<style>
+.sro{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+#qz{padding:1rem 0;font-size:16px;line-height:1.7}
+#qz .crumb{display:flex;align-items:center;gap:10px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted,#8a8a85);font-family:var(--font-mono,ui-monospace,monospace)}
+#qz .dots{display:flex;gap:5px;margin-left:auto}
+#qz .dot{width:7px;height:7px;border-radius:50%;background:var(--border,#dcdcd6)}
+#qz .dot.on{background:var(--text-accent,#185FA5)}
+#qz .dot.got{background:var(--text-success,#3B6D11)}
+#qz h3{font-size:18px;font-weight:500;margin:0 0 10px;color:var(--text-primary,#1c1c1a)}
+#qz .card{background:var(--surface-2,#fff);border:0.5px solid var(--border,#dcdcd6);border-radius:12px;padding:1rem 1.25rem;margin:1rem 0}
+#qz .card p{margin:0 0 12px;color:var(--text-primary,#1c1c1a)}
+#qz .card p:last-child{margin-bottom:0}
+#qz .stem{font-size:17px;line-height:1.55;margin:14px 0;color:var(--text-primary,#1c1c1a)}
+#qz .opts{display:flex;flex-direction:column;gap:8px}
+#qz .opt{width:100%;text-align:left;background:var(--surface-2,#fff);border:0.5px solid var(--border,#dcdcd6);border-radius:var(--radius,8px);padding:12px 14px;font:inherit;font-size:15px;line-height:1.5;color:var(--text-primary,#1c1c1a);cursor:pointer}
+#qz .opt:hover:not(:disabled){border-color:var(--border-accent,#185FA5)}
+#qz .opt:disabled{cursor:default}
+#qz .opt.key{border-color:var(--border-success,#3B6D11);background:var(--bg-success,#EAF3DE)}
+#qz .opt.key,#qz .opt.key *{color:var(--text-success,#27500A)}
+#qz .opt.miss{border-color:var(--border-danger,#A32D2D);background:var(--bg-danger,#FCEBEB)}
+#qz .opt.miss,#qz .opt.miss *{color:var(--text-danger,#791F1F)}
+#qz .opt.fade{opacity:.55}
+#qz .idk{margin-top:12px}
+#qz .idk button{background:none;border:0;padding:0;font:inherit;font-size:13px;color:var(--text-muted,#8a8a85);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+#qz .num{display:flex;gap:10px;align-items:center;margin:4px 0}
+#qz .num input{width:110px;font-family:var(--font-mono,ui-monospace,monospace);font-size:16px}
+#qz .fb{margin-top:16px;border-left:3px solid var(--border,#dcdcd6);padding-left:14px}
+#qz .fb.good{border-left-color:var(--text-success,#3B6D11)}
+#qz .fb.bad{border-left-color:var(--text-danger,#A32D2D)}
+#qz .fb .lbl{font-size:12px;letter-spacing:.07em;text-transform:uppercase;font-family:var(--font-mono,ui-monospace,monospace);margin-bottom:5px}
+#qz .fb.good .lbl{color:var(--text-success,#3B6D11)}
+#qz .fb.bad .lbl{color:var(--text-danger,#A32D2D)}
+#qz .fb p{margin:0;font-size:15px;color:var(--text-secondary,#5a5a55)}
+#qz .belief{background:var(--surface-1,#f5f4f0);border-radius:var(--radius,8px);padding:11px 14px;margin:12px 0;font-size:14px;color:var(--text-secondary,#5a5a55)}
+#qz .belief b{font-weight:500;color:var(--text-primary,#1c1c1a)}
+#qz .acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+#qz code{font-family:var(--font-mono,ui-monospace,monospace);font-size:.9em;background:var(--surface-1,#f5f4f0);padding:1px 5px;border-radius:4px}
+#qz .row{display:flex;gap:12px;align-items:baseline;padding:10px 0;border-bottom:0.5px solid var(--border,#dcdcd6)}
+#qz .row:last-child{border-bottom:0}
+#qz .st{margin-left:auto;font-size:12px;font-family:var(--font-mono,ui-monospace,monospace);letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted,#8a8a85)}
+#qz .st.got{color:var(--text-success,#3B6D11)}
+#qz details.more{margin-top:4px}
+#qz details.more>summary{cursor:pointer;font-size:13px;color:var(--text-accent,#185FA5);list-style:none}
+#qz details.more>summary::-webkit-details-marker{display:none}
+#qz details.more>summary::before{content:"\203A  "}
+#qz details.more[open]>summary::before{content:"\2039  "}
+#qz details.more>summary:hover{text-decoration:underline}
+#qz details.more p:first-of-type{margin-top:10px}
+</style>
+<div id="qz"></div>
+<script>
+window.LESSON = __LESSON__;
+</script>
+<script>
+(function(){
+"use strict";
+var L=window.LESSON,C=L.concepts;
+var S={p:"intro",ci:0,k:0,it:null,ans:null,used:{},res:{},wi:0,retry:0,dq:[],di:0,drilled:false};
+C.forEach(function(c){S.used[c.id]=[];S.res[c.id]="seen";});
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function sh(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function cc(){return C[S.ci];}
+function ctx(){return S.p==="wrap"?C[S.wi]:(S.p==="drill"&&S.dq.length?S.dq[S.di].c:cc());}
+function card(c,id){for(var i=0;i<c.cards.length;i++) if(c.cards[i].id===id) return c.cards[i];return null;}
+function cardHtml(k,lbl,clamp){
+ if(!k) return "";
+ var head='<div class="card">'+(lbl?'<div class="crumb" style="margin-bottom:8px"><span>'+esc(lbl)+'</span></div>':"")+"<h3>"+esc(k.title)+"</h3>";
+ if(!clamp) return head+k.body.map(function(p){return "<p>"+p+"</p>";}).join("")+"</div>";
+ var rest=k.body.slice(1).map(function(p){return "<p>"+p+"</p>";}).join("");
+ return head+"<p>"+k.body[0]+"</p>"+(rest?
+  '<details class="more"><summary>Read the rest of this card</summary>'+rest+"</details>":"")+"</div>";}
+function dots(){return '<span class="dots">'+C.map(function(c,i){
+ var cur=S.p==="wrap"?S.wi:(S.p==="drill"&&S.dq.length?S.dq[S.di].ci:S.ci);
+ var cl=S.res[c.id]==="learned"?"got":(i===cur&&S.p!=="done"?"on":"");
+ return '<span class="dot '+cl+'"></span>';}).join("")+"</span>";}
+function crumb(t){return '<div class="crumb"><span>'+esc(t)+"</span>"+dots()+"</div>";}
+
+function drawItem(){
+ var c=cc(),av=c.pool.filter(function(x,i){return !x.reserved&&S.used[c.id].indexOf(i)<0;});
+ if(!av.length) return null;
+ var it=av[Math.floor(Math.random()*av.length)];
+ S.used[c.id].push(c.pool.indexOf(it));
+ return it;}
+function reservedOf(c){for(var i=0;i<c.pool.length;i++) if(c.pool[i].reserved) return c.pool[i];
+ return c.pool[c.pool.length-1];}
+
+function itemHtml(it,a,c){
+ var h='<p class="stem">'+esc(it.stem)+"</p>";
+ if(it.type==="numeric"){
+  h+='<div class="num"><input id="ni" inputmode="numeric" autocomplete="off" aria-label="Your answer"'+
+   (a?' value="'+esc(a.v)+'" disabled':"")+'><span style="font-size:13px;color:var(--text-muted,#8a8a85)">'+
+   esc(it.unit||"")+"</span>"+(a?"":'<button data-a="sn">Answer</button>')+"</div>";
+ }else{
+  h+='<div class="opts">'+it._v.map(function(Lk){
+   var cl="opt";if(a){cl+=Lk===it.key?" key":(a.pick===Lk?" miss":" fade");}
+   return '<button class="'+cl+'" data-o="'+Lk+'"'+(a?" disabled":"")+">"+esc(c.options[Lk])+"</button>";
+  }).join("")+"</div>";}
+ if(!a) h+='<div class="idk"><button data-a="idk">I don’t know</button></div>';
+ return h;}
+
+function fb(it,a,c){
+ var o="",tail="",wrap=S.p==="wrap",drill=S.p==="drill",flat=wrap||drill,nxt=drill?"dn":"wn";
+ if(a.kind==="idk"){
+  var cid=null;
+  if(it.map){var f=Object.keys(it.map)[0];var mm=c.misconceptions[it.map[f]];if(mm)cid=mm.corrected_by;}
+  if(!cid) cid=c.cards[0].id;
+  o+='<div class="fb"><div class="lbl">recorded</div><p>Recorded as an unsuccessful retrieval. Nothing is deducted.</p></div>';
+  o+='<div class="acts"><button data-a="'+(flat?nxt:"sk")+'">Continue</button></div>';
+  o+=cardHtml(card(c,cid),"the card that covers this",true);
+  return o;}
+ o+='<div class="fb '+(a.ok?"good":"bad")+'"><div class="lbl">'+(a.ok?"correct":"not this one")+
+    "</div><p>"+esc(a.txt)+"</p></div>";
+ if(!a.ok&&a.pick&&it.map&&it.map[a.pick]){
+  var m=c.misconceptions[it.map[a.pick]];
+  if(m){o+='<div class="belief">The belief behind that option: <b>'+esc(m.statement)+"</b></div>";
+   tail=cardHtml(card(c,m.corrected_by),"corrected by",true);}}
+ if(flat) return o+'<div class="acts"><button data-a="'+nxt+'">Continue</button></div>'+tail;
+ var left=c.pool.filter(function(x,i){return !x.reserved&&S.used[c.id].indexOf(i)<0;}).length;
+ o+='<div class="acts"><button data-a="'+(a.ok?"ok":(left?"re":"gv"))+'">'+
+   (a.ok?"Continue":(left?"Try an unseen one":"Continue"))+"</button></div>"+tail;
+ return o;}
+
+function view(){
+ if(S.p==="intro") return crumb(L.eyebrow||"Lesson")+
+  "<h3>"+esc(L.title)+"</h3>"+
+  (L.assumed?'<p style="color:var(--text-secondary,#5a5a55);margin:0 0 4px">'+esc(L.assumed)+"</p>":"")+
+  '<p style="color:var(--text-secondary,#5a5a55)">'+C.length+' concepts, a check at the end of each. '+
+  'Every concept keeps one question back for a wrap-up, so nothing you have already seen comes round again.</p>'+
+  '<p style="color:var(--text-muted,#8a8a85);font-size:14px">Already read the cards? Skip straight to every question, '+
+  'including the ones the wrap-up holds back. Drilling does not earn Learned.</p>'+
+  '<div class="acts"><button data-a="go">Begin</button><button data-a="dr">Skip to every question</button></div>';
+
+ if(S.p==="card"){var c=cc(),k=c.cards[S.k];
+  return crumb("Concept "+(S.ci+1)+" of "+C.length)+cardHtml(k)+
+   '<div class="acts"><button data-a="nx">'+(S.k===c.cards.length-1?"Check yourself":"Continue")+"</button></div>";}
+
+ if(S.p==="check"||S.p==="wrap"||S.p==="drill"){
+  var c2=ctx(),it=S.it,a=S.ans;
+  var h=crumb(S.p==="drill"?("Question "+(S.di+1)+" of "+S.dq.length+" · concept "+(S.dq[S.di].ci+1))
+    :S.p==="wrap"?("Wrap-up "+(S.wi+1)+" of "+C.length)
+    :((S.retry?"Again, unseen question":"Check")+" · concept "+(S.ci+1)));
+  h+=itemHtml(it,a,c2);
+  if(a) h+=fb(it,a,c2);
+  return h;}
+
+ var got=C.filter(function(c){return S.res[c.id]==="learned";}).length;
+ return crumb("Done")+"<h3>"+(S.drilled?"Every question seen":(got===C.length?"All of it holds up":"Where this landed"))+"</h3>"+
+  '<p style="color:var(--text-secondary,#5a5a55)">'+(S.drilled
+   ?"You went through every item in every pool, reserved ones included. Drilling does not earn Learned — that comes from the wrap-up in a normal run."
+   :"No score. Seen means you read it. Learned means you retrieved it in the wrap-up, from a question the checks never showed you.")+"</p>"+
+  C.map(function(c){return '<div class="row"><span>'+esc(c.statement)+'</span><span class="st'+
+   (S.res[c.id]==="learned"?" got":"")+'">'+(S.res[c.id]==="learned"?"learned":"seen")+"</span></div>";}).join("")+
+  '<div class="acts"><button data-a="rs">Run it again</button></div>';}
+
+function paint(){
+ document.getElementById("qz").innerHTML=view();
+ var n=document.getElementById("ni");
+ if(n&&!S.ans) n.addEventListener("keydown",function(e){if(e.key==="Enter")act("sn");});}
+
+function startCheck(){
+ var it=drawItem();
+ if(!it){next();return;}
+ if(it.type!=="numeric") it._v=sh(Object.keys(cc().options));
+ S.it=it;S.ans=null;S.p="check";paint();}
+function next(){
+ S.ci++;S.k=0;S.ans=null;S.retry=0;
+ if(S.ci>=C.length){S.p="wrap";S.wi=0;loadWrap();return;}
+ S.p="card";paint();}
+function loadWrap(){
+ var c=C[S.wi],it=reservedOf(c);
+ if(it.type!=="numeric") it._v=sh(Object.keys(c.options));
+ S.it=it;S.ans=null;S.p="wrap";paint();}
+function loadDrill(){
+ var e=S.dq[S.di],it=e.it;
+ if(it.type!=="numeric") it._v=sh(Object.keys(e.c.options));
+ S.it=it;S.ans=null;S.p="drill";paint();}
+function gradeNum(it,v){var n=parseFloat(v);
+ return isFinite(n)&&Math.abs(n-it.answer)<=(it.tolerance||0);}
+
+function act(a,arg){
+ var c=ctx();
+ if(a==="go"){S.p="card";paint();return;}
+ if(a==="dr"){S.dq=[];C.forEach(function(x,ci){x.pool.forEach(function(it){S.dq.push({c:x,ci:ci,it:it});});});
+  if(!S.dq.length) return;
+  S.di=0;S.drilled=true;S.ans=null;loadDrill();return;}
+ if(a==="dn"){S.di++;S.ans=null;
+  if(S.di>=S.dq.length){S.p="done";paint();}else loadDrill();
+  return;}
+ if(a==="nx"){if(S.k<cc().cards.length-1){S.k++;paint();}else startCheck();return;}
+ if(a==="pick"){S.ans={pick:arg,ok:arg===S.it.key,txt:S.it.feedback[arg],kind:"a"};paint();return;}
+ if(a==="sn"){var v=(document.getElementById("ni")||{}).value||"";
+  S.ans={v:v,ok:gradeNum(S.it,v),txt:S.it.feedback,kind:"a"};paint();return;}
+ if(a==="idk"){S.ans={kind:"idk",ok:false};paint();return;}
+ if(a==="re"){S.retry=1;startCheck();return;}
+ if(a==="ok"||a==="gv"||a==="sk"){next();return;}
+ if(a==="wn"){
+  if(S.ans&&S.ans.ok) S.res[C[S.wi].id]="learned";
+  S.wi++;S.ans=null;
+  if(S.wi>=C.length){S.p="done";paint();}else loadWrap();
+  return;}
+ if(a==="rs"){S.p="intro";S.ci=0;S.k=0;S.wi=0;S.ans=null;S.retry=0;S.dq=[];S.di=0;S.drilled=false;
+  C.forEach(function(x){S.used[x.id]=[];S.res[x.id]="seen";});paint();return;}}
+
+document.getElementById("qz").addEventListener("click",function(e){
+ var o=e.target.closest("[data-o]"),b=e.target.closest("[data-a]");
+ if(o&&!o.disabled){act("pick",o.getAttribute("data-o"));return;}
+ if(b) act(b.getAttribute("data-a"));});
+paint();
+})();
+</script>
