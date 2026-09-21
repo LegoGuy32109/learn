@@ -28,7 +28,7 @@ demo lesson, answer a Question, reload, and resume at the same Question.
 
 **Blocked by:** None — can start immediately.
 
-**Status:** done b064651
+**Status:** done b248c51 (implementation commit; the ticket record follows in the next commit)
 
 - [x] `learn-prod` exists, has every migration applied, and the migration
       ledger shows the same checksums as `learn-local`.
