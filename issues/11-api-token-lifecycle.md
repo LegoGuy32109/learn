@@ -19,7 +19,7 @@ a lesson with it and get `403`, revoke it, and get `401` on the next call.
 
 **Blocked by:** None — can start immediately.
 
-**Status:** done PENDING_SHA
+**Status:** done 33d8f7e
 
 - [x] Mint, list, revoke and rotate exist as Deno tasks with `--help` text.
 - [x] Listing shows name, prefix, scopes, created, last used, expiry and
