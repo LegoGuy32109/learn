@@ -5,7 +5,7 @@ import { FixtureLessonRepository } from "../../src/server/repositories/lessons.t
 
 const app = createApp({
   lessons: new FixtureLessonRepository(lesson),
-  auth: { async authenticate() { return null; } },
+  auth: { async authenticate() { return { ok: false as const, reason: "unauthenticated" as const }; } },
 });
 
 Deno.test("capability discovery is public", async () => {

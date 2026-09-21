@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "dev": "deno run --env-file=.env --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN --allow-net --allow-read --watch main.ts",
+    "dev": "deno run --env-file=.env --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN,PORT --allow-net --allow-read --watch main.ts",
     "check": "deno check main.ts src/app.ts public/js/*.js src/shared/**/*.js src/server/**/*.ts scripts/*.ts",
     "test": "deno test --allow-read tests/shared tests/server",
     "e2e": "deno test --allow-all tests/e2e",
@@ -8,8 +8,12 @@
     "db:migrate": "deno run --env-file=.env --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN --allow-net --allow-read scripts/migrate.ts",
     "db:owner": "deno run --env-file=.env --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN --allow-net --allow-read --allow-write scripts/bootstrap-owner.ts",
     "db:seed": "deno run --env-file=.env --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN --allow-net --allow-read scripts/seed-demo.ts",
+    "token:mint": "deno run --env-file=.env --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN --allow-net --allow-read scripts/tokens.ts mint",
+    "token:list": "deno run --env-file=.env --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN --allow-net --allow-read scripts/tokens.ts list",
+    "token:revoke": "deno run --env-file=.env --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN --allow-net --allow-read scripts/tokens.ts revoke",
+    "token:rotate": "deno run --env-file=.env --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN --allow-net --allow-read scripts/tokens.ts rotate",
     "tools:generate": "deno run --allow-read --allow-write scripts/generate-tools.ts",
-    "test:db": "deno test --env-file=.env --allow-env --allow-net --allow-read tests/db"
+    "test:db": "deno test --env-file=.env --allow-env --allow-net --allow-read --allow-run tests/db"
   },
   "imports": {
     "@playwright/test": "npm:@playwright/test@1.63.0",
