@@ -39,8 +39,10 @@ The application also has a Turso-backed alpha authoring slice: owner accounts,
 scoped personal tokens, immutable Lesson Revisions, structured sources, a pure
 JSON resolver, draft APIs, API discovery, and a downloadable validator.
 
-`learn-local` and `learn-dev` are provisioned. Production is not. See
-`docs/turso-databases.md` and `docs/api-v1.md` before changing this layer.
+`learn-local`, `learn-dev` and `learn-prod` are provisioned. The application is
+deployed on Deno Deploy at `https://learn-joshhale.legoguy32109.deno.net`, and
+`learn.joshhale.me` is attached by Josh. See `docs/turso-databases.md`,
+`docs/deno-deploy.md` and `docs/api-v1.md` before changing this layer.
 
 The next coordinated stage is defined in `docs/implementation/README.md`. It
 hardens the authoring contract and adds progress synchronization and token

@@ -8,6 +8,7 @@ Read these files before you change the application:
 4. `docs/first-milestone.md`
 5. `docs/api-v1.md`
 6. `docs/turso-databases.md`
+7. `docs/deno-deploy.md`
 
 For coordinated follow-on work, also read `docs/implementation/README.md` and
 the assigned workstream document. `migrations/001_initial.sql` has been applied
