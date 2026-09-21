@@ -42,8 +42,19 @@ deno task db:provision  # Ensure learn-local and learn-dev exist; rotate connect
 deno task db:migrate    # Apply pending migrations to learn-local
 deno task db:owner      # Ensure Josh's local account and owner API token exist
 deno task db:seed       # Ensure the database-backed demo lesson exists
-deno task test:db       # Exercise authenticated draft persistence against learn-local
+deno task test:db       # Draft persistence against learn-local, token lifecycle against an ephemeral learn-test-<uuid>
+deno task token:mint    # Mint a named, scoped personal token; the full token is printed once
+deno task token:list    # Show token metadata for the account
+deno task token:revoke  # Revoke one token now
+deno task token:rotate  # Replace a token's secret and revoke the old one once the new one is confirmed
 ```
+
+Every `token:*` task accepts `--help`. To operate on `learn-dev`, run
+`scripts/tokens.ts` with `--env-file=.env.dev` and the same permissions.
+
+`deno task test:db` needs `TURSO_API_KEY` and `TURSO_ORG_SLUG` because the
+token lifecycle test creates `learn-test-<uuid>`, runs against it in one process
+and one spawned server process, and deletes it in the same run.
 
 To operate on development, run the underlying script with `.env.dev`:
 

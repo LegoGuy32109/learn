@@ -81,8 +81,11 @@ Use a personal bearer token:
 Authorization: Bearer learn_pat_<prefix>_<secret>
 ```
 
-Only a SHA-256 hash of the high-entropy token is stored. Tokens have explicit
-scopes and can be expired or revoked.
+Only the prefix and a SHA-256 hash of the high-entropy token are stored. Tokens
+have explicit scopes and can be expired or revoked. `GET` routes need
+`lessons:read`; `POST` routes need `lessons:write`. Mint, list, revoke and
+rotate tokens with the `token:*` tasks described in
+`docs/implementation/token-operations.md`.
 
 ```text
 POST /api/v1/lessons
@@ -112,7 +115,8 @@ Current status meanings:
 - `200`: read or resolution succeeded.
 - `201`: draft creation request succeeded, including an idempotent retry.
 - `400`: malformed JSON.
-- `401`: missing, invalid, expired, revoked, or insufficiently scoped token.
+- `401`: missing, invalid, expired, or revoked token.
+- `403`: valid token without the scope the route requires.
 - `404`: route or owned resource not found.
 - `413`: request exceeds the size limit.
 - `422`: lesson document failed resolution.
@@ -122,7 +126,7 @@ Current status meanings:
 - The JSON Schema document and OpenAPI document are discovery skeletons, not
   complete generated contracts yet.
 - Public resolver rate limiting is not implemented.
-- Token creation and revocation have administrative scripts but no user UI.
+- Token lifecycle is operated with Deno tasks; there is no browser UI.
 - Progress synchronization is not part of this API slice.
 - Publishing, verification, and Listings are not implemented.
 

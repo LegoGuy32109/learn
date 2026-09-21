@@ -37,3 +37,36 @@ Database tests must prove scope enforcement, expiry, revocation, last-used
 updates, and non-disclosure. Include a real-process smoke that creates a token,
 uses it, revokes it, and confirms the next request fails.
 
+
+## Operations
+
+Ticket 11 implemented this workstream. The lifecycle is four Deno tasks over
+`scripts/tokens.ts`. Each prints `--help`.
+
+```bash
+deno task token:mint --name codex --scopes lessons:read,lessons:write --expires-in 90d
+deno task token:list [--all] [--json]
+deno task token:revoke --prefix <prefix>      # or --name <name>
+deno task token:rotate --prefix <prefix>      # or --name <name>
+```
+
+- A token is `learn_pat_<prefix>_<secret>`. The secret is 32 random bytes in
+  base64url; the prefix is its first ten characters. Only the prefix and the
+  SHA-256 hash of the full token are stored.
+- Names are unique among an account's active tokens, so `--name` can identify
+  a token for revoke and rotate. Known scopes are `lessons:read` and
+  `lessons:write`.
+- `list` returns name, prefix, scopes, created, last used, expiry and revoked
+  time. Revoked tokens are hidden unless `--all` is passed.
+- `rotate` mints a replacement with the same name, scopes and expiry, confirms
+  the new row by hash lookup, and only then revokes the old token. A failure
+  before confirmation leaves the old token active. The new token is printed
+  once.
+- The server answers `401` for a missing, malformed, unknown, expired or
+  revoked token and `403` for a valid token without the required scope. Both
+  outcomes update `last_used_at`.
+- `src/server/identity/redaction.ts` strips `learn_pat_…` secrets and bearer
+  header values. The request handler passes every logged error through it, and
+  the token script redacts its own error output.
+- The database holds one account today. The script picks it
+  automatically and requires `--account <id>` once more than one exists.

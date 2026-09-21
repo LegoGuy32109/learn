@@ -4,6 +4,7 @@ import type { Authenticator } from "./server/auth.ts";
 import { RejectingAuthenticator } from "./server/auth.ts";
 import type { LessonRepository } from "./server/repositories/lessons.ts";
 import { FixtureLessonRepository } from "./server/repositories/lessons.ts";
+import { redactedErrorText } from "./server/identity/redaction.ts";
 
 const fixture = JSON.parse(await Deno.readTextFile(new URL("../fixtures/lessons/browser-http-cache.json", import.meta.url)));
 const mime: Record<string, string> = { ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".json": "application/json; charset=utf-8" };
@@ -38,8 +39,10 @@ async function body(request: Request): Promise<unknown | Response> {
 }
 
 async function principal(request: Request, dependencies: Dependencies, scope: string) {
-  const authenticated = await dependencies.auth.authenticate(request, scope);
-  return authenticated ?? problem(401, "Authentication required", `Use a bearer token with the ${scope} scope.`);
+  const result = await dependencies.auth.authenticate(request, scope);
+  if (result.ok) return result.principal;
+  if (result.reason === "forbidden") return problem(403, "Insufficient scope", `This token does not have the ${scope} scope.`);
+  return problem(401, "Authentication required", "Use a valid, unexpired, unrevoked bearer token.");
 }
 
 const capabilities = {
@@ -134,7 +137,7 @@ export function createApp(dependencies: Dependencies) {
       return problem(404, "Not found", "No route matches this request.");
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) return problem(404, "Not found", error.message);
-      console.error(error);
+      console.error(redactedErrorText(error));
       return problem(500, "Internal server error", "The request could not be completed.");
     }
   };
