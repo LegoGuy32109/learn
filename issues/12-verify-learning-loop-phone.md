@@ -1,4 +1,4 @@
-# 15 — Verify the learning loop on a phone viewport
+# 12 — Verify the learning loop on a phone viewport
 
 **What to do:** Audit the learning flow independently, the way the Codex
 session audited the first milestone: drive the running app with Playwright at
@@ -27,7 +27,7 @@ light and dark schemes, and "I don't know" contained away from the screen edge.
 Attach `pageerror` and `console` listeners for the whole run. A blank panel is
 a failure.
 
-**Blocked by:** 02 — Lesson content follows the plugin model; 10 —
+**Blocked by:** 02 — Lesson content follows the plugin model; 09 —
 Every-question drill mode.
 
 **Status:** ready-for-agent

@@ -1,4 +1,4 @@
-# 07 — Installable PWA shell that reopens a cached lesson offline
+# 06 — Installable PWA shell that reopens a cached lesson offline
 
 **What to build:** Josh adds the site to his phone's home screen. With the
 network off, he opens it from the icon, sees his shelf, opens a lesson he

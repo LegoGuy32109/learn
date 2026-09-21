@@ -1,10 +1,10 @@
-# 19 — Verify spaced review across simulated days
+# Later — Verify spaced review across simulated days
 
 **What to do:** Drive the review system through weeks of simulated time and
 try to make an achievement move backward or a due date disagree between
 browser and server. Report defects as new ticket files. Do not fix anything.
 
-Scenarios, using the clock hook ticket 13 adds:
+Scenarios, using the clock hook ticket later/spaced-review adds:
 
 - Learn the demo lesson. Nothing is due the same day. Advance to the first due
   date. Exactly the due Concepts appear, with a correct count.
@@ -26,9 +26,9 @@ Scenarios, using the clock hook ticket 13 adds:
 Confirm the review draw prefers unseen Questions and falls back to the least
 recently asked. Confirm no Hard or Easy control exists in the DOM.
 
-**Blocked by:** 13 — Spaced review.
+**Blocked by:** Later — Spaced review. Both are outside this stage.
 
-**Status:** ready-for-agent
+**Status:** later — deferred with spaced review. Do not start.
 
 - [ ] Every scenario is a rerunnable test with the clock hook.
 - [ ] The browser-versus-server schedule comparison is asserted, not eyeballed.

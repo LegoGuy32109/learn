@@ -1,4 +1,4 @@
-# 08 — Phone sign-in with a passkey from a one-time invite link
+# 07 — Phone sign-in with a passkey from a one-time invite link
 
 **What to build:** Josh signs in on his phone as the owner account without
 typing a token. On his laptop an agent, or Josh, runs a script with the owner

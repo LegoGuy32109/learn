@@ -1,4 +1,4 @@
-# 09 — Mine shelf lists the account's lessons and caches them on open
+# 08 — Mine shelf lists the account's lessons and caches them on open
 
 **What to build:** An agent creates a lesson through the API on the laptop.
 Josh pulls down on his phone's shelf and the lesson appears as Not started. He
@@ -19,14 +19,14 @@ explicit confirmation and advances the progress epoch, as
 `docs/domain-model.md` requires. Nothing moves progress across revisions.
 
 Add the read routes the shelf needs. They accept the browser session cookie
-from ticket 08 as well as a bearer token.
+from ticket 07 as well as a bearer token.
 
 **Demo path:** Create a draft with curl and the owner token. Refresh the phone
 shelf and see it. Open it, then go offline and complete the first Concept.
 Create a second revision with curl. Come back online and see Outdated, keep
 the old revision, then discard and start the new one.
 
-**Blocked by:** 02 — Lesson content follows the plugin model; 08 — Phone
+**Blocked by:** 02 — Lesson content follows the plugin model; 07 — Phone
 sign-in with a passkey from a one-time invite link.
 
 **Status:** ready-for-agent

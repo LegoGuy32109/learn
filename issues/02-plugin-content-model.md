@@ -31,10 +31,34 @@ The rules that the plugin's `SKILL.md` lists under "Rules that are not yours to
 relax" apply to the learning shell. Never show a score, streak, difficulty,
 time estimate or the word mastery.
 
+Also port the plugin validator's author-quality rules in the same slice, so the
+resolution API and the downloaded validator return them as diagnostics. Each rule is a diagnostic with a stable code, a
+JSON Pointer path and a severity:
+
+- Card word count outside 120 to 200 (error). Count words after stripping
+  inline HTML tags.
+- Option length ratio within a Concept's set above 1.35 (error).
+- Key is the longest option in more than one third of MCQs, lesson-wide
+  (error). Never per Question; see the note in the plugin validator.
+- Stem contains an unbound reference such as "the second", "the above" or
+  "this approach" (error).
+- Numeric answer appears in no Card of its Concept (error).
+- Numeric Question has no tolerance (error).
+- Fewer than three drawable Questions in a Pool (error).
+- Single-paragraph Card (warning).
+
+Warnings return with `valid: true`. Errors return `422` from the API.
+
+Make validator parity a test: for every fixture, the generated validator file
+and the shared resolver return byte-equivalent result JSON. Add adversarial
+fixtures: the size limit, deep nesting, duplicate IDs, prototype-key names and
+each new rule.
+
 **Demo path:** On a phone viewport, start the demo lesson, pick a wrong option
 in a Concept Check, and see the belief behind it plus the clamped correcting
 Card. Continue to the Wrap-up and see a Question the Checks did not show. Reach
-Learned.
+Learned. Then POST a lesson whose Card is 90 words and whose key is always
+the longest option and get `422` with two diagnostics.
 
 **Blocked by:** 01 — Split the browser app and server routes into domain modules.
 
@@ -55,7 +79,17 @@ Learned.
 - [ ] The Concept Check never draws a reserved Question. The Wrap-up draws a
       reserved Question for every Concept.
 - [ ] Reloading during feedback restores the same feedback, belief and Card.
-- [ ] The downloadable validator is regenerated and matches the resolver.
+- [ ] Every rule above has a diagnostic code, and a fixture that triggers only
+      that rule.
+- [ ] Diagnostics are ordered deterministically: by path, then code.
+- [ ] A lesson with only warnings resolves `valid: true` and includes them.
+- [ ] The parity test runs the generated validator in a real subprocess from a
+      temporary directory, with no network, and compares result JSON to the
+      shared resolver byte for byte.
+- [ ] Adversarial fixtures for size, nesting, duplicate IDs and prototype keys
+      are rejected without a crash or a hang.
+- [ ] `deno task tools:generate` leaves no diff, and the full check and test
+      suites pass.
 - [ ] Unit tests cover the new resolver rules and the reserved-draw rule. The
       phone-sized browser happy path passes with the new demo lesson.
 

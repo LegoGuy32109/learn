@@ -1,4 +1,4 @@
-# 14 — API-token lifecycle: mint, list, revoke, rotate, scope errors
+# 11 — API-token lifecycle: mint, list, revoke, rotate, scope errors
 
 **What to build:** Josh gives each agent harness its own named token and can
 take one away without touching the others. This is Workstream D in

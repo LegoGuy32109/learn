@@ -1,4 +1,4 @@
-# 04 — Complete JSON Schema, OpenAPI and diagnostic-code documentation
+# 03 — Complete JSON Schema, OpenAPI and diagnostic-code documentation
 
 **What to build:** An agent that has never seen this repository can read the
 discovery documents alone and author a valid lesson on the first or second
@@ -22,7 +22,7 @@ fixture must fail both.
 **Demo path:** Give a fresh agent only the capability document URL. It fetches
 the schema and OpenAPI, writes a lesson, and the resolution API accepts it.
 
-**Blocked by:** 03 — Author-quality diagnostics ported from the plugin validator.
+**Blocked by:** 02 — Lesson content follows the plugin model.
 
 **Status:** ready-for-agent
 

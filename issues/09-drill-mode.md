@@ -1,4 +1,4 @@
-# 10 — Every-question drill mode that never awards Learned
+# 09 — Every-question drill mode that never awards Learned
 
 **What to build:** From a lesson's overview, Josh chooses "Every question" and
 answers every Question in every Pool, reserved ones included, in a random

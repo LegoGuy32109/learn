@@ -1,4 +1,4 @@
-# 05 — Installable agent plugin served by the site
+# 04 — Installable agent plugin served by the site
 
 **What to build:** An agent in any Claude Code session can install a plugin
 from learn.joshhale.me and use one skill to turn the work it just did into a
@@ -21,15 +21,16 @@ resolve against the API, create the draft, report the URL. Provenance is
 required; the skill fills client, harness, model, client version and a session
 reference, using `unknown` where the harness exposes nothing.
 
-The token comes from an environment variable the skill names. The skill never
-prints it and never writes it into the lesson or a log.
+The token comes from the `LEARN_TOKEN` environment variable. The skill never
+prints it and never writes it into the lesson or a log. The plugin is served
+from the site only; do not add it to any other marketplace in this stage.
 
 **Demo path:** In a fresh Claude Code session in another repository, install
 the plugin from the site, ask for a lesson on the diff just written, and get
-back a URL that opens the new lesson's overview once ticket 09 lands. Until
+back a URL that opens the new lesson's overview once ticket 08 lands. Until
 then, the API returns the created revision.
 
-**Blocked by:** 04 — Complete JSON Schema, OpenAPI and diagnostic-code
+**Blocked by:** 03 — Complete JSON Schema, OpenAPI and diagnostic-code
 documentation.
 
 **Status:** ready-for-agent

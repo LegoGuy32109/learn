@@ -1,4 +1,4 @@
-# 18 — Verify cross-device sync
+# 15 — Verify cross-device sync
 
 **What to do:** Try to lose or duplicate progress. Use two or three isolated
 browser contexts for one account against a local server on an ephemeral
@@ -27,7 +27,7 @@ Scenarios:
 Inspect the database directly after each scenario: event counts, epochs, and
 that no navigation event references a smaller frontier than the one chosen.
 
-**Blocked by:** 12 — Client progress sync.
+**Blocked by:** 10 — Client progress sync.
 
 **Status:** ready-for-agent
 

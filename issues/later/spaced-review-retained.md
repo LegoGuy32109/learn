@@ -1,4 +1,4 @@
-# 13 — Spaced review: due Concepts on the shelf, review flow, Retained
+# Later — Spaced review: due Concepts on the shelf, review flow, Retained
 
 **What to build:** A few days after Josh learns a lesson, his shelf shows a
 "Due today" section with a count. He taps it and answers one Question per due
@@ -31,10 +31,10 @@ events with a `review` flow kind, so deleting it and replaying reproduces it.
 See three due Concepts on the shelf. Answer two right and one wrong. See two
 Concepts Retained, the third due sooner, and the lesson not yet Retained.
 
-**Blocked by:** 09 — Mine shelf lists the account's lessons and caches them on
-open; 12 — Client progress sync.
+**Blocked by:** 08 — Mine shelf lists the account's lessons and caches them on
+open; 10 — Client progress sync.
 
-**Status:** ready-for-agent
+**Status:** later — Josh deferred spaced review on 2026-09-21. Do not start.
 
 - [ ] The scheduler module produces the same next-due date in the browser and
       on the server for the same inputs. A unit test asserts that.
@@ -44,7 +44,7 @@ open; 12 — Client progress sync.
       Concept is due. A lesson with no due Concepts shows none.
 - [ ] Retained follows the rules above, including that a failure never clears
       `retained_at` and a not-yet-due success never sets it.
-- [ ] Review events sync through the outbox from ticket 12 and both devices
+- [ ] Review events sync through the outbox from ticket 10 and both devices
       compute the same schedule after merge.
 - [ ] Deleting the scheduling projection and replaying events reproduces it.
 - [ ] A phone-sized Playwright test passes the demo path with the clock hook.

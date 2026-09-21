@@ -1,4 +1,4 @@
-# 16 — Verify the authoring contract and the plugin end to end
+# 13 — Verify the authoring contract and the plugin end to end
 
 **What to do:** Act as a stranger's agent. Start from nothing but the
 capability document URL and the site's install page. Install the plugin as the
@@ -32,8 +32,8 @@ server exposes.
 Search the repository the skill ran in, the skill's output and the shell
 history for the bearer token.
 
-**Blocked by:** 04 — Complete JSON Schema, OpenAPI and diagnostic-code
-documentation; 05 — Installable agent plugin served by the site.
+**Blocked by:** 03 — Complete JSON Schema, OpenAPI and diagnostic-code
+documentation; 04 — Installable agent plugin served by the site.
 
 **Status:** ready-for-agent
 
