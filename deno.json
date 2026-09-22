@@ -13,11 +13,37 @@
     "token:revoke": "deno run --env-file=.env --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN --allow-net --allow-read scripts/tokens.ts revoke",
     "token:rotate": "deno run --env-file=.env --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN --allow-net --allow-read scripts/tokens.ts rotate",
     "tools:generate": "deno run --allow-read --allow-write scripts/generate-tools.ts",
-    "test:db": "deno test --env-file=.env --allow-env --allow-net --allow-read --allow-run tests/db"
+    "test:db": "deno test --env-file=.env --allow-env --allow-net --allow-read --allow-run tests/db",
+    "db:provision:prod": "deno run --env-file=.env --allow-env=TURSO_API_KEY,TURSO_ORG_SLUG --allow-net --allow-read --allow-write scripts/provision-production.ts",
+    "db:migrate:prod": "deno run --env-file=.env.prod --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN --allow-net --allow-read scripts/migrate.ts",
+    "db:owner:prod": "deno run --env-file=.env.prod --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN --allow-net --allow-read --allow-write scripts/bootstrap-owner.ts --env-path=.env.prod",
+    "db:seed:prod": "deno run --env-file=.env.prod --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN --allow-net --allow-read scripts/seed-demo.ts",
+    "deploy:env": "deno run --env-file=.env -A --no-lock scripts/set-deploy-env.ts Production --from=.env.prod && deno run --env-file=.env -A --no-lock scripts/set-deploy-env.ts Preview --from=.env.dev && deno run --env-file=.env -A --no-lock scripts/set-deploy-env.ts Local --from=.env",
+    "deploy": "deno run --env-file=.env --allow-env --allow-run=deno --allow-read scripts/deploy.ts",
+    "smoke:prod": "deno run --env-file=.env.prod --allow-env=LEARN_BASE_URL,LEARN_OWNER_TOKEN --allow-net --allow-read scripts/smoke-prod.ts"
   },
   "imports": {
     "@playwright/test": "npm:@playwright/test@1.63.0",
     "@tursodatabase/serverless/compat": "npm:@tursodatabase/serverless@1.4.0/compat"
   },
-  "compilerOptions": { "lib": ["deno.ns", "dom", "dom.iterable"], "noImplicitAny": false }
+  "compilerOptions": { "lib": ["deno.ns", "dom", "dom.iterable"], "noImplicitAny": false },
+  "deploy": {
+    "org": "legoguy32109",
+    "app": "learn-joshhale",
+    "runtime": {
+      "type": "dynamic",
+      "entrypoint": "./main.ts"
+    },
+    "exclude": [
+      ".env",
+      ".env.*",
+      "tests",
+      "docs",
+      "issues",
+      "briefs",
+      "playwright-report",
+      "test-results",
+      "backups"
+    ]
+  }
 }
