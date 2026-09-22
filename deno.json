@@ -6,6 +6,7 @@
     "e2e": "deno test --allow-all tests/e2e",
     "audit:phone": "deno test --allow-all tests/audit",
     "audit:prod": "deno test --allow-all tests/audit-prod",
+    "audit:golden": "deno test --allow-all tests/audit-golden",
     "audit:contract": "deno test --allow-read --allow-write --allow-run=deno --allow-net --allow-env=LEARN_TOKEN,LEARN_OWNER_TOKEN,LEARN_BASE_URL tests/audit/contract-attacks/contract_attacks_test.ts",
     "db:provision": "deno run --env-file=.env --allow-env=TURSO_API_KEY,TURSO_ORG_SLUG --allow-net --allow-read --allow-write scripts/provision-databases.ts",
     "db:migrate": "deno run --env-file=.env --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN --allow-net --allow-read scripts/migrate.ts",
