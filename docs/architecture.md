@@ -84,7 +84,7 @@ browser under `/src/client/` and `/src/shared/`; `src/server` is never served.
 No browser module is duplicated into `public/js`.
 
 Server routes are grouped by domain in `src/server/routes` (`pages`,
-`discovery`, `lessons`, `assets`). Each group exports a function returning
+`discovery`, `lessons`, `pwa`, `assets`). Each group exports a function returning
 `Route` values; `src/app.ts` only composes them and maps errors to problem
 responses.
 
@@ -106,8 +106,20 @@ projection tables can be added if later discovery or reporting needs them.
 
 IndexedDB is the browser source for cached Lesson Revisions, immutable events,
 and rebuildable projections. Opened lessons will eventually cache
-automatically. A later service worker caches only the versioned shell and
-static assets; lesson content and progress remain in IndexedDB.
+automatically. The service worker caches only the versioned shell and static
+assets; lesson content and progress remain in IndexedDB.
+
+The shell is one versioned unit. `src/server/build.ts` hashes every static
+file the browser needs (stylesheets, entry modules, `src/client`, `src/shared`,
+icons, manifest) together with the lesson-free HTML shell at `/shell`. The
+server renders `src/client/pwa/sw.js` with that hash and precache list, so a
+changed asset changes the worker, and the new worker opens
+`learn-shell-<hash>` and deletes every older shell cache when it activates.
+The worker never stores a `/api/` response or a mutation. A page load goes to
+the network first and falls back to the cached `/shell`; the boot module then
+reads the lesson from IndexedDB. A waiting update shows "Update ready" only
+between Questions (`src/client/pwa/update-policy.js`) and activates when the
+learner chooses Reload.
 
 Guest progress is authoritative locally. An account later adds cross-device
 sync by accepting the idempotent union of immutable UUIDv4 events. A progress

@@ -30,8 +30,8 @@ follows the quiz plugin copied at `docs/reference/quiz-plugin-0.2.0/`.
 - Earned progress never moves backward.
 - Learning evidence and navigation position are replayable data, not UI-only
   state.
-- Offline learning is a requirement, but the first milestone implements only
-  the IndexedDB foundation. A service worker comes later.
+- Offline learning is a requirement. IndexedDB holds lesson content and
+  progress; a service worker caches only the versioned application shell.
 - Copy conventions from `/home/josh/Projects/painting`; do not copy its code.
 
 ## Current state
@@ -48,6 +48,7 @@ deployed on Deno Deploy at `https://learn-joshhale.legoguy32109.deno.net`, and
 
 The next coordinated stage is defined in `docs/implementation/README.md`. It
 hardens the authoring contract and adds progress synchronization and token
-operations. Library Listings, publication, verification, FSRS scheduling,
-activity tracking, passkey account creation, and a service worker remain later
-work.
+operations. The site installs as a PWA: a web app manifest and a service worker that
+precaches the versioned shell, so an opened lesson reopens offline from
+IndexedDB. Library Listings, publication, verification, FSRS scheduling,
+activity tracking, and passkey account creation remain later work.

@@ -10,6 +10,7 @@ import { pageRoutes } from "./server/routes/pages.ts";
 import { discoveryRoutes } from "./server/routes/discovery.ts";
 import { lessonRoutes } from "./server/routes/lessons.ts";
 import { assetRoutes } from "./server/routes/assets.ts";
+import { pwaRoutes } from "./server/routes/pwa.ts";
 
 export type { Dependencies };
 
@@ -18,6 +19,7 @@ export function createApp(dependencies: Dependencies) {
     ...pageRoutes(dependencies),
     ...discoveryRoutes(),
     ...lessonRoutes(dependencies),
+    ...pwaRoutes(dependencies),
     ...assetRoutes(),
   ];
   return async function handler(request: Request): Promise<Response> {

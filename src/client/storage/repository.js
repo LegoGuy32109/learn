@@ -44,6 +44,12 @@ export const localRepository = {
     if (found) return;
     await done(objectStore(db, "lessons", "readwrite").put({ id: lesson.revisionId, lesson }));
   },
+  /** Every cached Lesson Revision, for a launch with no network and no inlined lesson. */
+  async lessons() {
+    const db = await open();
+    const records = /** @type {any[]} */ (await done(objectStore(db, "lessons", "readonly").getAll()));
+    return records.map((record) => record.lesson);
+  },
   /** @param {string} id */
   async lesson(id) {
     const db = await open();
