@@ -1,7 +1,5 @@
 {
   "schema": "lesson/v1",
-  "lessonId": "7a1f7700-0000-4000-8000-000000000001",
-  "revisionId": "7a1f7700-0000-4000-8000-000000000002",
   "schemaVersion": 1,
   "title": "How browser HTTP caching works",
   "assumedKnowledge": "You can read HTTP request and response headers.",
@@ -220,8 +218,7 @@
       },
       "feedback": {
         "reuse": "Correct. At 20 seconds of a 60-second lifetime the response is fresh, and freshness is permission to reuse without asking.",
-        "revalidate": "Validation is for stale responses. This one is still fresh, so the origin told the cache not to ask yet.",
-        "refetch": "Nothing forbids serving the stored copy. Freshness does not claim the origin is unchanged; it grants reuse anyway."
+        "revalidate": "Validation is for stale responses. This one is still fresh, so the origin told the cache not to ask yet."
       }
     },
     {

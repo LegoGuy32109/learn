@@ -13,7 +13,7 @@ import {
   stepBack,
   submitAnswer,
 } from "../../src/client/learning/flow.js";
-import { footerView, railView, regionView } from "../../src/client/learning/views.js";
+import { afterFooterView, footerView, railView, regionView } from "../../src/client/learning/views.js";
 import { CLOSE, backButton, bind, icon } from "../../src/client/ui/controls.js";
 
 /** @typedef {import("../../src/client/learning/session.js").Session} Session */
@@ -51,7 +51,8 @@ export function renderLearning(root, session, progress, nav) {
   const header = `<header class="shellhead">${backButton("back", "Back")}<h1>${lesson.title}</h1>${close}</header>`;
   const region = `<main class="region">${regionView(lesson, flow, concept, item)}</main>`;
   const footer = `<footer class="footer">${footerView(flow)}</footer>`;
-  root.innerHTML = `<section class="shell">${header}${railView(lesson, flow, progress)}${region}${footer}</section>`;
+  const corrects = afterFooterView(lesson, flow);
+  root.innerHTML = `<section class="shell">${header}${railView(lesson, flow, progress)}${region}${footer}${corrects}</section>`;
   bind(root, (action) => handle(action, session, nav), (answer) => submit(session, nav, answer, false));
 }
 

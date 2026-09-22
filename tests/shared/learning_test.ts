@@ -9,10 +9,20 @@ import { advanceCheck, advanceWrapUp } from "../../src/shared/learning/transitio
 
 Deno.test("demo fixture satisfies structural invariants", () => assertEquals(validateLesson(lesson), []));
 Deno.test("answer evaluation is exact and normalized", () => {
-  assert(evaluateAnswer(lesson.questions[0], "a")); assert(!evaluateAnswer(lesson.questions[0], "b"));
-  assert(evaluateAnswer(lesson.questions[2], "  THE   AGE HEADER ")); assert(!evaluateAnswer(lesson.questions[2], "ages"));
-  assert(evaluateAnswer(lesson.questions[1], "60.0")); assert(!evaluateAnswer(lesson.questions[1], "60 seconds"));
+  const [mcq, numeric, short] = lesson.questions as any[];
+  assertEquals(mcq.type, "mcq"); assertEquals(numeric.type, "numeric"); assertEquals(short.type, "short");
+  assert(evaluateAnswer(lesson, mcq, mcq.key)); assert(!evaluateAnswer(lesson, mcq, "revalidate")); assert(!evaluateAnswer(lesson, mcq, "not-an-option"));
+  assert(evaluateAnswer(lesson, short, "  THE   AGE HEADER ")); assert(evaluateAnswer(lesson, short, "age")); assert(!evaluateAnswer(lesson, short, "ages"));
+  assert(evaluateAnswer(lesson, numeric, "180.0")); assert(evaluateAnswer(lesson, numeric, "184")); assert(!evaluateAnswer(lesson, numeric, "186")); assert(!evaluateAnswer(lesson, numeric, "180 seconds"));
   assertEquals(canonicalize(" A\u00a0 B "), "a b");
+});
+Deno.test("MCQ keys point at the shared option set and the key moves across a Concept's MCQs", () => {
+  for (const concept of lesson.concepts as any[]) {
+    assertEquals(concept.options.length, 3);
+    const mcqs = lesson.questions.filter((question: any) => question.conceptId === concept.id && question.type === "mcq") as any[];
+    for (const question of mcqs) assert(concept.options.some((option: any) => option.id === question.key));
+    assert(new Set(mcqs.map((question) => question.key)).size > 1, `${concept.title}: the key never moves`);
+  }
 });
 Deno.test("progress reducer is monotonic and derives learned", () => {
   const events:any[]=[{type:"lesson_started"}];

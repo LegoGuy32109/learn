@@ -9,11 +9,21 @@
   references, author-at-creation, provenance, schema version, and fingerprint.
 - **Concept**: The unit of checking, learning, and later retention. It contains
   at least two Cards and one or more Question Pools.
-- **Card**: One teaching idea. A Card becomes Seen only when the learner chooses
-  Continue.
+- **Card**: One teaching idea, written as an array of paragraphs of 120 to 200
+  words in total. A Card becomes Seen only when the learner chooses Continue.
+  Shown as a correction, a Card is clamped to its first paragraph.
+- **Option set**: Exactly three options with stable IDs, owned by a Concept and
+  shared by every MCQ in it. Each MCQ names its key, so the key moves and the
+  options do not.
+- **Misconception**: A belief, written as the belief itself, owned by a Concept
+  and corrected by a Card in the same Concept. Every MCQ distractor maps to
+  one misconception.
 - **Question**: An MCQ, numeric, or short-answer prompt in a Pool. Use
-  `Question`, not `Item`, in code, APIs, and UI.
-- **Pool**: Interchangeable Questions that probe one Concept.
+  `Question`, not `Item`, in code, APIs, and UI. A Question may be `reserved`:
+  Checks never draw it, so the Wrap-up can ask something unseen. A numeric
+  Question is never reserved.
+- **Pool**: Interchangeable Questions that probe one Concept: at least three
+  drawable and one reserved.
 - **Library Listing**: A future mutable discovery record that points to one
   published Lesson Revision. Its database table is `listings`. It owns display
   title, description, tags, categories, discovery state, promotional state, and
@@ -80,11 +90,13 @@ must allow a future server to give another device the exact resume position.
 
 ## Checks and Wrap-up
 
-At the end of each Concept, run a formative Check from that Concept's Pool.
+At the end of each Concept, run a formative Check from that Concept's
+drawable Questions. Reserved Questions are never drawn.
 
-- Correct: show feedback, then continue.
-- Incorrect: show misconception feedback and offer an unseen Question from the
-  same Concept.
+- Correct: show the key's feedback, then continue. Never auto-advance.
+- Incorrect: show the chosen option's feedback, the belief behind that option,
+  and the correcting Card clamped to its first paragraph with the action
+  button above it, then offer an unseen Question from the same Concept.
 - Repeated incorrect answers: continue through unseen Questions until correct
   or the Pool is exhausted. If exhausted, show the correcting Card and continue
   to the next Concept.
@@ -92,8 +104,8 @@ At the end of each Concept, run a formative Check from that Concept's Pool.
   link to the correcting Card, and end that Concept's Check for the current
   lesson pass.
 
-After all Cards, the Wrap-up selects one Question per Concept, unseen where
-possible. Incorrect answers return later in a shuffled queue. Each Concept
+After all Cards, the Wrap-up selects one Question per Concept, drawing
+reserved Questions first so the learner meets one the Checks never showed. Incorrect answers return later in a shuffled queue. Each Concept
 becomes Learned after its Wrap-up Question is answered correctly. The Lesson is
 Learned when all Concepts are Learned.
 
@@ -103,9 +115,9 @@ seed.
 
 ## Answer evaluation
 
-- **MCQ**: Store stable option IDs. Shuffle display order deterministically and
-  evaluate the chosen ID.
-- **Numeric**: Declare an answer, optional absolute tolerance, and optional
+- **MCQ**: Store stable option IDs from the Concept's shared set. Shuffle
+  display order deterministically and compare the chosen ID with the key.
+- **Numeric**: Declare an answer, a non-zero absolute tolerance, and optional
   display unit. Parse a locale-independent decimal. Do not convert units.
 - **Short answer**: Compare the canonical answer and declared aliases after
   Unicode normalization, trimming, whitespace collapse, and case folding. Do

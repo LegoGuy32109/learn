@@ -1,7 +1,5 @@
 {
   "schema": "lesson/v1",
-  "lessonId": "7a1f7700-0000-4000-8000-000000000001",
-  "revisionId": "7a1f7700-0000-4000-8000-000000000002",
   "schemaVersion": 1,
   "title": "How browser HTTP caching works",
   "assumedKnowledge": "You can read HTTP request and response headers.",
@@ -213,10 +211,11 @@
       "reserved": false,
       "stem": "A browser holds a stored response with Cache-Control: max-age=60 and a current age of 20 seconds. A matching request arrives. What may the cache do?",
       "correctingCardId": "7a1f7700-0000-4000-8000-000000000111",
-      "key": "reuse",
+      "key": "nope",
       "map": {
         "revalidate": "validate_every_time",
-        "refetch": "fresh_means_newest"
+        "refetch": "fresh_means_newest",
+        "reuse": "validate_every_time"
       },
       "feedback": {
         "reuse": "Correct. At 20 seconds of a 60-second lifetime the response is fresh, and freshness is permission to reuse without asking.",

@@ -1,7 +1,5 @@
 {
   "schema": "lesson/v1",
-  "lessonId": "7a1f7700-0000-4000-8000-000000000001",
-  "revisionId": "7a1f7700-0000-4000-8000-000000000002",
   "schemaVersion": 1,
   "title": "How browser HTTP caching works",
   "assumedKnowledge": "You can read HTTP request and response headers.",
@@ -122,7 +120,7 @@
       ],
       "cards": [
         {
-          "id": "7a1f7700-0000-4000-8000-000000000121",
+          "id": "7a1f7700-0000-4000-8000-000000000111",
           "heading": "Validators name a version",
           "body": [
             "A validator is a label for one exact version of a resource. <code>ETag: \"v7\"</code> is an opaque token the origin chooses; <code>Last-Modified</code> is a timestamp. Either one lets two parties agree on which bytes they are talking about without sending the bytes.",

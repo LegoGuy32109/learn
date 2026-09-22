@@ -8,12 +8,17 @@ export function canonicalize(value) {
 const DECIMAL = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/;
 
 /**
+ * Decide whether a submitted answer is correct. MCQ answers are option IDs from the Concept's
+ * shared option set and are compared with the Question's key.
+ * @param {any} lesson
  * @param {any} question
  * @param {unknown} answer
  */
-export function evaluateAnswer(question, answer) {
+export function evaluateAnswer(lesson, question, answer) {
   if (question.type === "mcq") {
-    return question.options.some((option) => option.id === answer && option.correct);
+    const concept = lesson.concepts.find((/** @type {any} */ candidate) => candidate.id === question.conceptId);
+    const known = concept?.options.some((/** @type {any} */ option) => option.id === answer) ?? false;
+    return known && answer === question.key;
   }
   if (question.type === "numeric") {
     if (typeof answer !== "string" && typeof answer !== "number") return false;

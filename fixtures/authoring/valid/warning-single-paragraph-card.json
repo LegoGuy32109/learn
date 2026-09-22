@@ -1,7 +1,5 @@
 {
   "schema": "lesson/v1",
-  "lessonId": "7a1f7700-0000-4000-8000-000000000001",
-  "revisionId": "7a1f7700-0000-4000-8000-000000000002",
   "schemaVersion": 1,
   "title": "How browser HTTP caching works",
   "assumedKnowledge": "You can read HTTP request and response headers.",
@@ -68,9 +66,7 @@
           "id": "7a1f7700-0000-4000-8000-000000000111",
           "heading": "A fresh response can be reused",
           "body": [
-            "While a stored response is fresh, a cache may serve it to a matching request without contacting the origin at all. That is the whole point of freshness: it is a permission to reuse, granted in advance by the server, so the browser can answer from disk in a few milliseconds instead of waiting on a round trip.",
-            "Freshness is not a promise that the bytes are the newest ones on the origin. The server might have replaced the resource a second after it was stored. The cache has no way to know, and it is not expected to know. The origin accepted that risk when it declared a freshness lifetime with <code>Cache-Control: max-age=60</code>, which says: for 60 seconds, do not ask me.",
-            "So the question a cache asks is never <em>has this changed?</em> It is <em>am I still allowed to reuse this?</em> A fresh response answers yes."
+            "While a stored response is fresh, a cache may serve it to a matching request without contacting the origin at all. That is the whole point of freshness: it is a permission to reuse, granted in advance by the server, so the browser can answer from disk in a few milliseconds instead of waiting on a round trip. Freshness is not a promise that the bytes are the newest ones on the origin. The server might have replaced the resource a second after it was stored. The cache has no way to know, and it is not expected to know. The origin accepted that risk when it declared a freshness lifetime with <code>Cache-Control: max-age=60</code>, which says: for 60 seconds, do not ask me. So the question a cache asks is never <em>has this changed?</em> It is <em>am I still allowed to reuse this?</em> A fresh response answers yes."
           ]
         },
         {

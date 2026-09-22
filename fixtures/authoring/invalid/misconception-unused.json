@@ -1,7 +1,5 @@
 {
   "schema": "lesson/v1",
-  "lessonId": "7a1f7700-0000-4000-8000-000000000001",
-  "revisionId": "7a1f7700-0000-4000-8000-000000000002",
   "schemaVersion": 1,
   "title": "How browser HTTP caching works",
   "assumedKnowledge": "You can read HTTP request and response headers.",
@@ -60,6 +58,11 @@
         {
           "id": "stale_still_reusable",
           "statement": "A stale response can keep being served exactly like a fresh one until the cache needs the space.",
+          "correctingCardId": "7a1f7700-0000-4000-8000-000000000112"
+        },
+        {
+          "id": "unused_belief",
+          "statement": "Caches ignore Age entirely.",
           "correctingCardId": "7a1f7700-0000-4000-8000-000000000112"
         }
       ],

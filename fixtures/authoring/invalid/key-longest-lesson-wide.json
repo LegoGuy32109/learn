@@ -1,7 +1,5 @@
 {
   "schema": "lesson/v1",
-  "lessonId": "7a1f7700-0000-4000-8000-000000000001",
-  "revisionId": "7a1f7700-0000-4000-8000-000000000002",
   "schemaVersion": 1,
   "title": "How browser HTTP caching works",
   "assumedKnowledge": "You can read HTTP request and response headers.",
@@ -30,7 +28,7 @@
       "options": [
         {
           "id": "reuse",
-          "text": "Reuse the stored response without contacting the origin at all."
+          "text": "Reuse the stored response immediately without contacting the origin server at all."
         },
         {
           "id": "revalidate",
@@ -149,7 +147,7 @@
       "options": [
         {
           "id": "never_store",
-          "text": "Do not keep any copy of the response in the cache, not even briefly."
+          "text": "Do not keep any copy of the response anywhere in the cache, not even briefly."
         },
         {
           "id": "serve_for_lifetime",

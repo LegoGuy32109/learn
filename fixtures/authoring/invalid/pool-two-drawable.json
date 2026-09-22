@@ -1,7 +1,5 @@
 {
   "schema": "lesson/v1",
-  "lessonId": "7a1f7700-0000-4000-8000-000000000001",
-  "revisionId": "7a1f7700-0000-4000-8000-000000000002",
   "schemaVersion": 1,
   "title": "How browser HTTP caching works",
   "assumedKnowledge": "You can read HTTP request and response headers.",
@@ -236,21 +234,6 @@
       "tolerance": 5,
       "unit": "seconds",
       "feedback": "180 seconds. Current age already stands at 120 of the 300-second lifetime, because the clock started at the origin."
-    },
-    {
-      "id": "7a1f7700-0000-4000-8000-000000000313",
-      "conceptId": "7a1f7700-0000-4000-8000-000000000011",
-      "poolId": "7a1f7700-0000-4000-8000-000000000211",
-      "type": "short",
-      "reserved": false,
-      "stem": "Which response header carries the number of seconds a response has already spent in caches?",
-      "correctingCardId": "7a1f7700-0000-4000-8000-000000000112",
-      "answer": "Age",
-      "aliases": [
-        "age header",
-        "the age header"
-      ],
-      "feedback": "Age. It counts seconds since the origin generated the response, and each cache passes it downstream."
     },
     {
       "id": "7a1f7700-0000-4000-8000-000000000314",
