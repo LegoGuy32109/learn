@@ -3,22 +3,48 @@
 // It fetches the shell, the capability document, the lesson schema and the
 // downloadable validator, resolves the demo fixture without persistence, and
 // lists lessons with the production owner token. It prints one line per check
-// and never prints a token.
+// and never prints a token. On a failure it prints the status, the serving
+// revision from the `x-learn-revision` header and the response body.
+//
+// The owner token comes from the `.env.prod` file itself, never from the
+// process environment. `--env-file` does not override a variable the parent
+// process already set, so a caller that loaded `.env` (for example
+// `deno task deploy`) would otherwise hand this script the local owner token,
+// which production rejects with 401. Ticket 16 has the evidence.
 //
 // Usage: deno task smoke:prod
-// Environment: LEARN_OWNER_TOKEN (required), LEARN_BASE_URL (optional)
+// Environment: LEARN_BASE_URL (optional). File: .env.prod (LEARN_OWNER_TOKEN)
+
+import { parse } from "jsr:@std/dotenv@0.225.8/parse";
+import { redactBearerTokens } from "../src/server/identity/redaction.ts";
+
+const REVISION_HEADER = "x-learn-revision";
+const BODY_LIMIT = 2000;
 
 const base = (Deno.env.get("LEARN_BASE_URL") ?? "https://learn-joshhale.legoguy32109.deno.net").replace(/\/$/, "");
-const ownerToken = Deno.env.get("LEARN_OWNER_TOKEN");
-if (!ownerToken) throw new Error("LEARN_OWNER_TOKEN must be set; load .env.prod");
 if (!base.startsWith("https://")) throw new Error(`LEARN_BASE_URL must use https, got ${base}`);
+
+const envPath = new URL("../.env.prod", import.meta.url);
+const ownerToken = parse(await Deno.readTextFile(envPath)).LEARN_OWNER_TOKEN;
+if (!ownerToken) throw new Error("LEARN_OWNER_TOKEN is missing from .env.prod; run deno task db:owner:prod");
+if (Deno.env.get("LEARN_OWNER_TOKEN") && Deno.env.get("LEARN_OWNER_TOKEN") !== ownerToken) {
+  console.log("NOTE the environment carries a different LEARN_OWNER_TOKEN; the smoke uses the one in .env.prod");
+}
 
 const fixture = JSON.parse(await Deno.readTextFile(new URL("../fixtures/lessons/browser-http-cache.json", import.meta.url)));
 const failures: string[] = [];
+const revisions = new Set<string>();
 
 function report(name: string, ok: boolean, detail: string): void {
   console.log(`${ok ? "PASS" : "FAIL"} ${name}: ${detail}`);
   if (!ok) failures.push(name);
+}
+
+/** Everything the next person needs to see about a failed response, with any token removed. */
+function describe(response: Response, text: string): string {
+  const revision = response.headers.get(REVISION_HEADER) ?? "(no revision header)";
+  const body = text.length > BODY_LIMIT ? `${text.slice(0, BODY_LIMIT)}… (${text.length} bytes)` : text;
+  return redactBearerTokens(`\n  status ${response.status}\n  revision ${revision}\n  body ${body}`);
 }
 
 // The first request after a deploy can reach a cold isolate. One retry after a
@@ -30,11 +56,14 @@ async function check(name: string, path: string, init: RequestInit, expect: (res
     try {
       const response = await fetch(`${base}${path}`, init);
       const text = await response.text();
+      const revision = response.headers.get(REVISION_HEADER);
+      if (revision) revisions.add(revision);
       problem = expect(response, text);
       if (problem === null) {
         report(name, true, `${response.status} ${path}${attempt > 1 ? " (after one retry)" : ""}`);
         return;
       }
+      problem = `${path} ${problem}${describe(response, text)}`;
     } catch (error) {
       problem = `${path} threw ${error instanceof Error ? error.message : String(error)}`;
     }
@@ -89,8 +118,9 @@ await check("list lessons", "/api/v1/lessons", {
   return body.revisions.some((revision: any) => revision.status === "published") ? null : "no published demo revision is listed";
 });
 
+const served = revisions.size ? [...revisions].join(", ") : "(no revision header seen)";
 if (failures.length) {
-  console.error(`Smoke failed: ${failures.join(", ")}`);
+  console.error(`Smoke failed: ${failures.join(", ")} (served by revision ${served})`);
   Deno.exit(1);
 }
-console.log(`Smoke passed against ${base}`);
+console.log(`Smoke passed against ${base} (served by revision ${served})`);

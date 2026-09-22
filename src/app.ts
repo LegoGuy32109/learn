@@ -30,17 +30,38 @@ export function composeRoutes(dependencies: Dependencies) {
   ];
 }
 
+/** The response header that names the revision which served a request. */
+export const REVISION_HEADER = "x-learn-revision";
+
+/** Set the revision header, copying the response when its headers are immutable. */
+function withRevision(response: Response, revision: string): Response {
+  try {
+    response.headers.set(REVISION_HEADER, revision);
+    return response;
+  } catch {
+    const copy = new Response(response.body, response);
+    copy.headers.set(REVISION_HEADER, revision);
+    return copy;
+  }
+}
+
 export function createApp(dependencies: Dependencies) {
+  const revision = dependencies.revision ?? "local";
   const routes = composeRoutes(dependencies);
-  return async function handler(request: Request): Promise<Response> {
+  async function respond(request: Request): Promise<Response> {
     try {
       const response = await dispatch(routes, request);
       return response ?? problem(404, "Not found", "No route matches this request.");
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) return problem(404, "Not found", error.message);
+      // A database or network failure anywhere in a handler, including inside
+      // authentication, ends here as a 500 problem document. It is never a 401.
       console.error(redactedErrorText(error));
       return problem(500, "Internal server error", "The request could not be completed.");
     }
+  }
+  return async function handler(request: Request): Promise<Response> {
+    return withRevision(await respond(request), revision);
   };
 }
 

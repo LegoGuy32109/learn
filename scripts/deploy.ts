@@ -1,15 +1,22 @@
-// Deploys the working tree to the Deno Deploy application `learn` in the
-// organization `legoguy32109` as a production revision, then runs the
+// Deploys the working tree to the Deno Deploy application `learn-joshhale` in
+// the organization `legoguy32109` as a production revision, then runs the
 // production smoke. The upload honors .gitignore and the deploy.exclude list
 // in deno.json, so no env file leaves this machine.
+//
+// The deploy CLI rewrites deno.json (it re-serializes the file and drops the
+// trailing newline). This script keeps the bytes it found and restores them
+// after the CLI exits, so a deploy leaves a clean tree.
 //
 // Usage: deno task deploy [--no-smoke]
 // Requires DENO_DEPLOY_TOKEN in the environment. Never print it.
 
 const ORG = "legoguy32109";
 const APP = "learn-joshhale";
+const CONFIG = new URL("../deno.json", import.meta.url);
 
 if (!Deno.env.get("DENO_DEPLOY_TOKEN")) throw new Error("DENO_DEPLOY_TOKEN must be set; load .env");
+
+const configBefore = await Deno.readFile(CONFIG);
 
 const deploy = new Deno.Command("deno", {
   args: ["run", "-A", "--no-lock", "jsr:@deno/deploy@0.0.9904", "--json", "--non-interactive", "--org", ORG, "--app", APP, "--prod", "."],
@@ -17,6 +24,13 @@ const deploy = new Deno.Command("deno", {
   stderr: "inherit",
 });
 const result = await deploy.output();
+
+const configAfter = await Deno.readFile(CONFIG);
+if (!bytesEqual(configBefore, configAfter)) {
+  await Deno.writeFile(CONFIG, configBefore);
+  console.log(`Restored deno.json after the deploy CLI rewrote it (${configAfter.length} bytes back to ${configBefore.length}).`);
+}
+
 const stdout = new TextDecoder().decode(result.stdout).trim();
 if (!result.success) {
   console.error(stdout);
@@ -33,6 +47,16 @@ const url = typeof summary.productionUrl === "string" ? summary.productionUrl : 
 console.log(`Deployed revision ${summary.revisionId ?? "(unknown)"}${url ? ` to ${url}` : ""}.`);
 
 if (Deno.args.includes("--no-smoke")) Deno.exit(0);
+// The smoke reads the production owner token from .env.prod itself, so the
+// `.env` variables this process loaded cannot leak into it. See scripts/smoke-prod.ts.
 const smoke = new Deno.Command("deno", { args: ["task", "smoke:prod"], stdout: "inherit", stderr: "inherit" });
 const smoked = await smoke.output();
 if (!smoked.success) throw new Error("production smoke failed after deploy");
+
+function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
