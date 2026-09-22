@@ -7,6 +7,7 @@ import { advanceWrapUp } from "../../src/shared/learning/transitions.js";
 import { cardsFlow, startCheck } from "../../src/client/learning/flow.js";
 import { questionView } from "../../src/client/learning/views.js";
 import {
+  DRILL_PATH,
   LESSON,
   LESSON_PATH,
   VIEWPORT,
@@ -180,16 +181,33 @@ async function deadBackControls(fresh: Fresh) {
     await check(`back · ${name} · the square Back control does something when a prior surface exists`, () => {
       expect(after).not.toEqual(before);
     });
-    return after;
+    return { before, after };
   };
 
-  await unchanged("unanswered Concept Check Question");
+  // Documented behaviour (ticket 21): Back on a Question or on a Concept's first Card looks back at
+  // the last Card of the Concept before it, and Continue on that Card returns to where the look-back
+  // started without reversing progress. Back on a correcting Card returns to the Question.
+  const lookedBack = async (name: string, conceptIndex: number) => {
+    const { before, after } = await unchanged(name);
+    const concept = LESSON.concepts[conceptIndex];
+    await check(`back · ${name} · Back looks back at the last Card of ${concept.title}`, () => {
+      expect(after.surface).toBe("learn");
+      expect(after.cardHeading).toBe(concept.cards.at(-1).heading);
+      expect(after.controls).toContain("Continue");
+    });
+    await tap(page, "Continue");
+    await check(`back · ${name} · Continue on the looked-back Card returns to where Back was tapped`, async () => {
+      expect(await signature(page)).toEqual(before);
+    });
+  };
+
+  await lookedBack("unanswered Concept Check Question", 0);
   await answer(page, false);
   await expect(page.locator(".verdict")).toHaveText("Not quite");
-  await unchanged("wrong-answer feedback");
+  await lookedBack("wrong-answer feedback", 0);
   await tap(page, "Review the correcting card");
   await expect(page.locator(".notice")).toBeVisible();
-  const afterCorrective = await unchanged("correcting Card in the learning shell");
+  const { after: afterCorrective } = await unchanged("correcting Card in the learning shell");
   await check("back · correcting Card · Back returns to the Question it interrupted, as it does in drill", () => {
     expect(afterCorrective.verdict).toBe("Not quite");
   });
@@ -201,7 +219,16 @@ async function deadBackControls(fresh: Fresh) {
     await tap(page, "Continue");
   }
   await expect(page.locator(".cardbody h2")).toHaveText(LESSON.concepts[1].cards[0].heading);
-  await unchanged("first Card of Concept 2");
+  await lookedBack("first Card of Concept 2", 0);
+  await check("back · first Card of Concept 2 · looking back recorded no evidence and did not move the checkpoint", async () => {
+    const seen = (await readStore(page, "learning_events")).filter((event) => event.type === "card_seen");
+    expect(seen.length).toBe(LESSON.concepts[0].cards.length);
+    const checkpoint = await projection(page, "checkpoint");
+    expect(checkpoint.screen).toBe("card");
+    expect(checkpoint.conceptIndex).toBe(1);
+    expect(checkpoint.cardIndex).toBe(0);
+    expect(checkpoint.detour).toBeNull();
+  });
   await context.close();
 }
 
@@ -210,10 +237,16 @@ async function browserBackMidLesson(fresh: Fresh) {
   await openFirstCard(page);
   await tap(page, "Continue");
   await expect(page.locator(".cardbody h2")).toHaveText(LESSON.concepts[0].cards[1].heading);
+  const pathFor = (shown: any) => (shown.surface === "shelf" ? "/" : shown.surface === "drill" ? DRILL_PATH : LESSON_PATH);
   await page.goBack();
   await settle(page);
   const one = await signature(page);
+  // The learning shell takes over the overview's history entry (ticket 17), so a second Back can
+  // leave the app for whatever came before it. That is the browser's history, not a surface; step
+  // forward again and judge the app's own entries.
   await page.goBack();
+  const leftApp = page.url().startsWith("about:");
+  if (leftApp) await page.goForward();
   await settle(page);
   const two = await signature(page);
   await clearProjections(page);
@@ -222,11 +255,13 @@ async function browserBackMidLesson(fresh: Fresh) {
   const reloaded = await signature(page);
   observe(
     "browser Back mid-lesson",
-    `From Card 2, one browser Back shows ${one.surface} at ${one.url}; a second shows ${two.surface} at ${two.url}; reloading then shows ${reloaded.surface} at ${reloaded.url}.`,
+    `From Card 2, one browser Back shows ${one.surface} at ${one.url}; a second ${leftApp ? "leaves the app" : `shows ${two.surface} at ${two.url}`}; reloading then shows ${reloaded.surface} at ${reloaded.url}.`,
   );
   await check("browser Back mid-lesson · the URL always names the surface on screen", () => {
-    expect(two.surface === "shelf" ? "/" : LESSON_PATH).toBe(two.url);
+    expect(one.url).toBe(pathFor(one));
+    expect(two.url).toBe(pathFor(two));
     expect(reloaded.surface).toBe(two.surface);
+    expect(reloaded.url).toBe(two.url);
   });
   await context.close();
 }

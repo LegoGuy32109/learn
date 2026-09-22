@@ -365,7 +365,7 @@ async function fullWalk(browser: any, ORIGIN: string, errors: string[], consoleM
   });
   await tapAction(page, "shelf");
   await check("drill after Learned · learning evidence, checkpoint and progress are byte-identical", async () => {
-    expect(await snapshot(page)).toEqual(beforeDrill);
+    expectSameEvidence(await snapshot(page), beforeDrill);
   });
   await context.close();
 }
@@ -483,9 +483,10 @@ async function drillFromFresh(browser: any, ORIGIN: string, errors: string[], co
   await check("drill · shelf still says Not started and the learning stores never changed", async () => {
     await expect(page.locator(".lstatus")).toHaveText("Not started");
     const after = await snapshot(page);
-    expect(after).toEqual(before);
+    expectSameEvidence(after, before);
     expect(after.learning).toEqual([]);
     expect(after.checkpoint).toBeNull();
+    expect(after.progress?.state ?? "not_started").toBe("not_started");
   });
   await check("drill · the drill stream holds one answer per Question and a closing null checkpoint", async () => {
     const drill = await readStore(page, "drill_events");
@@ -564,4 +565,17 @@ async function snapshot(page: any) {
     checkpoint: await projection(page, "checkpoint"),
     progress: await projection(page, "progress"),
   };
+}
+
+/**
+ * The immutable learning evidence is byte-identical. The checkpoint and progress projections are
+ * derived from it and rebuilt when a lesson opens, so a snapshot taken on the shelf right after a
+ * projection-clearing reload holds null for them; they are compared whenever the earlier snapshot
+ * had them.
+ */
+function expectSameEvidence(after: Awaited<ReturnType<typeof snapshot>>, before: Awaited<ReturnType<typeof snapshot>>) {
+  expect(after.learning).toEqual(before.learning);
+  expect(after.navigation).toEqual(before.navigation);
+  if (before.checkpoint !== null) expect(after.checkpoint).toEqual(before.checkpoint);
+  if (before.progress !== null) expect(after.progress).toEqual(before.progress);
 }

@@ -4,12 +4,12 @@
 import {
   activeConcept,
   advance,
-  atFirstCard,
   continueFromCard,
   current,
   enterCorrective,
   initialFlow,
   leaveCorrective,
+  leavesShellOnBack,
   stepBack,
   submitAnswer,
 } from "../../src/client/learning/flow.js";
@@ -23,8 +23,27 @@ function newAttempt() {
   return { seed: Math.floor(Math.random() * 2 ** 31), attemptId: crypto.randomUUID() };
 }
 
+let inFlight = false;
+
+/**
+ * One action at a time. Every handler awaits IndexedDB writes before the re-render replaces the
+ * DOM, so a phone double tap lands a second click on the old button; the second click is dropped.
+ * The flow the DOM was rendered from is checked too, so a click on a detached button does nothing.
+ * @param {() => Promise<unknown>} work
+ */
+async function once(work) {
+  if (inFlight) return;
+  inFlight = true;
+  try {
+    await work();
+  } finally {
+    inFlight = false;
+  }
+}
+
 /**
  * Enter the learning shell from the overview, resuming the saved checkpoint when one exists.
+ * The overview's history entry becomes the learning shell's: browser Back leaves for the shelf.
  * @param {Session} session
  * @param {any} nav
  */
@@ -33,7 +52,7 @@ export async function startLearning(session, nav) {
   if (!session.hasEvent("lesson_started")) await session.recordEvent("lesson_started");
   if (!session.flow) session.flow = session.savedCheckpoint || initialFlow();
   await session.saveCheckpoint();
-  await nav.show("learn", nav.lessonPath);
+  await nav.show("learn", nav.lessonPath, { replace: true });
 }
 
 /**
@@ -53,7 +72,12 @@ export function renderLearning(root, session, progress, nav) {
   const footer = `<footer class="footer">${footerView(flow)}</footer>`;
   const corrects = afterFooterView(lesson, flow);
   root.innerHTML = `<section class="shell">${header}${railView(lesson, flow, progress)}${region}${footer}${corrects}</section>`;
-  bind(root, (action) => handle(action, session, nav), (answer) => submit(session, nav, answer, false));
+  const live = () => session.flow === flow;
+  bind(
+    root,
+    (action) => once(async () => live() && await handle(action, session, nav)),
+    (answer) => once(async () => live() && await submit(session, nav, answer, false)),
+  );
 }
 
 /**
@@ -127,16 +151,17 @@ async function submit(session, nav, answer, idk) {
 }
 
 /**
- * Back inspects without reversing progress or replacing the canonical checkpoint.
- * At the first Card it returns to the overview.
+ * Back inspects without reversing progress or replacing the canonical checkpoint: the flow moves
+ * in memory only, and a reload comes back at the checkpoint. At the first Card and on the Learned
+ * summary it returns to the overview, on the same history entry so a reload shows the overview.
  * @param {Session} session
  * @param {any} nav
  */
 async function goBack(session, nav) {
-  if (atFirstCard(session.flow)) {
+  if (leavesShellOnBack(session.flow)) {
     session.flow = null;
-    return nav.show("overview");
+    return nav.show("overview", nav.lessonPath, { replace: true });
   }
-  session.flow = stepBack(session.flow);
+  session.flow = stepBack(session.lesson, session.flow);
   await nav.refresh();
 }

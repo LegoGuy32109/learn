@@ -5,11 +5,13 @@ import {
   advance,
   atFirstCard,
   buildFeedback,
+  cardsFlow,
   continueFromCard,
   current,
   enterCorrective,
   initialFlow,
   leaveCorrective,
+  leavesShellOnBack,
   startWrapUp,
   stepBack,
   submitAnswer,
@@ -206,10 +208,65 @@ Deno.test("the Wrap-up asks one Question per Concept, retries misses, and finish
   assertEquals(flow.queue, []);
 });
 
-Deno.test("Back inspects the previous Card and never touches Questions", () => {
+Deno.test("Back inspects the previous Card and stays put at the first Card and on the summary", () => {
   const second = continueFromCard(lesson, initialFlow(), attempt);
-  assertEquals(stepBack(second).cardIndex, 0);
-  assertEquals(stepBack(initialFlow()).cardIndex, 0);
+  assertEquals(stepBack(lesson, second).cardIndex, 0);
+  assertEquals(stepBack(lesson, second).detour, null);
+  assertEquals(stepBack(lesson, initialFlow()), initialFlow());
+  assert(leavesShellOnBack(initialFlow()));
+  assert(!leavesShellOnBack(second));
+  const summary = { ...startWrapUp(lesson, attempt), screen: "summary" as const, queue: [] };
+  assertEquals(stepBack(lesson, summary), summary);
+  assert(leavesShellOnBack(summary));
+});
+
+Deno.test("Back on a Question looks back at the Concept's last Card, and Continue there returns to the Question", () => {
+  const lastCard = firstConcept.cards.length - 1;
   const check = afterFirstConcept();
-  assertEquals(stepBack(check), check);
+  const lookedBack = stepBack(lesson, check);
+  assertEquals(lookedBack.screen, "card");
+  assertEquals(lookedBack.conceptIndex, 0);
+  assertEquals(lookedBack.cardIndex, lastCard);
+  assertEquals(current(lesson, lookedBack).id, firstConcept.cards[lastCard].id);
+  assertEquals(lookedBack.detour, check);
+  // Continue on the looked-back Card returns to the same unanswered Question, never a new Check.
+  assertEquals(continueFromCard(lesson, lookedBack, { seed: 99, attemptId: "other" }), check);
+  // Back pages through the Concept's Cards, and Continue walks forward to the Question again.
+  const earlier = stepBack(lesson, lookedBack);
+  assertEquals(earlier.cardIndex, lastCard - 1);
+  assertEquals(earlier.detour, check);
+  assertEquals(continueFromCard(lesson, continueFromCard(lesson, earlier, attempt), attempt), check);
+  // Feedback keeps its answer through a look-back.
+  const answered = submitAnswer(lesson, check, wrongAnswer(current(lesson, check)), false).flow;
+  const fromFeedback = stepBack(lesson, answered);
+  assertEquals(fromFeedback.screen, "card");
+  assertEquals(continueFromCard(lesson, fromFeedback, attempt), answered);
+});
+
+Deno.test("Back on a correcting Card returns to the Question it interrupted", () => {
+  const check = afterFirstConcept();
+  const answered = submitAnswer(lesson, check, wrongAnswer(current(lesson, check)), false).flow;
+  const detour = enterCorrective(lesson, answered);
+  assertEquals(stepBack(lesson, detour), answered);
+});
+
+Deno.test("Back on the first Card of a later Concept looks back at the previous Concept without reversing progress", () => {
+  const conceptTwo = cardsFlow(1);
+  const lookedBack = stepBack(lesson, conceptTwo);
+  assertEquals(lookedBack.screen, "card");
+  assertEquals(lookedBack.conceptIndex, 0);
+  assertEquals(lookedBack.cardIndex, firstConcept.cards.length - 1);
+  assertEquals(lookedBack.detour, conceptTwo);
+  assertEquals(continueFromCard(lesson, lookedBack, attempt), conceptTwo);
+  // A look-back never nests: paging back again keeps the original return point.
+  const earlier = stepBack(lesson, lookedBack);
+  assertEquals(earlier.detour, conceptTwo);
+  // The Wrap-up looks back at the Card of the Question's own Concept.
+  const wrapUp = startWrapUp(lesson, attempt);
+  const question = current(lesson, wrapUp);
+  const concept = conceptOf(question);
+  const fromWrapUp = stepBack(lesson, wrapUp);
+  assertEquals(fromWrapUp.conceptIndex, lesson.concepts.indexOf(concept));
+  assertEquals(fromWrapUp.cardIndex, concept.cards.length - 1);
+  assertEquals(continueFromCard(lesson, fromWrapUp, attempt), wrapUp);
 });

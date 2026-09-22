@@ -151,9 +151,17 @@ export async function readStore(page: any, store: string): Promise<any[]> {
     }), store);
 }
 
+/**
+ * One named projection. Since ticket 08 the app keys projections per revision and progress epoch
+ * (`checkpoint:<revisionId>:<epoch>`), so a bare name matches the record for the newest epoch of
+ * any revision on the device; the audit only ever has the demo lesson open.
+ */
 export async function projection(page: any, id: string): Promise<any> {
   const records = await readStore(page, "projections");
-  return records.find((record) => record.id === id)?.value ?? null;
+  const matching = records.filter((record) => record.id === id || String(record.id).startsWith(`${id}:`));
+  const epochOf = (record: any) => Number(String(record.id).split(":").at(-1)) || 0;
+  matching.sort((left, right) => epochOf(right) - epochOf(left));
+  return matching[0]?.value ?? null;
 }
 
 export async function clearProjections(page: any) {
@@ -195,9 +203,13 @@ export async function reloadSame(page: any, name: string, options: { checkpoint?
   await check(`reload · ${name} · surface comes back`, () => {
     expect(after).toEqual(expected);
   });
-  await check(`reload · ${name} · checkpoint rebuilt from events`, () => {
-    expect(checkpointAfter).toEqual(checkpointBefore);
-  });
+  // A checkpoint projection belongs to an open lesson session and is rebuilt from the event streams
+  // when the lesson opens; on the shelf and the sign-in prompt there is no session to rebuild it.
+  if (before.surface !== "shelf" && before.surface !== "blank") {
+    await check(`reload · ${name} · checkpoint rebuilt from events`, () => {
+      expect(checkpointAfter).toEqual(checkpointBefore);
+    });
+  }
   return { before, after };
 }
 
