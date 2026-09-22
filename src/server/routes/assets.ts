@@ -1,5 +1,6 @@
-// Static assets: stylesheets, browser entry modules, generated tools, icons, and the browser-safe
-// `src/client` and `src/shared` modules the entry modules import. `src/server` is never served.
+// Static assets: stylesheets, browser entry modules, generated tools, served documentation, and
+// the browser-safe `src/client` and `src/shared` modules the entry modules import. `src/server`
+// is never served.
 import { type Route, route } from "./route.ts";
 
 interface Root {
@@ -12,6 +13,7 @@ const roots: Root[] = [
   { prefix: "/js/", directory: new URL("../../../public/js/", import.meta.url) },
   { prefix: "/tools/", directory: new URL("../../../public/tools/", import.meta.url) },
   { prefix: "/icons/", directory: new URL("../../../public/icons/", import.meta.url) },
+  { prefix: "/docs/", directory: new URL("../../../public/docs/", import.meta.url) },
   { prefix: "/src/client/", directory: new URL("../../client/", import.meta.url) },
   { prefix: "/src/shared/", directory: new URL("../../shared/", import.meta.url) },
 ];
@@ -22,6 +24,8 @@ const mime: Record<string, string> = {
   ".json": "application/json; charset=utf-8",
   ".png": "image/png",
   ".svg": "image/svg+xml",
+  ".md": "text/markdown; charset=utf-8",
+  ".ts": "text/plain; charset=utf-8",
 };
 
 function notFound(): Response {
