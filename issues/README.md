@@ -80,6 +80,8 @@ bypass. `learn-prod` is created only by ticket 05.
 | 22 | The Wrap-up can re-ask a missed Concept immediately | none | defect |
 | 23 | Every MCQ in an attempt shows the Concept's options in the same order | none | defect |
 | 24 | Enter in the answer field does not submit the answer | none | defect |
+| 25 | Production serves 404 for /sw.js, so nothing installs or works offline | none | defect |
+| 26 | Production sends no Strict-Transport-Security header | none | defect |
 
 Progress on 2026-09-22: 01, 02, 03, 04, 05, 06, 07, 08, 09, 11, 12, 16 and defects
 18, 19, 22, 23, 24 are merged. Running: 10, 13, 14 and defects 17, 20, 21.
