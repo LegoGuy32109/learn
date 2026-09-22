@@ -56,11 +56,12 @@ async function mutatedDocuments(): Promise<unknown[]> {
       delete concept.title;
       concept.statement = "";
       concept.options[0].text = "";
+      concept.options[1].id = concept.options[2].id;
       concept.cards = [concept.cards[0]];
       concept.cards[0].id = "x";
       delete concept.cards[0].heading;
-      concept.misconceptions[0].id = "";
       concept.misconceptions[0].statement = "";
+      concept.misconceptions[1].id = concept.misconceptions[2].id;
     }),
     mutate((input) => {
       const question = input.questions[0];

@@ -251,8 +251,8 @@
     "valid": false,
     "schemaRejects": true,
     "codes": [
-      "concept.option.id",
-      "misconception.id"
+      "concept.option.id.invalid",
+      "misconception.id.invalid"
     ],
     "exact": false,
     "note": ""

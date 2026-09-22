@@ -117,7 +117,15 @@
       "severity": "error",
       "path": "/concepts/<i>/options/<j>/id",
       "schema": false,
-      "meaning": "The option ID is missing, repeats another option in the Concept, does not match ^[A-Za-z0-9_-]{1,64}$, or is __proto__, constructor or prototype.",
+      "meaning": "The option ID repeats another option's ID in the Concept.",
+      "fix": "Use a short unique slug such as reuse or revalidate."
+    },
+    {
+      "code": "concept.option.id.invalid",
+      "severity": "error",
+      "path": "/concepts/<i>/options/<j>/id",
+      "schema": true,
+      "meaning": "The option ID is missing, does not match ^[A-Za-z0-9_-]{1,64}$, or is __proto__, constructor or prototype.",
       "fix": "Use a short unique slug such as reuse or revalidate."
     },
     {
@@ -189,7 +197,15 @@
       "severity": "error",
       "path": "/concepts/<i>/misconceptions/<j>/id",
       "schema": false,
-      "meaning": "The misconception ID is missing, repeats another in the Concept, does not match ^[A-Za-z0-9_-]{1,64}$, or is a reserved name.",
+      "meaning": "The misconception ID repeats another misconception's ID in the Concept.",
+      "fix": "Use a short unique slug that names the belief, such as fresh_means_newest."
+    },
+    {
+      "code": "misconception.id.invalid",
+      "severity": "error",
+      "path": "/concepts/<i>/misconceptions/<j>/id",
+      "schema": true,
+      "meaning": "The misconception ID is missing, does not match ^[A-Za-z0-9_-]{1,64}$, or is a reserved name.",
       "fix": "Use a short unique slug that names the belief, such as fresh_means_newest."
     },
     {
@@ -300,7 +316,7 @@
       "code": "mcq.feedback.missing",
       "severity": "error",
       "path": "/questions/<i>/feedback/<optionId>",
-      "schema": true,
+      "schema": false,
       "meaning": "An option of the Concept, possibly the key, has no feedback entry.",
       "fix": "Add feedback for every option ID in the Concept's set, including the key."
     },
@@ -308,7 +324,7 @@
       "code": "mcq.feedback.extra",
       "severity": "error",
       "path": "/questions/<i>/feedback/<optionId>",
-      "schema": true,
+      "schema": false,
       "meaning": "feedback has a key that is not an option ID of the Concept.",
       "fix": "Remove the entry or correct the option ID."
     },
@@ -316,7 +332,7 @@
       "code": "mcq.map.missing",
       "severity": "error",
       "path": "/questions/<i>/map/<optionId>",
-      "schema": true,
+      "schema": false,
       "meaning": "A distractor option has no map entry.",
       "fix": "Map every non-key option ID to a misconception ID in the Concept."
     },
@@ -332,7 +348,7 @@
       "code": "mcq.map.extra",
       "severity": "error",
       "path": "/questions/<i>/map/<optionId>",
-      "schema": true,
+      "schema": false,
       "meaning": "map has an entry for the key or for an ID that is not an option of the Concept.",
       "fix": "Keep only the distractor option IDs in map."
     },

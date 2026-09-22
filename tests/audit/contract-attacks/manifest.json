@@ -632,7 +632,7 @@
     "group": "reserved-names",
     "valid": false,
     "codes": [
-      "misconception.id"
+      "misconception.id.invalid"
     ],
     "exact": false,
     "note": ""
@@ -642,7 +642,7 @@
     "group": "reserved-names",
     "valid": false,
     "codes": [
-      "misconception.id"
+      "misconception.id.invalid"
     ],
     "exact": false,
     "note": ""
@@ -652,7 +652,7 @@
     "group": "reserved-names",
     "valid": false,
     "codes": [
-      "misconception.id"
+      "misconception.id.invalid"
     ],
     "exact": false,
     "note": ""
@@ -662,7 +662,7 @@
     "group": "reserved-names",
     "valid": false,
     "codes": [
-      "concept.option.id"
+      "concept.option.id.invalid"
     ],
     "exact": false,
     "note": ""
@@ -672,7 +672,7 @@
     "group": "reserved-names",
     "valid": false,
     "codes": [
-      "concept.option.id"
+      "concept.option.id.invalid"
     ],
     "exact": false,
     "note": ""
@@ -682,7 +682,7 @@
     "group": "reserved-names",
     "valid": false,
     "codes": [
-      "concept.option.id"
+      "concept.option.id.invalid"
     ],
     "exact": false,
     "note": ""

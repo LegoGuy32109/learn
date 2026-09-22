@@ -175,7 +175,8 @@ function resolveConcept(report, raw, index, lesson) {
   rawOptions.forEach((rawOption, optionIndex) => {
     const option = object(rawOption) ?? {};
     const optionPath = `${path}/options/${optionIndex}`;
-    if (!localId(option.id) || options.has(option.id)) report.error("concept.option.id", `${optionPath}/id`, "Option ID must be unique in the Concept and match ^[A-Za-z0-9_-]{1,64}$.");
+    if (!localId(option.id)) report.error("concept.option.id.invalid", `${optionPath}/id`, "Option ID must match ^[A-Za-z0-9_-]{1,64}$ and not be a reserved name.");
+    else if (options.has(option.id)) report.error("concept.option.id", `${optionPath}/id`, "Option ID must be unique in the Concept.");
     if (!text(option.text)) report.error("concept.option.text", `${optionPath}/text`, "Option text is required.");
     if (localId(option.id) && !options.has(option.id)) options.set(option.id, text(option.text) ? option.text : "");
   });
@@ -218,7 +219,8 @@ function resolveConcept(report, raw, index, lesson) {
   rawMisconceptions.forEach((rawMisconception, misconceptionIndex) => {
     const misconception = object(rawMisconception) ?? {};
     const misconceptionPath = `${path}/misconceptions/${misconceptionIndex}`;
-    if (!localId(misconception.id) || misconceptions.has(misconception.id)) report.error("misconception.id", `${misconceptionPath}/id`, "Misconception ID must be unique in the Concept and match ^[A-Za-z0-9_-]{1,64}$.");
+    if (!localId(misconception.id)) report.error("misconception.id.invalid", `${misconceptionPath}/id`, "Misconception ID must match ^[A-Za-z0-9_-]{1,64}$ and not be a reserved name.");
+    else if (misconceptions.has(misconception.id)) report.error("misconception.id", `${misconceptionPath}/id`, "Misconception ID must be unique in the Concept.");
     if (!text(misconception.statement)) report.error("misconception.statement", `${misconceptionPath}/statement`, "Write the misconception statement as the belief itself.");
     if (!cardIds.has(misconception.correctingCardId)) report.error("misconception.card", `${misconceptionPath}/correctingCardId`, "A misconception must name a Card in the same Concept.");
     if (localId(misconception.id) && !misconceptions.has(misconception.id)) misconceptions.set(misconception.id, { correctingCardId: String(misconception.correctingCardId ?? ""), index: misconceptionIndex });
