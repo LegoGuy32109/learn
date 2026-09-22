@@ -16,7 +16,7 @@
 //
 // Run: deno task audit:golden          (LEARN_BASE_URL optional; the owner token is read from .env.prod)
 import { chromium, expect } from "@playwright/test";
-import { LESSON, answer, attachListeners, check, idk, observe, readStore, report, results, setScreenshotDirectory, settle, signature, tap } from "../audit/support.ts";
+import { answer, attachListeners, check, idk, observe, readStore, report, results, setScreenshotDirectory, settle, signature, tap, useLesson } from "../audit/support.ts";
 import { drillFromFresh, fullWalk } from "../audit/walk.ts";
 import {
   BASE,
@@ -168,10 +168,15 @@ async function signIn(browser: any): Promise<SignedIn> {
 
 async function shelfAndLearningLoop(browser: any, signedIn: SignedIn) {
   const { ownerToken } = await productionSecrets();
-  // Kept at the fixture's own title (not audit-prefixed): fullWalk and drillFromFresh assert the
-  // shelf and overview show LESSON.title verbatim, which only an untouched clone of the fixture
-  // satisfies. It is still identified as this run's own by lessonId everywhere below.
-  const title = LESSON.title;
+  // A fresh title every run (the offline scenario below already does this) changes the fingerprint,
+  // so this always gets its own Lesson Revision with no progress: identical content dedupes to the
+  // same revision by fingerprint (src/server/repositories/lessons.ts's byFingerprint), and that
+  // revision's progress syncs back from the server to any freshly signed-in device, so reusing one
+  // fixed title would make this walk's own lesson permanently Learned and unrunnable a second time.
+  // useLesson points every shared helper (fullWalk, drillFromFresh, keyFor, answer, idk...) at the
+  // content the server actually stored for this title, so the walk and its answer key stay correct
+  // for whatever this run submitted rather than for a fixed literal.
+  const title = auditTitle("-golden-learning-loop");
   let lessonId = "";
 
   await check("author · a lesson draft is created with the owner's bearer token (stands in for the plugin's own submission)", async () => {
@@ -179,7 +184,8 @@ async function shelfAndLearningLoop(browser: any, signedIn: SignedIn) {
     const body = await response.json();
     expect(response.status).toBe(201);
     lessonId = body.lessonId;
-    created.push(`lesson ${lessonId} "${title}" (learning-loop run, fixture title kept so fullWalk's own title assertions hold)`);
+    useLesson(body.content);
+    created.push(`lesson ${lessonId} "${title}" (learning-loop run)`);
     return `POST /api/v1/lessons -> 201 lessonId=${lessonId}`;
   });
   if (!lessonId) return;
@@ -193,11 +199,10 @@ async function shelfAndLearningLoop(browser: any, signedIn: SignedIn) {
   recordPageBodies(shelfPage, "shelf");
   try {
     await shelfPage.goto(`${BASE}/`);
-    // Content is byte-identical to LESSON on every run (the title is kept, below), so this POST is
-    // idempotent and may return an existing draft from an earlier run rather than a new one; "first,
-    // newest" ordering is proved instead in offlineAndSecondDevice, whose lesson is uniquely titled
-    // every run. This check only proves the lesson the walk is about to drive is on the shelf, Not
-    // started, as the signed-in owner.
+    // This lesson's title is unique to this run (above), so this is always a brand new draft, Not
+    // started; "first, newest" ordering is proved instead in offlineAndSecondDevice, whose lesson is
+    // uniquely titled the same way. This check only proves the lesson the walk is about to drive is
+    // on the shelf, Not started, as the signed-in owner.
     await check("shelf · the authored lesson is on the shelf, Not started, for the signed-in owner", async () => {
       await expect(shelfPage.locator("#account-status")).toHaveText(`Signed in as ${signedIn.displayName}`);
       await shelfPage.getByRole("button", { name: "Refresh shelf" }).click();

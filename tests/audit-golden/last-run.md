@@ -1,34 +1,6 @@
 ## Golden flow
 
-322 passed, 3 failed, 8 observations
-
-### Failed
-
-- offline · back online, the outbox drains (the client pushed every offline event)
-  ```
-  the outbox never emptied within 15s of reconnecting (after a reload to skip backoff)
-  expect(received).toBe(expected) // Object.is equality
-  Expected: true
-  Received: false
-  ```
-- offline · the server holds the offline-completed Concept once back online
-  ```
-  GET /api/v1/progress/checkpoint -> 500: {"type":"about:blank","title":"Internal server error","status":500,"detail":"The request could not be completed."}
-  expect(received).toBe(expected) // Object.is equality
-  Expected: 200
-  Received: 500
-  ```
-- second device · a second signed-in context shows the same progress and resumes at the same place
-  ```
-  expect(locator).toHaveText(expected) failed
-  Locator:  locator('.overview .state')
-  Expected: "In progress"
-  Received: "Not started"
-  Timeout:  5000ms
-  Call log:
-    - Expect "toHaveText" locator('.overview .state') with timeout 5000ms
-    - waiting for locator('.overview .state')
-  ```
+325 passed, 0 failed, 8 observations
 
 ### Observations
 
@@ -36,9 +8,9 @@
 - home screen: "Add to Home Screen" itself is not something a headless browser can drive or verify; the manifest that makes it installable (name, icons, standalone display) is already asserted by ticket 14's audit_prod suite, so this run only re-proves the sign-in half.
 - wrap-up retry: The missed Concept came back as Wrap-up Question 4 of 4, asked with the same Question.
 - Learned summary line: The Learned summary shows ["Concepts learned\n3 of 3"]; a count, never a score.
-- drill option order · Freshness and age: 2 distinct option order(s) across this Concept's MCQs in one run.
+- drill option order · Cache directives and revalidation: 1 distinct option order(s) across this Concept's MCQs in one run.
 - drill option order · Validators and conditional requests: 2 distinct option order(s) across this Concept's MCQs in one run.
-- drill option order · Cache directives and revalidation: 2 distinct option order(s) across this Concept's MCQs in one run.
+- drill option order · Freshness and age: 2 distinct option order(s) across this Concept's MCQs in one run.
 - learning loop: fullWalk carries the Cards, a wrong Check answer with its belief and correcting Card, an unseen retry, a correct answer, "I don't know" on another Concept, the Wrap-up (which draws a reserved Question the Checks never asked) and the Learned summary, then opens "Every question", answers one wrong and closes the drill unfinished, asserting the shelf and evidence stores are unchanged by it. drillFromFresh separately runs the drill to completion from a fresh state.
 
 ### Passed
@@ -50,7 +22,7 @@
 - setup · registering a passkey signs in and lands on the shelf, as the phone would after Add to Home Screen
   screenshot: tests/audit-golden/screenshots/02-shelf-signed-in-after-registration.jpg
 - author · a lesson draft is created with the owner's bearer [redacted] (stands in for the plugin's own submission)
-  POST /api/v1/lessons -> 201 lessonId=bcfb3097-3e0d-401d-bcd0-41f06e6f7724
+  POST /api/v1/lessons -> 201 lessonId=b6db5f22-35da-481d-8f67-04f7438b3d27
 - shelf · the authored lesson is on the shelf, Not started, for the signed-in owner
   screenshot: tests/audit-golden/screenshots/03-shelf-with-new-lesson.jpg
 - shelf · fresh browser shows the demo lesson Not started
@@ -342,7 +314,7 @@
 - reload · drill Question after halfway reload · surface comes back
 - reload · drill Question after halfway reload · checkpoint rebuilt from events
 - drill · browser Back returns to the overview with Resume every question
-- drill · overview still says Not started while a drill is open
+- drill · overview still shows the pre-drill state while a drill is open
 - drill · resuming returns to the same unanswered Question and position
 - drill · correct at 7 shows Correct and Continue
 - drill · I don't know at 8 shows the answer, the correcting Card and Continue
@@ -361,11 +333,11 @@
 - scheme · drill summary · light and dark render different backgrounds
 - reload · drill summary · surface comes back
 - reload · drill summary · checkpoint rebuilt from events
-- drill · leaving the summary closes the run and the overview offers Every question and Start lesson
-- drill · shelf still says Not started and the learning stores never changed
+- drill · leaving the summary closes the run and the overview returns to Every question and the pre-drill state
+- drill · shelf still shows the pre-drill state and the learning stores never changed
 - drill · the drill stream holds one answer per Question and a closing null checkpoint
 - author · a second lesson draft, isolated from the learning-loop run, for the offline and second-device scenarios
-  POST /api/v1/lessons -> 201 lessonId=faef8a40-f6df-4863-8f6c-3ba04c16d9ff revisionId=a8c07e49-e8d9-423c-9269-c566582b141b
+  POST /api/v1/lessons -> 201 lessonId=9d239027-73e4-4cb0-b975-861c8125010d revisionId=ab7a17df-ba8d-4823-ac46-e3d1152606fa
 - shelf · this uniquely-titled fresh draft is first on the shelf, newest first, Not started
   screenshot: tests/audit-golden/screenshots/04-shelf-newest-lesson-first.jpg
 - offline · Card 2 of Concept 1 is on screen before going offline
@@ -374,16 +346,21 @@
   resumed at card="Age measures stored time"; screenshot: tests/audit-golden/screenshots/05-concept-1-resumed-reached-offline.jpg
 - offline · a whole Concept (its remaining Card, then a correct Check answer) completes with the network off
   after finishing Concept 1 offline: {"surface":"learn","cardHeading":null,"stem":null}; screenshot: tests/audit-golden/screenshots/06-concept-2-reached-offline.jpg
+- offline · back online, the outbox drains (the client pushed every offline event)
+- offline · the server holds the offline-completed Concept once back online
+  GET /api/v1/progress/checkpoint -> {"checkpoint":{"screen":"question","conceptIndex":0,"cardIndex":1,"flowKind":"check","seed":609480314,"attemptId":"6b65ebd3-2de4-4ded-94e7-baffb512e986","queue":["7a1f7700-0000-4000-8000-000000000312","7a1f7700-0000-4000-8000-000000000311","7a1f7700-0000-4000-8000-000000000313"],"feedback":{"correct":true,"idk":false,"text":"180 seconds. Current age already stands at 120 of the 300-second lifetime, because the clock started at the origin.","belief":null,"cardId":null},"detour":null,"learningEventFrontier":["8e242930-4ef8-4a06-b035-59ce20cb6952","b8927bcb-b936-45d0-b5cd-4994b2bf2d7d","4861740e-de59-40cb-a3d8-704d565807a8","555162cf-62cf-4650-a4ce-f1924ed372f3"]},"frontier":4,"learningEvents":4,"stream":{"lessonId":"9d239027-73e4-4cb0-b975-861c8125010d","lessonRevisionId":"ab7a17df-ba8d-4823-ac46-e3d1152606fa","epoch":0}}
+- second device · a second signed-in context shows the same progress and resumes at the same place
+  second device surface: {"surface":"learn","cardHeading":null,"stem":null,"status":null}; screenshot: tests/audit-golden/screenshots/07-second-device-same-progress.jpg
 - secrets · no response body anywhere in this run leaked a credential or a token-shaped string
 
 ### Run
 
 - Base URL: https://learn-joshhale.legoguy32109.deno.net
-- Started: 2026-09-22T13:44:32.144Z
+- Started: 2026-09-22T14:21:50.942Z
 
 ### Created on production (nothing was deleted)
 
-- sign-in invite /sign-in/d9EK_q8… (consumed by this run's passkey registration)
-- lesson bcfb3097-3e0d-401d-bcd0-41f06e6f7724 "How browser HTTP caching works" (learning-loop run, fixture title kept so fullWalk's own title assertions hold)
-- lesson faef8a40-f6df-4863-8f6c-3ba04c16d9ff "audit-2026-09-22T13-44-57-golden-offline" (offline and second-device run)
+- sign-in invite /sign-in/njK8RRK… (consumed by this run's passkey registration)
+- lesson b6db5f22-35da-481d-8f67-04f7438b3d27 "audit-2026-09-22T14-21-53-golden-learning-loop" (learning-loop run)
+- lesson 9d239027-73e4-4cb0-b975-861c8125010d "audit-2026-09-22T14-22-24-golden-offline" (offline and second-device run)
 

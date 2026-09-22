@@ -6,9 +6,9 @@
 
 - wrap-up retry: The missed Concept came back as Wrap-up Question 4 of 4, asked with the same Question.
 - Learned summary line: The Learned summary shows ["Concepts learned\n3 of 3"]; a count, never a score.
+- drill option order · Cache directives and revalidation: 2 distinct option order(s) across this Concept's MCQs in one run.
 - drill option order · Validators and conditional requests: 2 distinct option order(s) across this Concept's MCQs in one run.
 - drill option order · Freshness and age: 2 distinct option order(s) across this Concept's MCQs in one run.
-- drill option order · Cache directives and revalidation: 2 distinct option order(s) across this Concept's MCQs in one run.
 
 ### Passed
 
