@@ -5,7 +5,8 @@
 import type { Client } from "../db.ts";
 import { newPersonalToken, tokenHash } from "../tokens.ts";
 
-export const KNOWN_SCOPES = ["lessons:read", "lessons:write"] as const;
+/** `account:owner` lets a token mint one-time sign-in invites for its own account. */
+export const KNOWN_SCOPES = ["lessons:read", "lessons:write", "account:owner"] as const;
 export type Scope = typeof KNOWN_SCOPES[number];
 
 /** Metadata that is safe to show. It never carries a hash or a secret. */

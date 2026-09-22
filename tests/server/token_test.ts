@@ -1,6 +1,6 @@
 import { assert, assertEquals, assertMatch, assertStringIncludes } from "jsr:@std/assert";
 import lesson from "../../fixtures/lessons/browser-http-cache.json" with { type: "json" };
-import { createApp } from "../../src/app.ts";
+import { createApp, fixtureDependencies } from "../../src/app.ts";
 import type { Authenticator } from "../../src/server/auth.ts";
 import { FixtureLessonRepository } from "../../src/server/repositories/lessons.ts";
 import { redactBearerTokens, redactedErrorText } from "../../src/server/identity/redaction.ts";
@@ -10,8 +10,10 @@ import { formatList, parseDuration } from "../../scripts/tokens.ts";
 
 const { token, prefix } = newPersonalToken();
 
+const fixture = await fixtureDependencies();
+
 function appWith(auth: Authenticator) {
-  return createApp({ lessons: new FixtureLessonRepository(lesson), auth });
+  return createApp({ ...fixture, lessons: new FixtureLessonRepository(lesson), auth });
 }
 
 async function capturingConsoleError<T>(work: () => Promise<T>): Promise<{ result: T; logged: string }> {

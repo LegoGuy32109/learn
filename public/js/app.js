@@ -9,6 +9,8 @@ import { renderShelf } from "./shelf.js";
 import { renderOverview } from "./overview.js";
 import { renderLearning } from "./learn.js";
 
+/** @type {{ signedIn: boolean, displayName: string | null }} */
+const account = (/** @type {any} */ (window)).__SESSION__ ?? { signedIn: false, displayName: null };
 const root = /** @type {HTMLElement} */ (document.querySelector("#app"));
 
 /**
@@ -33,6 +35,8 @@ function start(lesson) {
 
   const nav = {
     lessonPath: `/learn/${lesson.lessonId}`,
+    /** The signed-in account as the server rendered it; sign-in and sign-out replace it. */
+    account,
     /**
      * Switch surface. A path pushes a history entry; without one the URL stays as it is.
      * @param {"shelf"|"overview"|"learn"} surface

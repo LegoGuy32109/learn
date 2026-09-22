@@ -1,15 +1,14 @@
 import { assertEquals, assert } from "jsr:@std/assert";
 import lesson from "../../fixtures/lessons/browser-http-cache.json" with { type: "json" };
 import { createApp } from "../../src/app.ts";
-import { TokenAuthenticator } from "../../src/server/auth.ts";
 import { createDb } from "../../src/server/db.ts";
-import { TursoLessonRepository } from "../../src/server/repositories/lessons.ts";
+import { tursoDependencies } from "./support/dependencies.ts";
 
 Deno.test("authenticated draft API persists idempotently in Turso", async () => {
   const token = Deno.env.get("LEARN_OWNER_TOKEN");
   if (!token) throw new Error("LEARN_OWNER_TOKEN must be set; run deno task db:owner");
   const db = createDb();
-  const app = createApp({ lessons: new TursoLessonRepository(db), auth: new TokenAuthenticator(db) });
+  const app = createApp(tursoDependencies(db));
   const input = structuredClone(lesson) as any;
   input.title = `Turso integration ${crypto.randomUUID()}`;
   input.provenance.session_reference = "database-integration-test";

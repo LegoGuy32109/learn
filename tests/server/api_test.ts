@@ -1,9 +1,10 @@
 import { assertEquals } from "jsr:@std/assert";
 import lesson from "../../fixtures/lessons/browser-http-cache.json" with { type: "json" };
-import { createApp } from "../../src/app.ts";
+import { createApp, fixtureDependencies } from "../../src/app.ts";
 import { FixtureLessonRepository } from "../../src/server/repositories/lessons.ts";
 
 const app = createApp({
+  ...await fixtureDependencies(),
   lessons: new FixtureLessonRepository(lesson),
   auth: { async authenticate() { return { ok: false as const, reason: "unauthenticated" as const }; } },
 });

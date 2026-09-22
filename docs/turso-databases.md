@@ -44,14 +44,23 @@ either database credential. External agents use a scoped
 ```bash
 deno task db:provision  # Ensure learn-local and learn-dev exist; rotate connection tokens
 deno task db:migrate    # Apply pending migrations to learn-local
-deno task db:owner      # Ensure Josh's local account and owner API token exist
+deno task db:owner      # Ensure Josh's local account, owner API token (with account:owner) and LEARN_SESSION_KEY exist
 deno task db:seed       # Ensure the database-backed demo lesson exists
-deno task test:db       # Draft persistence against learn-local, token lifecycle against an ephemeral learn-test-<uuid>
+deno task test:db       # Draft persistence against learn-local; token lifecycle and passkey sign-in each against an ephemeral learn-test-<uuid>
 deno task token:mint    # Mint a named, scoped personal token; the full token is printed once
 deno task token:list    # Show token metadata for the account
 deno task token:revoke  # Revoke one token now
 deno task token:rotate  # Replace a token's secret and revoke the old one once the new one is confirmed
+deno task invite:mint   # Ask the running site for a one-time phone sign-in link using LEARN_OWNER_TOKEN
 ```
+
+`deno task invite:mint` talks to `LEARN_BASE_URL` (default `http://localhost:8000`)
+or `--base-url <url>`. The serving application also reads `LEARN_SESSION_KEY`
+(browser session signing; without it sessions end at restart), and
+`WEBAUTHN_RP_ID` plus `WEBAUTHN_ORIGINS` (the pinned passkey relying party; unset
+means plain localhost only). Migration `002_passkeys_and_invites.sql` adds
+`passkey_credentials`, `sign_in_invites` and `webauthn_challenges`; run
+`deno task db:migrate` before serving code that needs them.
 
 Every `token:*` task accepts `--help`. To operate on `learn-dev`, run
 `scripts/tokens.ts` with `--env-file=.env.dev` and the same permissions.

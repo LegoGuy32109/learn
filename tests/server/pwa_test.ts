@@ -1,11 +1,12 @@
 import { assert, assertEquals, assertNotEquals, assertStringIncludes } from "jsr:@std/assert";
 import lesson from "../../fixtures/lessons/browser-http-cache.json" with { type: "json" };
-import { createApp } from "../../src/app.ts";
+import { createApp, fixtureDependencies } from "../../src/app.ts";
 import { FixtureLessonRepository } from "../../src/server/repositories/lessons.ts";
 import { computeBuild, readShellFiles, SHELL_PATH } from "../../src/server/build.ts";
 import { renderWorker } from "../../src/server/routes/pwa.ts";
 
 const app = createApp({
+  ...await fixtureDependencies(),
   lessons: new FixtureLessonRepository(lesson),
   auth: { async authenticate() { return { ok: false as const, reason: "unauthenticated" as const }; } },
 });
@@ -109,7 +110,7 @@ Deno.test("renderWorker substitutes both placeholders and refuses a source witho
 
 Deno.test("the inlined lesson keeps ordinary spaces and escapes only the line separators", async () => {
   const home = await (await app(new Request("http://local/"))).text();
-  const inlined = home.match(/window\.__LESSON__=(.*?)<\/script>/)?.[1] ?? "";
+  const inlined = home.match(/window\.__LESSON__=(.*?);window\.__SESSION__=/)?.[1] ?? "";
   assertStringIncludes(inlined, '"How browser HTTP caching works"');
   assertEquals(inlined.includes(" "), false);
   assertEquals(inlined.includes(" "), false);

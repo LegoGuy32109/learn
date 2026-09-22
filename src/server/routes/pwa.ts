@@ -32,13 +32,13 @@ function script(body: string): Response {
 }
 
 export function pwaRoutes(dependencies: Dependencies): Route[] {
-  const build = dependencies.build ?? diskBuild(page(null));
+  const build = dependencies.build ?? diskBuild(page(null, { signedIn: false, displayName: null }));
   return [
     route("GET", "/manifest.webmanifest", async () => {
       const text = await Deno.readTextFile(manifestFile);
       return new Response(text, { headers: { "content-type": "application/manifest+json; charset=utf-8" } });
     }),
-    route("GET", SHELL_PATH, () => Promise.resolve(html(page(null)))),
+    route("GET", SHELL_PATH, () => Promise.resolve(html(page(null, { signedIn: false, displayName: null })))),
     route("GET", "/sw.js", async () => {
       const source = await Deno.readTextFile(new URL("sw.js", workerDirectory));
       return script(renderWorker(source, await build()));

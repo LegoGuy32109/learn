@@ -1,7 +1,7 @@
 {
   "exclude": ["src/client/pwa/sw.js"],
   "tasks": {
-    "dev": "deno run --env-file=.env --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN,PORT --allow-net --allow-read --watch main.ts",
+    "dev": "deno run --env-file=.env --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN,PORT,LEARN_SESSION_KEY,WEBAUTHN_RP_ID,WEBAUTHN_ORIGINS --allow-net --allow-read --watch main.ts",
     "check": "deno check main.ts src/app.ts public/js/*.js src/shared/**/*.js src/client/**/*.js src/server/**/*.ts scripts/*.ts && deno check --config deno.worker.json src/client/pwa/sw.js",
     "test": "deno test --allow-read --allow-write --allow-run=deno tests/shared tests/client tests/server",
     "e2e": "deno test --allow-all tests/e2e",
@@ -21,10 +21,12 @@
     "db:seed:prod": "deno run --env-file=.env.prod --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN --allow-net --allow-read scripts/seed-demo.ts",
     "deploy:env": "deno run --env-file=.env -A --no-lock scripts/set-deploy-env.ts Production --from=.env.prod && deno run --env-file=.env -A --no-lock scripts/set-deploy-env.ts Preview --from=.env.dev && deno run --env-file=.env -A --no-lock scripts/set-deploy-env.ts Local --from=.env",
     "deploy": "deno run --env-file=.env --allow-env --allow-run=deno --allow-read scripts/deploy.ts",
-    "smoke:prod": "deno run --env-file=.env.prod --allow-env=LEARN_BASE_URL,LEARN_OWNER_TOKEN --allow-net --allow-read scripts/smoke-prod.ts"
+    "smoke:prod": "deno run --env-file=.env.prod --allow-env=LEARN_BASE_URL,LEARN_OWNER_TOKEN --allow-net --allow-read scripts/smoke-prod.ts",
+    "invite:mint": "deno run --env-file=.env --allow-env=LEARN_OWNER_TOKEN,LEARN_BASE_URL --allow-net scripts/invite.ts"
   },
   "imports": {
     "@playwright/test": "npm:@playwright/test@1.63.0",
+    "@simplewebauthn/server": "npm:@simplewebauthn/server@13.3.2",
     "@tursodatabase/serverless/compat": "npm:@tursodatabase/serverless@1.4.0/compat"
   },
   "compilerOptions": { "lib": ["deno.ns", "dom", "dom.iterable"], "noImplicitAny": false },

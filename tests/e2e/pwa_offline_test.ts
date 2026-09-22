@@ -3,7 +3,7 @@
 // "Update ready" affordance that never interrupts a Question and sweeps the old cache on activation.
 import { chromium, expect } from "@playwright/test";
 import lesson from "../../fixtures/lessons/browser-http-cache.json" with { type: "json" };
-import { createApp } from "../../src/app.ts";
+import { createApp, fixtureDependencies } from "../../src/app.ts";
 import { RejectingAuthenticator } from "../../src/server/auth.ts";
 import { type Build, computeBuild, readShellFiles } from "../../src/server/build.ts";
 import { FixtureLessonRepository } from "../../src/server/repositories/lessons.ts";
@@ -12,9 +12,9 @@ import { page as shell } from "../../src/server/views/page.ts";
 const origin = "http://127.0.0.1:8003";
 
 Deno.test({ name: "phone reopens a cached lesson offline and takes an update between Questions", sanitizeOps: false, sanitizeResources: false, fn: async () => {
-  const disk = await computeBuild(await readShellFiles(), shell(null));
+  const disk = await computeBuild(await readShellFiles(), shell(null, { signedIn: false, displayName: null }));
   let build: Build = disk;
-  const app = createApp({ lessons: new FixtureLessonRepository(lesson), auth: new RejectingAuthenticator(), build: () => Promise.resolve(build) });
+  const app = createApp({ ...await fixtureDependencies(), lessons: new FixtureLessonRepository(lesson), auth: new RejectingAuthenticator(), build: () => Promise.resolve(build) });
   const server = Deno.serve({ port: 8003 }, app);
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
