@@ -13,7 +13,8 @@ export function advanceCheck(state) {
 }
 
 /**
- * Pure Wrap-up rule: missed concepts return after remaining concepts in stable shuffled order.
+ * Pure Wrap-up rule: a missed Concept returns after every remaining Concept. Only the remaining
+ * Questions are shuffled, so the missed one is never asked again as the very next Question.
  * @param {any} state
  */
 export function advanceWrapUp(state) {
@@ -21,7 +22,7 @@ export function advanceWrapUp(state) {
     const queue = state.queue.slice(1);
     return { ...state, queue, done: queue.length === 0 };
   }
-  const retried = [...state.queue.slice(1), state.queue[0]];
-  const queue = shuffled(retried, state.seed + state.queue.length);
+  const remaining = shuffled(state.queue.slice(1), state.seed + state.queue.length);
+  const queue = [...remaining, state.queue[0]];
   return { ...state, queue, done: false };
 }

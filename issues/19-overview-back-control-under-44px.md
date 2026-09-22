@@ -19,13 +19,41 @@ Failing assertion: `expect(small).toEqual([])` received
 
 **Blocked by:** None.
 
-**Status:** ready-for-agent
+**Status:** done de1242e
 
-- [ ] The overview Back control measures at least 44 by 44 pixels.
-- [ ] The two audit checks above pass in `deno task audit:phone`.
+- [x] The overview Back control measures at least 44 by 44 pixels.
+- [x] The two audit checks above pass in `deno task audit:phone`.
 
 ## Verification
 
 ```bash
 deno task audit:phone
 ```
+
+## Report
+
+Changed `public/css/app.css`: the 44 by 44 square rule now reads
+`.close,.shellhead .back,.overview>.back{width:44px;height:44px;...}`, so the overview's
+Back to shelf button gets the shell header's treatment. I chose the extra selector over a
+header row because the overview markup and `overview.js` stay untouched.
+
+Passing in `tests/audit/last-run.md`:
+
+```
+- visual · overview fresh · every control is at least 44px on its shortest side
+- visual · overview after Back from first Card · every control is at least 44px on its shortest side
+```
+
+Audit run on this branch (`deno task audit:phone`, three runs, identical results): walk
+307 passed / 11 failed, probes 7 passed / 7 failed. Every failure belongs to tickets
+17, 20 and 21 (reload landing, double-tap, dead square Back), which another worker owns,
+or to a stale audit helper: `projection()` in `tests/audit/support.ts` looks up the
+projection id `checkpoint` / `progress`, but since the ticket 08 merge the keys are
+`checkpoint:<revisionId>:<epoch>`, so the seven "Cannot read properties of null" walk
+checks (Back inspection checkpoint, Try another queue, I don't know state, wrap-up
+Learned 2 to 4, Learned summary) read null. That predates this branch and is outside
+these tickets; I tried a prefix match and reverted it because it uncovered further stale
+expectations, which need their own ticket.
+
+`deno task check`: passes. `deno task test`: 109 passed, 0 failed. `deno task e2e`:
+7 passed, 0 failed.

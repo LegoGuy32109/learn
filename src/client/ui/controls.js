@@ -41,7 +41,9 @@ export function stateName(progress) {
 }
 
 /**
- * Wire every `data-action` and `data-answer` element inside `root`.
+ * Wire every `data-action`, `data-submit` and `data-answer` element inside `root`. A form with
+ * `data-submit` runs that action once per submission, whether the learner presses Enter in its
+ * field or taps its submit button.
  * @param {HTMLElement} root
  * @param {(action: string) => unknown} onAction
  * @param {(answer: string) => unknown} onAnswer
@@ -50,6 +52,13 @@ export function bind(root, onAction, onAnswer) {
   for (const element of root.querySelectorAll("[data-action]")) {
     const button = /** @type {HTMLElement} */ (element);
     button.addEventListener("click", () => onAction(button.dataset.action ?? ""));
+  }
+  for (const element of root.querySelectorAll("form[data-submit]")) {
+    const form = /** @type {HTMLFormElement} */ (element);
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      onAction(form.dataset.submit ?? "");
+    });
   }
   for (const element of root.querySelectorAll("[data-answer]")) {
     const button = /** @type {HTMLElement} */ (element);

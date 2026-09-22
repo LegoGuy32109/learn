@@ -213,3 +213,15 @@ Deno.test("Back inspects the previous Card and never touches Questions", () => {
   const check = afterFirstConcept();
   assertEquals(stepBack(check), check);
 });
+
+Deno.test("MCQ option order depends on the Question as well as the seed, and is stable for a reload", async () => {
+  const { optionOrder } = await import("../../src/client/learning/views.js");
+  const concept = lesson.concepts[0] as any;
+  const mcqs = (lesson.questions as any[]).filter((question) => question.conceptId === concept.id && question.type === "mcq");
+  assert(mcqs.length > 1);
+  const orders = new Set(mcqs.map((question) => optionOrder(concept, question, { seed: 7 }).map((option: any) => option.id).join(",")));
+  assert(orders.size > 1);
+  const again = optionOrder(concept, mcqs[0], { seed: 7 }).map((option: any) => option.id);
+  assertEquals(again, optionOrder(concept, mcqs[0], { seed: 7 }).map((option: any) => option.id));
+  assertEquals(new Set(again), new Set(concept.options.map((option: any) => option.id)));
+});
