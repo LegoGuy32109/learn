@@ -27,13 +27,13 @@ Wrap-up Question 2 of 4, directly after being missed as Question 1.
 
 **Blocked by:** None.
 
-**Status:** ready-for-agent
+**Status:** done de1242e
 
-- [ ] With two or more Concepts remaining, the missed Concept is never the
+- [x] With two or more Concepts remaining, the missed Concept is never the
       next Question.
-- [ ] The unit test in `tests/shared/learning_test.ts` asserts the missed
+- [x] The unit test in `tests/shared/learning_test.ts` asserts the missed
       Question is last for several seeds.
-- [ ] The audit check above passes in `deno task audit:phone`.
+- [x] The audit check above passes in `deno task audit:phone`.
 
 ## Verification
 
@@ -41,3 +41,36 @@ Wrap-up Question 2 of 4, directly after being missed as Question 1.
 deno task audit:phone
 deno task test
 ```
+
+## Report
+
+Changed `advanceWrapUp` in `src/shared/learning/transitions.js`: on a miss it shuffles only
+`queue.slice(1)` with `seed + queue.length` and appends the missed Question after them. With
+one Concept remaining the queue is `[remaining, missed]`; with none it is `[missed]`.
+
+New unit test in `tests/shared/learning_test.ts`: for seeds 0 to 49 with four Questions the
+missed one is last and the other three are a permutation of the remaining ones; the two- and
+one-Question edge cases are asserted exactly. `deno task test`: 109 passed, 0 failed.
+
+Passing in `tests/audit/last-probes.md`:
+
+```
+- wrap-up · a missed Concept is never re-asked immediately (200 seeds, three Concepts)
+- wrap-up requeue: 0 of 200 seeds re-ask the missed Concept as the very next Question
+```
+
+The browser walk observed: "The missed Concept came back as Wrap-up Question 4 of 4".
+
+Audit run on this branch (`deno task audit:phone`, three runs, identical results): walk
+307 passed / 11 failed, probes 7 passed / 7 failed. Every failure belongs to tickets
+17, 20 and 21 (reload landing, double-tap, dead square Back), which another worker owns,
+or to a stale audit helper: `projection()` in `tests/audit/support.ts` looks up the
+projection id `checkpoint` / `progress`, but since the ticket 08 merge the keys are
+`checkpoint:<revisionId>:<epoch>`, so the seven "Cannot read properties of null" walk
+checks (Back inspection checkpoint, Try another queue, I don't know state, wrap-up
+Learned 2 to 4, Learned summary) read null. That predates this branch and is outside
+these tickets; I tried a prefix match and reverted it because it uncovered further stale
+expectations, which need their own ticket.
+
+`deno task check`: passes. `deno task test`: 109 passed, 0 failed. `deno task e2e`:
+7 passed, 0 failed.
