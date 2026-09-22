@@ -4,6 +4,8 @@
 import { lessonSchema, resolveLesson } from "../../shared/authoring/resolver.js";
 import { DIAGNOSTIC_CODES, diagnosticsReference } from "../../shared/authoring/diagnostics.js";
 import { MAX_LESSON_BYTES } from "../http.ts";
+import { MAX_BATCH_EVENTS } from "../progress/validation.ts";
+import { DEFAULT_PULL_LIMIT, MAX_PULL_LIMIT } from "../routes/progress.ts";
 import { capabilitiesFor } from "./capabilities.ts";
 
 /** The canonical origin. Per-request documents substitute the request origin in `servers`. */
@@ -36,6 +38,39 @@ function problem(status: number, title: string, detail: string) {
   return { type: "about:blank", title, status, detail };
 }
 
+const exampleConcept = (exampleRevision.content as Record<string, any>).concepts[0];
+const exampleStream = { lessonId: exampleLessonId, lessonRevisionId: exampleRevisionId, epoch: 0 };
+const exampleCardSeen = {
+  id: "3f7a9d2e-5c41-4b8f-9e2a-7d6c1b0f4a55",
+  type: "card_seen",
+  lessonRevisionId: exampleRevisionId,
+  epoch: 0,
+  occurredAt: "2026-09-22T08:15:30.000Z",
+  cardId: exampleConcept.cards[0].id,
+  conceptId: exampleConcept.id,
+};
+const exampleStarted = { id: "9b1e6c3a-2d4f-4a7b-8c5e-0f1a2b3c4d5e", type: "lesson_started", lessonRevisionId: exampleRevisionId, epoch: 0, occurredAt: "2026-09-22T08:15:00.000Z" };
+const exampleCheckpointEvent = {
+  id: "c2d4e6f8-1a3b-4c5d-9e7f-2b4d6f8a0c1e",
+  type: "navigation_checkpointed",
+  lessonRevisionId: exampleRevisionId,
+  epoch: 0,
+  occurredAt: "2026-09-22T08:15:31.000Z",
+  checkpoint: {
+    screen: "card",
+    conceptIndex: 0,
+    cardIndex: 1,
+    flowKind: "cards",
+    seed: 0,
+    attemptId: "",
+    queue: [],
+    feedback: null,
+    detour: null,
+    learningEventFrontier: [exampleStarted.id, exampleCardSeen.id],
+  },
+};
+const exampleCursor = "c2VxOjI";
+
 /** A media object whose example lives once under components.examples. */
 function media(ref: string, exampleName: string) {
   return { schema: { $ref: ref }, examples: { default: { $ref: `#/components/examples/${exampleName}` } } };
@@ -54,6 +89,15 @@ const problems = {
   403: problemResponse("The token is valid but lacks the scope the route needs.", problem(403, "Insufficient scope", "This token does not have the lessons:write scope.")),
   404: problemResponse("No route matches, or the account does not own the resource.", problem(404, "Not found", "Lesson Revision was not found.")),
   413: problemResponse(`The body is over ${MAX_LESSON_BYTES} bytes.`, problem(413, "Request too large", `Lesson source is limited to ${MAX_LESSON_BYTES} bytes.`)),
+  409: {
+    description: "The progress epoch was discarded: the stream is at a higher epoch. `code` is `epoch.stale` and `stream` names the current revision and epoch. Discard on this device too, then sync again.",
+    content: { "application/problem+json": { schema: { $ref: "#/components/schemas/ProgressProblem" }, example: { ...problem(409, "Stale progress epoch", "This progress epoch was discarded. Discard it on this device too before syncing again."), code: "epoch.stale", stream: { ...exampleStream, epoch: 1 } } } },
+  },
+  422: {
+    description: "One or more events do not belong to this Lesson Revision, or the body is malformed. `code` is `events.rejected` with one entry per rejection, or names the malformed field. Nothing was stored.",
+    content: { "application/problem+json": { schema: { $ref: "#/components/schemas/ProgressProblem" }, example: { ...problem(422, "Events rejected", "One or more events do not belong to this Lesson Revision. Nothing was stored."), code: "events.rejected", rejections: [{ index: 1, id: "5e2b8d7c-0a9f-4e6d-b3c1-8f7a6e5d4c3b", code: "question.unknown", path: "/events/1/questionId", message: "questionId is not a Question of this Lesson Revision." }] } } },
+  },
+  progressNotFound: problemResponse("The Lesson Revision is unknown to this account: it is neither owned nor published. `code` is `revision.unknown`.", { ...problem(404, "Unknown Lesson Revision", "No Lesson Revision with this id is available to this account."), code: "revision.unknown", lessonRevisionId: exampleRevisionId }),
   501: problemResponse("Passkeys are not configured for this origin: WEBAUTHN_RP_ID and WEBAUTHN_ORIGINS are unset and the origin is not plain localhost.", problem(501, "Passkeys not configured", "This deployment has no relying party for this origin.")),
 };
 
@@ -101,6 +145,44 @@ function textResponse(description: string, mediaType: string) {
   return { description, content: { [mediaType]: { schema: { type: "string" } } } };
 }
 
+const progressPushBody = {
+  required: true,
+  description: "The events to store, all for one Lesson Revision and progress epoch. Sending the same events again is safe: each UUIDv4 is stored once. An empty events array announces a new epoch after a discard.",
+  content: { "application/json": media("#/components/schemas/ProgressPush", "progressPush") },
+};
+
+const progressPushResponses = {
+  200: jsonResponse("How many events were stored now and how many were already stored, plus the stream after the push.", "#/components/schemas/ProgressPushResult", "progressPushResult"),
+  400: problems[400],
+  401: problems[401],
+  403: problems[403],
+  404: problems.progressNotFound,
+  409: problems[409],
+  413: problems[413],
+  422: problems[422],
+};
+
+const progressQuery = [
+  { name: "revision", in: "query", required: true, description: "The Lesson Revision the progress belongs to.", schema: { type: "string", format: "uuid" }, example: exampleRevisionId },
+  { name: "epoch", in: "query", required: false, description: "The progress epoch. Defaults to 0. A pull at an epoch below the stream's current epoch answers 409.", schema: { type: "integer", minimum: 0 }, example: 0 },
+];
+
+const pullQuery = [
+  ...progressQuery,
+  { name: "cursor", in: "query", required: false, description: "Opaque. Send back the cursor the previous page returned; omit it for the first page. Never construct or compare one.", schema: { type: "string" }, example: exampleCursor },
+  { name: "limit", in: "query", required: false, description: `Events per page, 1 to ${MAX_PULL_LIMIT}. Defaults to ${DEFAULT_PULL_LIMIT}.`, schema: { type: "integer", minimum: 1, maximum: MAX_PULL_LIMIT }, example: DEFAULT_PULL_LIMIT },
+];
+
+const progressPullResponses = {
+  200: jsonResponse("One page of events in the server's arrival order, the cursor for the next page, and the stream. The browser unions them by id and replays the shared reducers; it never orders events by id.", "#/components/schemas/ProgressPage", "progressPage"),
+  400: problemResponse("The cursor is not one this server issued. `code` is `cursor.invalid`.", { ...problem(400, "Invalid cursor", "The cursor is opaque; send back the one the last page returned."), code: "cursor.invalid" }),
+  401: problems[401],
+  403: problems[403],
+  404: problems.progressNotFound,
+  409: problems[409],
+  422: problems[422],
+};
+
 /** Build the OpenAPI document for one origin. Documents served by the app use the request origin. */
 export function openapiDocument(origin: string = CANONICAL_ORIGIN) {
   return {
@@ -123,6 +205,7 @@ export function openapiDocument(origin: string = CANONICAL_ORIGIN) {
       { name: "resolution", description: "Validate a lesson without storing it." },
       { name: "drafts", description: "Immutable private Lesson Revisions owned by the token's account." },
       { name: "sign-in", description: "Phone sign-in: one-time invites, passkey ceremonies and the browser session cookie." },
+      { name: "progress", description: "Cross-device progress sync: the idempotent union of immutable learning and navigation events, and the checkpoint rebuilt from them." },
     ],
     paths: {
       "/.well-known/learn-joshhale.json": {
@@ -232,6 +315,62 @@ export function openapiDocument(origin: string = CANONICAL_ORIGIN) {
           summary: "Read one owned Lesson Revision, the content the phone caches on open",
           security: [{ session: [] }, { bearer: ["lessons:read"] }],
           responses: { 200: jsonResponse("The stored revision.", "#/components/schemas/StoredRevision", "storedRevision"), 401: problems[401], 403: problems[403], 404: problems[404] },
+        },
+      },
+      "/api/v1/progress/learning-events": {
+        post: {
+          tags: ["progress"],
+          operationId: "pushLearningEvents",
+          summary: "Store learning events (lesson_started, card_seen, question_answered) for one revision and epoch",
+          description: `Idempotent by event id, scoped to the account, Lesson Revision and epoch. Every event is validated against the revision: Cards and Questions must exist in it, and an answer's correctness is recomputed with the shared evaluator. A batch with any rejected event stores nothing. At most ${MAX_BATCH_EVENTS} events per push. A push at a higher epoch than the stream advances it; a push at a lower epoch answers 409.`,
+          security: [{ session: [] }, { bearer: ["lessons:write"] }],
+          requestBody: progressPushBody,
+          responses: progressPushResponses,
+        },
+        get: {
+          tags: ["progress"],
+          operationId: "pullLearningEvents",
+          summary: "Read learning events for one revision and epoch, one page at a time",
+          parameters: pullQuery,
+          security: [{ session: [] }, { bearer: ["lessons:read"] }],
+          responses: progressPullResponses,
+        },
+      },
+      "/api/v1/progress/navigation-events": {
+        post: {
+          tags: ["progress"],
+          operationId: "pushNavigationEvents",
+          summary: "Store navigation_checkpointed events for one revision and epoch",
+          description: "Idempotent by event id. Each checkpoint names the learning events it depends on in learningEventFrontier; the server never trusts a checkpoint as canonical on its own.",
+          security: [{ session: [] }, { bearer: ["lessons:write"] }],
+          requestBody: progressPushBody,
+          responses: progressPushResponses,
+        },
+        get: {
+          tags: ["progress"],
+          operationId: "pullNavigationEvents",
+          summary: "Read navigation events for one revision and epoch, one page at a time",
+          parameters: pullQuery,
+          security: [{ session: [] }, { bearer: ["lessons:read"] }],
+          responses: progressPullResponses,
+        },
+      },
+      "/api/v1/progress/checkpoint": {
+        get: {
+          tags: ["progress"],
+          operationId: "progressCheckpoint",
+          summary: "The canonical resume position, rebuilt from the navigation stream",
+          description: "No projection is stored. The server selects, from every navigation_checkpointed event in the scope, the checkpoint that depends on the most accepted learning events; a checkpoint with a smaller frontier never replaces one with a larger frontier, however late it arrives. Equal frontiers are broken by the later client occurredAt, then by the greater event id, so every device and the server agree.",
+          parameters: progressQuery,
+          security: [{ session: [] }, { bearer: ["lessons:read"] }],
+          responses: {
+            200: jsonResponse("The selected checkpoint, or null when none exists, with the size of its accepted frontier.", "#/components/schemas/ProgressCheckpoint", "progressCheckpoint"),
+            401: problems[401],
+            403: problems[403],
+            404: problems.progressNotFound,
+            409: problems[409],
+            422: problems[422],
+          },
         },
       },
       "/api/v1/sign-in-invites": {
@@ -354,6 +493,10 @@ export function openapiDocument(origin: string = CANONICAL_ORIGIN) {
           summary: "One account with one lesson on its shelf",
           value: { lessons: [{ lessonId: exampleLessonId, title: exampleLesson.title, conceptCount: 3, questionCount: 12, latestRevisionId: exampleRevisionId, latestRevisionNumber: 1, status: "draft", updatedAt: 1758412800000 }] },
         },
+        progressPush: { summary: "Two learning events from one device", value: { lessonRevisionId: exampleRevisionId, epoch: 0, events: [exampleStarted, exampleCardSeen] } },
+        progressPushResult: { summary: "Both stored now", value: { accepted: 2, duplicates: 0, stream: exampleStream } },
+        progressPage: { summary: "One page holding both events, with nothing after it", value: { events: [exampleStarted, exampleCardSeen], cursor: exampleCursor, hasMore: false, stream: exampleStream } },
+        progressCheckpoint: { summary: "Resuming at the second Card, depending on two learning events", value: { checkpoint: exampleCheckpointEvent.checkpoint, frontier: 2, learningEvents: 2, stream: exampleStream } },
         capabilities: { summary: "The capability document for this origin", value: capabilitiesFor(origin) },
         diagnosticsReference: { summary: "The served diagnostics reference", value: diagnosticsReference },
       },
@@ -475,6 +618,94 @@ export function openapiDocument(origin: string = CANONICAL_ORIGIN) {
           properties: {
             signedIn: { type: "boolean" },
             displayName: { type: ["string", "null"], description: "The account's display name, or null for a guest." },
+          },
+        },
+        SyncEvent: {
+          type: "object",
+          description: "One immutable event as the browser stores it. The envelope is fixed; the remaining fields depend on type: card_seen carries cardId and conceptId; question_answered carries flowKind, conceptId, poolId, questionId, attemptId, answer and correct; navigation_checkpointed carries checkpoint (an object with learningEventFrontier, or null).",
+          required: ["id", "type", "lessonRevisionId", "epoch", "occurredAt"],
+          properties: {
+            id: { type: "string", format: "uuid", description: "UUIDv4. The idempotency key within the account, revision and epoch. Never an ordering." },
+            type: { type: "string", enum: ["lesson_started", "card_seen", "question_answered", "navigation_checkpointed"] },
+            lessonRevisionId: { type: "string", format: "uuid" },
+            epoch: { type: "integer", minimum: 0, description: "The progress epoch. A discard advances it; events under an older epoch are never read again." },
+            occurredAt: { type: "string", format: "date-time", description: "The client's clock when the event happened. The server also records when it received the event." },
+          },
+        },
+        StreamState: {
+          type: ["object", "null"],
+          description: "The account's stream for the Lesson: the revision it is learning and the current epoch. Null before the first push.",
+          required: ["lessonId", "lessonRevisionId", "epoch"],
+          properties: {
+            lessonId: { type: "string", format: "uuid" },
+            lessonRevisionId: { type: "string", format: "uuid" },
+            epoch: { type: "integer", minimum: 0 },
+          },
+        },
+        ProgressPush: {
+          type: "object",
+          required: ["lessonRevisionId", "epoch", "events"],
+          properties: {
+            lessonRevisionId: { type: "string", format: "uuid" },
+            epoch: { type: "integer", minimum: 0 },
+            events: { type: "array", maxItems: MAX_BATCH_EVENTS, items: { $ref: "#/components/schemas/SyncEvent" } },
+          },
+        },
+        ProgressPushResult: {
+          type: "object",
+          required: ["accepted", "duplicates", "stream"],
+          properties: {
+            accepted: { type: "integer", minimum: 0, description: "Events stored by this push." },
+            duplicates: { type: "integer", minimum: 0, description: "Events already stored, skipped. A retry after a lost response reports them here." },
+            stream: { $ref: "#/components/schemas/StreamState" },
+          },
+        },
+        ProgressPage: {
+          type: "object",
+          required: ["events", "cursor", "hasMore", "stream"],
+          properties: {
+            events: { type: "array", items: { $ref: "#/components/schemas/SyncEvent" }, description: "In the server's arrival order." },
+            cursor: { type: "string", description: "Opaque. Send it back as the cursor query parameter for the next page; it never skips or repeats an event across pages." },
+            hasMore: { type: "boolean" },
+            stream: { $ref: "#/components/schemas/StreamState" },
+          },
+        },
+        ProgressCheckpoint: {
+          type: "object",
+          required: ["checkpoint", "frontier", "learningEvents", "stream"],
+          properties: {
+            checkpoint: { type: ["object", "null"], description: "The selected checkpoint as the browser stored it, or null." },
+            frontier: { type: "integer", minimum: 0, description: "How many accepted learning events the selected checkpoint depends on." },
+            learningEvents: { type: "integer", minimum: 0, description: "How many learning events the scope holds." },
+            stream: { $ref: "#/components/schemas/StreamState" },
+          },
+        },
+        ProgressProblem: {
+          type: "object",
+          description: "RFC 9457 problem details with a stable `code` and, for a stale epoch, the current `stream`; for rejected events, one `rejections` entry per event at fault.",
+          required: ["type", "title", "status", "detail", "code"],
+          properties: {
+            type: { type: "string", const: "about:blank" },
+            title: { type: "string" },
+            status: { type: "integer" },
+            detail: { type: "string" },
+            code: { type: "string", enum: ["epoch.stale", "epoch.shape", "events.rejected", "revision.unknown", "cursor.invalid"] },
+            stream: { $ref: "#/components/schemas/StreamState" },
+            lessonRevisionId: { type: "string" },
+            rejections: {
+              type: "array",
+              items: {
+                type: "object",
+                required: ["index", "id", "code", "path", "message"],
+                properties: {
+                  index: { type: "integer", description: "Position in the submitted events array, or -1 for the array itself." },
+                  id: { type: ["string", "null"] },
+                  code: { type: "string" },
+                  path: { type: "string", description: "JSON Pointer into the push body." },
+                  message: { type: "string" },
+                },
+              },
+            },
           },
         },
         Problem: {

@@ -7,10 +7,12 @@ import { PasskeyService } from "../../../src/server/identity/passkeys.ts";
 import { HmacSessionCookies, randomSessionKey } from "../../../src/server/identity/sessions.ts";
 import { TursoIdentityRepository } from "../../../src/server/repositories/identity.ts";
 import { TursoLessonRepository } from "../../../src/server/repositories/lessons.ts";
+import { TursoProgressRepository } from "../../../src/server/repositories/progress.ts";
 
 export function tursoDependencies(db: Client, clock: () => number = Date.now): Dependencies {
   return {
     lessons: new TursoLessonRepository(db),
+    progress: new TursoProgressRepository(db),
     auth: new TokenAuthenticator(db, clock),
     sessions: new HmacSessionCookies(randomSessionKey(), clock),
     passkeys: new PasskeyService(new TursoIdentityRepository(db), clock),

@@ -2,8 +2,8 @@
 
 learn.joshhale.me uses Turso Cloud for durable server data. IndexedDB remains
 the browser's immediate offline store. Turso stores accounts, API tokens,
-Lesson identities, immutable Lesson Revisions, and structured sources. A later
-migration will add synchronized learning and navigation events.
+Lesson identities, immutable Lesson Revisions, structured sources, passkey credentials, and the synchronized
+learning and navigation event streams with their progress streams.
 
 ## Environments
 
@@ -46,7 +46,7 @@ deno task db:provision  # Ensure learn-local and learn-dev exist; rotate connect
 deno task db:migrate    # Apply pending migrations to learn-local
 deno task db:owner      # Ensure Josh's local account, owner API token (with account:owner) and LEARN_SESSION_KEY exist
 deno task db:seed       # Ensure the database-backed demo lesson exists
-deno task test:db       # Draft persistence against learn-local; token lifecycle and passkey sign-in each against an ephemeral learn-test-<uuid>
+deno task test:db       # Draft persistence against learn-local; token lifecycle, passkey sign-in and progress sync each against an ephemeral learn-test-<uuid>
 deno task token:mint    # Mint a named, scoped personal token; the full token is printed once
 deno task token:list    # Show token metadata for the account
 deno task token:revoke  # Revoke one token now
@@ -59,8 +59,10 @@ or `--base-url <url>`. The serving application also reads `LEARN_SESSION_KEY`
 (browser session signing; without it sessions end at restart), and
 `WEBAUTHN_RP_ID` plus `WEBAUTHN_ORIGINS` (the pinned passkey relying party; unset
 means plain localhost only). Migration `002_passkeys_and_invites.sql` adds
-`passkey_credentials`, `sign_in_invites` and `webauthn_challenges`; run
-`deno task db:migrate` before serving code that needs them.
+`passkey_credentials`, `sign_in_invites` and `webauthn_challenges`. Migration
+`003_progress_sync.sql` adds `progress_streams`, `progress_events` and
+`navigation_events`. Run `deno task db:migrate` before serving code that needs
+them.
 
 Every `token:*` task accepts `--help`. To operate on `learn-dev`, run
 `scripts/tokens.ts` with `--env-file=.env.dev` and the same permissions.

@@ -39,6 +39,11 @@ export interface LessonRepository {
   listMine(accountId: string): Promise<Array<Record<string, unknown>>>;
   /** Every lesson the account owns, newest revision first. */
   shelf(accountId: string): Promise<ShelfLesson[]>;
+  /**
+   * One revision the account may record progress on: any revision of a lesson it owns, or any
+   * published revision. Null otherwise, so progress on an unknown revision is refused.
+   */
+  learnableRevision(accountId: string, revisionId: string): Promise<StoredRevision | null>;
 }
 
 /** Concept and Question counts from a normalized lesson document. */
@@ -129,6 +134,14 @@ export class TursoLessonRepository implements LessonRepository {
       status: String(row.status) as StoredRevision["status"],
       updatedAt: Number(row.created_at),
     }));
+  }
+
+  async learnableRevision(accountId: string, revisionId: string): Promise<StoredRevision | null> {
+    const result = await this.db.execute({
+      sql: "SELECT r.* FROM lesson_revisions r JOIN lessons l ON l.id = r.lesson_id WHERE r.id = ? AND (r.status = 'published' OR l.owner_account_id = ?)",
+      args: [revisionId, accountId],
+    });
+    return result.rows.length ? await this.hydrate(result.rows[0] as Record<string, any>) : null;
   }
 
   async listMine(accountId: string): Promise<Array<Record<string, unknown>>> {
@@ -246,6 +259,13 @@ export class FixtureLessonRepository implements LessonRepository {
   async shelf(accountId: string): Promise<ShelfLesson[]> {
     const lessonIds = [...new Set(this.owned(accountId).map((revision) => revision.lessonId))];
     return lessonIds.map((lessonId) => shelfLesson(this.newest(lessonId)!)).sort((a, b) => b.updatedAt - a.updatedAt);
+  }
+
+  async learnableRevision(accountId: string, revisionId: string): Promise<StoredRevision | null> {
+    const revision = this.revisions.find((candidate) => candidate.revisionId === revisionId);
+    if (!revision) return null;
+    if (revision.status !== "published" && this.owners.get(revision.lessonId) !== accountId) return null;
+    return revision;
   }
 
   private owned(accountId: string): StoredRevision[] {

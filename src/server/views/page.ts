@@ -37,6 +37,7 @@ export function document(body: string, options: { title?: string } = {}): string
     '<link rel="stylesheet" href="/css/tokens.css">',
     '<link rel="stylesheet" href="/css/reference.css">',
     '<link rel="stylesheet" href="/css/app.css">',
+    '<link rel="stylesheet" href="/css/sync.css">',
   ].join("");
   return `<!doctype html><html lang="en" data-accent="bronze"><head>${head}</head><body>${body}</body></html>`;
 }
@@ -54,6 +55,7 @@ export function page(lesson: unknown | null, session: PageSession): string {
   ].join("");
   const body = [
     '<main id="app" aria-live="polite"></main>',
+    '<p id="sync-status" class="syncstatus" role="status" aria-live="polite" hidden></p>',
     `<script>${scripts}</script>`,
     '<script type="module" src="/js/app.js"></script>',
   ].join("");

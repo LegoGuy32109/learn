@@ -287,6 +287,55 @@ DELETE /api/v1/session                          clears the cookie
 Mint a link from the laptop with `deno task invite:mint` (see
 `docs/turso-databases.md`), open it on the phone, and register.
 
+## Progress sync
+
+A signed-in phone keeps IndexedDB authoritative and reconciles with the server
+in the background. Every learning and navigation event is immutable, carries a
+UUIDv4, a Lesson Revision and a progress epoch, and is stored on the server once
+per account, revision, epoch and ID. The server stores the client's `occurredAt`
+and its own `received_at`, and no response duration. Every route resolves the
+account through the same resolver as the shelf: the session cookie first, then
+a bearer token (`lessons:write` for pushes, `lessons:read` for pulls). A push
+with a cookie must come from the site's own origin.
+
+```text
+POST /api/v1/progress/learning-events      { lessonRevisionId, epoch, events } -> { accepted, duplicates, stream }
+POST /api/v1/progress/navigation-events    same shape, navigation_checkpointed events only
+GET  /api/v1/progress/learning-events?revision=&epoch=&cursor=&limit=    -> { events, cursor, hasMore, stream }
+GET  /api/v1/progress/navigation-events?revision=&epoch=&cursor=&limit=  -> same page shape
+GET  /api/v1/progress/checkpoint?revision=&epoch=                         -> { checkpoint, frontier, learningEvents, stream }
+```
+
+- **Push** is idempotent. Sending the same events again is safe and reports
+  them as `duplicates`. A batch carries at most 200 events, all for the push's
+  revision and epoch. Every event is validated against the revision: Cards and
+  Questions must exist in it, and an answer's `correct` is recomputed with the
+  shared evaluator. A batch with any rejected event stores nothing and answers
+  `422` with `code: "events.rejected"` and one `rejections` entry per fault. An
+  unknown revision, or one the account neither owns nor may read as published,
+  answers `404` with `code: "revision.unknown"`.
+- **Epochs.** The server keeps one stream per account and Lesson: the revision
+  being learned and the current epoch. A push at a higher epoch advances it,
+  including an empty push, which the browser sends right after a discard. A push
+  or pull at a lower epoch answers `409` with `code: "epoch.stale"` and the
+  current `stream`. The browser never adopts the newer epoch on its own; it
+  shows the state and offers "Discard here", the same explicit discard flow.
+- **Pull** pages in the server's arrival order with an opaque `cursor`. Send
+  back exactly the cursor the last page returned; a page never skips or repeats
+  an event across pages. The browser unions events by ID and replays the shared
+  reducers. Order is never inferred from UUIDv4 values.
+- **Checkpoint.** No projection is stored. From every `navigation_checkpointed`
+  event in the scope, the server selects the one whose `learningEventFrontier`
+  names the most accepted learning events. A checkpoint that depends on less
+  evidence never replaces one that depends on more, however late it arrives.
+  Equal frontiers are broken by the later client `occurredAt`, then by the
+  greater event ID as a deterministic last resort, so the browser and the server
+  agree without trusting either clock alone. The same rule lives in
+  `src/shared/learning/sync.js` and runs on both sides.
+
+Short-answer text syncs as typed. Unsubmitted drafts and drill evidence never
+leave the device.
+
 ## Errors
 
 Transport, authentication, authorization, and route errors use
@@ -301,10 +350,11 @@ Current status meanings:
 - `401`: missing, invalid, expired, or revoked token.
 - `403`: valid token without the scope the route requires, or a cross-site
   browser request.
-- `404`: route or owned resource not found.
+- `404`: route or owned resource not found, or a Lesson Revision unknown to the account for progress sync.
+- `409`: a progress push or pull at an epoch the account has discarded.
 - `410`: invite already used or expired.
 - `413`: request exceeds the size limit.
-- `422`: lesson document failed resolution.
+- `422`: lesson document failed resolution, or progress events rejected against their revision.
 - `500`: the server could not complete the request, including a database or
   network failure during authentication. A failed token lookup is never `401`.
 - `501`: passkeys requested from an origin that is not the configured relying
@@ -319,6 +369,6 @@ deployment revision that served it (`local` outside Deno Deploy).
 - Token lifecycle is operated with Deno tasks; there is no browser UI.
 - Passkeys cannot be listed or removed yet; a lost phone is handled by
   minting a new invite, and a stale credential stays in the table.
-- Progress synchronization is not part of this API slice.
+- Progress sync has no browser UI for another account's streams; each account syncs its own.
 - Publishing, verification, and Listings are not implemented.
 
