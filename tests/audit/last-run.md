@@ -1,0 +1,413 @@
+## Learning loop walk
+
+306 passed, 12 failed, 5 observations
+
+### Failed
+
+- visual · shelf fresh · bottom safe-area padding on page shelf
+  ```
+  expect(received).toBe(expected) // Object.is equality
+  Expected: true
+  Received: false
+  ```
+- visual · overview fresh · every control is at least 44px on its shortest side
+  ```
+  expect(received).toEqual(expected) // deep equality
+  - Expected  - 1
+  + Received  + 7
+  - Array []
+  + Array [
+  +   Object {
+  +     "h": 29,
+  +     "label": "Back to shelf",
+  ```
+- visual · overview fresh · bottom safe-area padding on page overview
+  ```
+  expect(received).toBe(expected) // Object.is equality
+  Expected: true
+  Received: false
+  ```
+- visual · overview after Back from first Card · every control is at least 44px on its shortest side
+  ```
+  expect(received).toEqual(expected) // deep equality
+  - Expected  - 1
+  + Received  + 7
+  - Array []
+  + Array [
+  +   Object {
+  +     "h": 29,
+  +     "label": "Back to shelf",
+  ```
+- visual · overview after Back from first Card · bottom safe-area padding on page overview
+  ```
+  expect(received).toBe(expected) // Object.is equality
+  Expected: true
+  Received: false
+  ```
+- reload · overview after Back from first Card · surface comes back
+  ```
+  expect(received).toEqual(expected) // deep equality
+  - Expected  -  9
+  + Received  + 14
+    Object {
+      "belief": null,
+  -   "cardHeading": null,
+  +   "cardHeading": "A fresh response can be reused",
+      "controls": Array [
+  ```
+- first step · reload after Back-to-overview shows the overview (recovering)
+  ```
+  Reload landed on http://127.0.0.1:37073/learn/7a1f7700-0000-4000-8000-000000000001
+  ```
+- visual · shelf in progress after close · bottom safe-area padding on page shelf
+  ```
+  expect(received).toBe(expected) // Object.is equality
+  Expected: true
+  Received: false
+  ```
+- first step · browser Back leaves the URL at the shelf path
+  ```
+  expect(received).toBe(expected) // Object.is equality
+  Expected: "/"
+  Received: "/learn/7a1f7700-0000-4000-8000-000000000001"
+  ```
+- visual · shelf after browser Back from first Card · bottom safe-area padding on page shelf
+  ```
+  expect(received).toBe(expected) // Object.is equality
+  Expected: true
+  Received: false
+  ```
+- reload · shelf after browser Back from first Card · surface comes back
+  ```
+  expect(received).toEqual(expected) // deep equality
+  - Expected  -  7
+  + Received  + 13
+    Object {
+      "belief": null,
+  -   "cardHeading": null,
+  +   "cardHeading": "A fresh response can be reused",
+      "controls": Array [
+  ```
+- visual · shelf Learned · bottom safe-area padding on page shelf
+  ```
+  expect(received).toBe(expected) // Object.is equality
+  Expected: true
+  Received: false
+  ```
+
+### Observations
+
+- wrap-up retry: The missed Concept came back as Wrap-up Question 4 of 4, asked with the same Question.
+- Learned summary line: The Learned summary shows ["Concepts learned\n3 of 3"]; a count, never a score.
+- drill option order · Cache directives and revalidation: 1 distinct option order(s) across this Concept's MCQs in one run.
+- drill option order · Freshness and age: 1 distinct option order(s) across this Concept's MCQs in one run.
+- drill option order · Validators and conditional requests: 1 distinct option order(s) across this Concept's MCQs in one run.
+
+### Passed
+
+- shelf · fresh browser shows the demo lesson Not started
+- forbidden · shelf fresh · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · shelf fresh · says Question, not Item
+- visual · shelf fresh · panel is not blank
+- visual · shelf fresh · every control is at least 44px on its shortest side
+- visual · shelf fresh · no horizontal overflow at 390px
+- scheme · shelf fresh · light and dark render different backgrounds
+- reload · shelf fresh · surface comes back
+- reload · shelf fresh · checkpoint rebuilt from events
+- overview · title, assumed knowledge, Concept count, state and Start lesson
+- forbidden · overview fresh · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · overview fresh · says Question, not Item
+- visual · overview fresh · panel is not blank
+- visual · overview fresh · no horizontal overflow at 390px
+- scheme · overview fresh · light and dark render different backgrounds
+- reload · overview fresh · surface comes back
+- reload · overview fresh · checkpoint rebuilt from events
+- card · Start lesson opens Card 1 of Concept 1 at the stable learning URL
+- forbidden · card 1 of concept 1 · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · card 1 of concept 1 · says Question, not Item
+- visual · card 1 of concept 1 · panel is not blank
+- visual · card 1 of concept 1 · every control is at least 44px on its shortest side
+- visual · card 1 of concept 1 · no horizontal overflow at 390px
+- visual · card 1 of concept 1 · bottom safe-area padding on shell
+- scheme · card 1 of concept 1 · light and dark render different backgrounds
+- reload · card 1 of concept 1 · surface comes back
+- reload · card 1 of concept 1 · checkpoint rebuilt from events
+- first step · square Back returns to the overview with Resume
+- forbidden · overview after Back from first Card · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · overview after Back from first Card · says Question, not Item
+- visual · overview after Back from first Card · panel is not blank
+- visual · overview after Back from first Card · no horizontal overflow at 390px
+- reload · overview after Back from first Card · checkpoint rebuilt from events
+- first step · Resume from the overview reopens Card 1
+- first step · close returns to the shelf showing In progress
+- forbidden · shelf in progress after close · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · shelf in progress after close · says Question, not Item
+- visual · shelf in progress after close · panel is not blank
+- visual · shelf in progress after close · every control is at least 44px on its shortest side
+- visual · shelf in progress after close · no horizontal overflow at 390px
+- reload · shelf in progress after close · surface comes back
+- reload · shelf in progress after close · checkpoint rebuilt from events
+- first step · browser Back returns to the shelf
+- forbidden · shelf after browser Back from first Card · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · shelf after browser Back from first Card · says Question, not Item
+- visual · shelf after browser Back from first Card · panel is not blank
+- visual · shelf after browser Back from first Card · every control is at least 44px on its shortest side
+- visual · shelf after browser Back from first Card · no horizontal overflow at 390px
+- reload · shelf after browser Back from first Card · checkpoint rebuilt from events
+- first step · learner is back on Card 1 after the Back probes
+- card · Continue marks Card 1 Seen exactly once and shows Card 2
+- forbidden · card 2 of concept 1 · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · card 2 of concept 1 · says Question, not Item
+- visual · card 2 of concept 1 · panel is not blank
+- visual · card 2 of concept 1 · every control is at least 44px on its shortest side
+- visual · card 2 of concept 1 · no horizontal overflow at 390px
+- visual · card 2 of concept 1 · bottom safe-area padding on shell
+- reload · card 2 of concept 1 · surface comes back
+- reload · card 2 of concept 1 · checkpoint rebuilt from events
+- card · Back inspects Card 1 without recording evidence
+- card · Back inspection does not replace the canonical checkpoint
+- reload · inspecting Card 1 resumes at the canonical Card 2 · surface comes back
+- reload · inspecting Card 1 resumes at the canonical Card 2 · checkpoint rebuilt from events
+- card · Continue on an already Seen Card records no duplicate card_seen
+- check 1 · the Check opens on an unanswered drawable Question of Concept 1
+- check 1 question · exactly three shared options, I don't know present, field blank
+- forbidden · check 1 unanswered Question · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · check 1 unanswered Question · says Question, not Item
+- visual · check 1 unanswered Question · panel is not blank
+- visual · check 1 unanswered Question · every control is at least 44px on its shortest side
+- visual · check 1 unanswered Question · no horizontal overflow at 390px
+- visual · check 1 unanswered Question · I don't know is contained away from the screen edge
+- visual · check 1 unanswered Question · bottom safe-area padding on shell
+- scheme · check 1 unanswered Question · light and dark render different backgrounds
+- reload · check 1 unanswered Question · surface comes back
+- reload · check 1 unanswered Question · checkpoint rebuilt from events
+- check 1 · an unanswered short-answer draft reloads blank
+- check 1 wrong · Not quite, feedback text, belief for a distractor, clamped correcting Card under the action row, Try another from this concept
+- forbidden · check 1 wrong feedback · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · check 1 wrong feedback · says Question, not Item
+- visual · check 1 wrong feedback · panel is not blank
+- visual · check 1 wrong feedback · every control is at least 44px on its shortest side
+- visual · check 1 wrong feedback · no horizontal overflow at 390px
+- visual · check 1 wrong feedback · bottom safe-area padding on shell
+- scheme · check 1 wrong feedback · light and dark render different backgrounds
+- reload · check 1 wrong feedback · surface comes back
+- reload · check 1 wrong feedback · checkpoint rebuilt from events
+- check 1 · Review opens the correcting Card as a detour with Return to questions
+- forbidden · check 1 corrective Card · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · check 1 corrective Card · says Question, not Item
+- visual · check 1 corrective Card · panel is not blank
+- visual · check 1 corrective Card · every control is at least 44px on its shortest side
+- visual · check 1 corrective Card · no horizontal overflow at 390px
+- visual · check 1 corrective Card · bottom safe-area padding on shell
+- scheme · check 1 corrective Card · light and dark render different backgrounds
+- reload · check 1 corrective Card · surface comes back
+- reload · check 1 corrective Card · checkpoint rebuilt from events
+- check 1 · Return restores the same feedback and the detour recorded no event
+- check 1 · Try another asks an unseen Question from the same Concept
+- check 1 retry question · exactly three shared options, I don't know present, field blank
+- forbidden · check 1 retry Question · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · check 1 retry Question · says Question, not Item
+- visual · check 1 retry Question · panel is not blank
+- visual · check 1 retry Question · every control is at least 44px on its shortest side
+- visual · check 1 retry Question · no horizontal overflow at 390px
+- visual · check 1 retry Question · I don't know is contained away from the screen edge
+- visual · check 1 retry Question · bottom safe-area padding on shell
+- reload · check 1 retry Question · surface comes back
+- reload · check 1 retry Question · checkpoint rebuilt from events
+- check 1 · a correct answer shows Correct with the key's feedback and Continue, never auto-advancing
+- forbidden · check 1 correct feedback · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · check 1 correct feedback · says Question, not Item
+- visual · check 1 correct feedback · panel is not blank
+- visual · check 1 correct feedback · every control is at least 44px on its shortest side
+- visual · check 1 correct feedback · no horizontal overflow at 390px
+- visual · check 1 correct feedback · bottom safe-area padding on shell
+- scheme · check 1 correct feedback · light and dark render different backgrounds
+- reload · check 1 correct feedback · surface comes back
+- reload · check 1 correct feedback · checkpoint rebuilt from events
+- concept 2 · Continue after the Check opens Card 1 of Concept 2
+- check 2 · the Check opens for Concept 2
+- check 2 question · exactly three shared options, I don't know present, field blank
+- check 2 · I don't know shows the correct answer, a link to the correcting Card and ends the Check
+- check 2 · I don't know carries no penalty: progress state is unchanged
+- forbidden · check 2 I don't know feedback · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · check 2 I don't know feedback · says Question, not Item
+- visual · check 2 I don't know feedback · panel is not blank
+- visual · check 2 I don't know feedback · every control is at least 44px on its shortest side
+- visual · check 2 I don't know feedback · no horizontal overflow at 390px
+- visual · check 2 I don't know feedback · bottom safe-area padding on shell
+- scheme · check 2 I don't know feedback · light and dark render different backgrounds
+- reload · check 2 I don't know feedback · surface comes back
+- reload · check 2 I don't know feedback · checkpoint rebuilt from events
+- concept 3 · I don't know then Continue opens Card 1 of Concept 3
+- check 3 question 1 · exactly three shared options, I don't know present, field blank
+- check 3 wrong 1 · Not quite, feedback text, belief for a distractor, clamped correcting Card under the action row, Try another from this concept
+- check 3 question 2 · exactly three shared options, I don't know present, field blank
+- check 3 wrong 2 · Not quite, feedback text, belief for a distractor, clamped correcting Card under the action row, Try another from this concept
+- forbidden · check 3 second wrong feedback · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · check 3 second wrong feedback · says Question, not Item
+- visual · check 3 second wrong feedback · panel is not blank
+- visual · check 3 second wrong feedback · every control is at least 44px on its shortest side
+- visual · check 3 second wrong feedback · no horizontal overflow at 390px
+- visual · check 3 second wrong feedback · bottom safe-area padding on shell
+- reload · check 3 second wrong feedback · surface comes back
+- reload · check 3 second wrong feedback · checkpoint rebuilt from events
+- check 3 question 3 · exactly three shared options, I don't know present, field blank
+- check 3 wrong 3 · Not quite, feedback text, belief for a distractor, clamped correcting Card under the action row, Continue
+- check 3 · every wrong answer was re-asked from an unseen Question until the Pool was exhausted
+- wrap-up · opens with one Question drawn from the reserved Questions the Checks never showed
+- wrap-up question 1 · exactly three shared options, I don't know present, field blank
+- forbidden · wrap-up Question 1 · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · wrap-up Question 1 · says Question, not Item
+- visual · wrap-up Question 1 · panel is not blank
+- visual · wrap-up Question 1 · every control is at least 44px on its shortest side
+- visual · wrap-up Question 1 · no horizontal overflow at 390px
+- visual · wrap-up Question 1 · I don't know is contained away from the screen edge
+- visual · wrap-up Question 1 · bottom safe-area padding on shell
+- scheme · wrap-up Question 1 · light and dark render different backgrounds
+- reload · wrap-up Question 1 · surface comes back
+- reload · wrap-up Question 1 · checkpoint rebuilt from events
+- wrap-up · shelf shows Seen before any Wrap-up answer, and Resume returns to the same Question
+- wrap-up · a wrong answer shows feedback and Continue, and does not award Learned
+- forbidden · wrap-up wrong feedback · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · wrap-up wrong feedback · says Question, not Item
+- visual · wrap-up wrong feedback · panel is not blank
+- visual · wrap-up wrong feedback · every control is at least 44px on its shortest side
+- visual · wrap-up wrong feedback · no horizontal overflow at 390px
+- visual · wrap-up wrong feedback · bottom safe-area padding on shell
+- scheme · wrap-up wrong feedback · light and dark render different backgrounds
+- reload · wrap-up wrong feedback · surface comes back
+- reload · wrap-up wrong feedback · checkpoint rebuilt from events
+- wrap-up · Question 2 is a reserved Question the Checks never showed
+- forbidden · wrap-up Question 2 · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · wrap-up Question 2 · says Question, not Item
+- visual · wrap-up Question 2 · panel is not blank
+- visual · wrap-up Question 2 · every control is at least 44px on its shortest side
+- visual · wrap-up Question 2 · no horizontal overflow at 390px
+- visual · wrap-up Question 2 · I don't know is contained away from the screen edge
+- visual · wrap-up Question 2 · bottom safe-area padding on shell
+- reload · wrap-up Question 2 · surface comes back
+- reload · wrap-up Question 2 · checkpoint rebuilt from events
+- wrap-up · correct answer 2 marks its Concept Learned
+- wrap-up · Question 3 is a reserved Question the Checks never showed
+- forbidden · wrap-up retried or third Question · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · wrap-up retried or third Question · says Question, not Item
+- visual · wrap-up retried or third Question · panel is not blank
+- visual · wrap-up retried or third Question · every control is at least 44px on its shortest side
+- visual · wrap-up retried or third Question · no horizontal overflow at 390px
+- visual · wrap-up retried or third Question · I don't know is contained away from the screen edge
+- visual · wrap-up retried or third Question · bottom safe-area padding on shell
+- reload · wrap-up retried or third Question · surface comes back
+- reload · wrap-up retried or third Question · checkpoint rebuilt from events
+- wrap-up · correct answer 3 marks its Concept Learned
+- wrap-up · Question 4 is a reserved Question the Checks never showed
+- wrap-up · correct answer 4 marks its Concept Learned
+- forbidden · wrap-up final correct feedback · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · wrap-up final correct feedback · says Question, not Item
+- visual · wrap-up final correct feedback · panel is not blank
+- visual · wrap-up final correct feedback · every control is at least 44px on its shortest side
+- visual · wrap-up final correct feedback · no horizontal overflow at 390px
+- visual · wrap-up final correct feedback · bottom safe-area padding on shell
+- reload · wrap-up final correct feedback · surface comes back
+- reload · wrap-up final correct feedback · checkpoint rebuilt from events
+- wrap-up · one Question per Concept, and the missed Concept returned once more, later in a shuffled queue
+- learned · the summary reads Learned and every Concept is Learned
+- forbidden · Learned summary · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · Learned summary · says Question, not Item
+- visual · Learned summary · panel is not blank
+- visual · Learned summary · every control is at least 44px on its shortest side
+- visual · Learned summary · no horizontal overflow at 390px
+- visual · Learned summary · bottom safe-area padding on shell
+- scheme · Learned summary · light and dark render different backgrounds
+- reload · Learned summary · surface comes back
+- reload · Learned summary · checkpoint rebuilt from events
+- learned · shelf shows Learned
+- forbidden · shelf Learned · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · shelf Learned · says Question, not Item
+- visual · shelf Learned · panel is not blank
+- visual · shelf Learned · every control is at least 44px on its shortest side
+- visual · shelf Learned · no horizontal overflow at 390px
+- scheme · shelf Learned · light and dark render different backgrounds
+- reload · shelf Learned · surface comes back
+- reload · shelf Learned · checkpoint rebuilt from events
+- drill after Learned · closing an unfinished drill leaves Resume every question on the overview
+- drill after Learned · learning evidence, checkpoint and progress are byte-identical
+- drill · starts at Question 1 of every Question on the drill URL
+- drill question 1 · exactly three shared options, I don't know present, field blank
+- forbidden · drill Question 1 · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · drill Question 1 · says Question, not Item
+- visual · drill Question 1 · panel is not blank
+- visual · drill Question 1 · every control is at least 44px on its shortest side
+- visual · drill Question 1 · no horizontal overflow at 390px
+- visual · drill Question 1 · I don't know is contained away from the screen edge
+- visual · drill Question 1 · bottom safe-area padding on shell drill
+- scheme · drill Question 1 · light and dark render different backgrounds
+- reload · drill Question 1 · surface comes back
+- reload · drill Question 1 · checkpoint rebuilt from events
+- drill · correct at 1 shows Correct and Continue
+- drill · correct at 2 shows Correct and Continue
+- drill wrong at 3 · Not quite, feedback text, belief for a distractor, clamped correcting Card under the action row, Continue
+- forbidden · drill wrong feedback · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · drill wrong feedback · says Question, not Item
+- visual · drill wrong feedback · panel is not blank
+- visual · drill wrong feedback · every control is at least 44px on its shortest side
+- visual · drill wrong feedback · no horizontal overflow at 390px
+- visual · drill wrong feedback · bottom safe-area padding on shell drill
+- scheme · drill wrong feedback · light and dark render different backgrounds
+- reload · drill wrong feedback · surface comes back
+- reload · drill wrong feedback · checkpoint rebuilt from events
+- drill · Review opens the correcting Card with Return to questions
+- forbidden · drill corrective Card · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · drill corrective Card · says Question, not Item
+- visual · drill corrective Card · panel is not blank
+- visual · drill corrective Card · every control is at least 44px on its shortest side
+- visual · drill corrective Card · no horizontal overflow at 390px
+- visual · drill corrective Card · bottom safe-area padding on shell drill
+- scheme · drill corrective Card · light and dark render different backgrounds
+- reload · drill corrective Card · surface comes back
+- reload · drill corrective Card · checkpoint rebuilt from events
+- drill · square Back on the correcting Card returns to the feedback
+- drill · I don't know at 4 shows the answer, the correcting Card and Continue
+- drill · correct at 5 shows Correct and Continue
+- drill wrong at 6 · Not quite, feedback text, belief for a distractor, clamped correcting Card under the action row, Continue
+- forbidden · drill feedback halfway · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · drill feedback halfway · says Question, not Item
+- visual · drill feedback halfway · panel is not blank
+- visual · drill feedback halfway · every control is at least 44px on its shortest side
+- visual · drill feedback halfway · no horizontal overflow at 390px
+- visual · drill feedback halfway · bottom safe-area padding on shell drill
+- reload · drill feedback halfway · surface comes back
+- reload · drill feedback halfway · checkpoint rebuilt from events
+- forbidden · drill Question after halfway reload · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · drill Question after halfway reload · says Question, not Item
+- visual · drill Question after halfway reload · panel is not blank
+- visual · drill Question after halfway reload · every control is at least 44px on its shortest side
+- visual · drill Question after halfway reload · no horizontal overflow at 390px
+- visual · drill Question after halfway reload · I don't know is contained away from the screen edge
+- visual · drill Question after halfway reload · bottom safe-area padding on shell drill
+- reload · drill Question after halfway reload · surface comes back
+- reload · drill Question after halfway reload · checkpoint rebuilt from events
+- drill · browser Back returns to the overview with Resume every question
+- drill · overview still says Not started while a drill is open
+- drill · resuming returns to the same unanswered Question and position
+- drill · correct at 7 shows Correct and Continue
+- drill · I don't know at 8 shows the answer, the correcting Card and Continue
+- drill wrong at 9 · Not quite, feedback text, belief for a distractor, clamped correcting Card under the action row, Continue
+- drill · correct at 10 shows Correct and Continue
+- drill · correct at 11 shows Correct and Continue
+- drill · I don't know at 12 shows the answer, the correcting Card and Continue
+- drill · every Question in every Pool was asked exactly once, reserved ones included
+- drill · summary lists each Concept and repeats that drill does not earn Learned, with no score or percentage
+- forbidden · drill summary · no score, streak, difficulty, mastery or time estimate in the DOM
+- vocabulary · drill summary · says Question, not Item
+- visual · drill summary · panel is not blank
+- visual · drill summary · every control is at least 44px on its shortest side
+- visual · drill summary · no horizontal overflow at 390px
+- visual · drill summary · bottom safe-area padding on shell drill
+- scheme · drill summary · light and dark render different backgrounds
+- reload · drill summary · surface comes back
+- reload · drill summary · checkpoint rebuilt from events
+- drill · leaving the summary closes the run and the overview offers Every question and Start lesson
+- drill · shelf still says Not started and the learning stores never changed
+- drill · the drill stream holds one answer per Question and a closing null checkpoint
+- listeners · no pageerror during the whole run
+- listeners · no console error or warning during the whole run
