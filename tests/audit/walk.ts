@@ -32,15 +32,35 @@ export interface WalkOptions {
   timeout?: number;
   /** Extra browser context options, for example mobile emulation. */
   context?: Record<string, unknown>;
+  /**
+   * The lesson's server-assigned id. Set this when the shelf the walk opens from may hold more
+   * than this one lesson (a signed-in owner's own shelf, as opposed to a fresh or guest shelf that
+   * shows only this lesson): the walk then opens by `[data-lesson]` instead of by matching the
+   * fixture's title text, which is ambiguous once the shelf holds more than one lesson with that
+   * title.
+   */
+  lessonId?: string;
 }
 
 function settings(options: WalkOptions) {
   const lessonPath = options.lessonPath ?? `/learn/${LESSON.lessonId}`;
-  return { lessonPath, drillPath: `${lessonPath}/drill`, timeout: options.timeout ?? 3000, context: options.context ?? {} };
+  return { lessonPath, drillPath: `${lessonPath}/drill`, timeout: options.timeout ?? 3000, context: options.context ?? {}, lessonId: options.lessonId };
+}
+
+/** Open the lesson from the shelf: by its id when the shelf may hold more than one match for the title, otherwise by the title text. */
+async function openFromShelf(page: any, lessonId: string | undefined) {
+  if (lessonId) await page.locator(`[data-lesson="${lessonId}"]`).click();
+  else await page.getByRole("button", { name: new RegExp(LESSON.title), exact: true }).click();
+  await settle(page);
+}
+
+/** This lesson's own row on the shelf: by id when the shelf may hold more than one match for the title, otherwise the whole shelf's one `.lstatus`. */
+function shelfRow(page: any, lessonId: string | undefined) {
+  return lessonId ? page.locator(`[data-lesson="${lessonId}"]`) : page.locator(".lesson").filter({ hasText: LESSON.title });
 }
 
 export async function fullWalk(browser: any, ORIGIN: string, errors: string[], consoleMessages: string[], options: WalkOptions = {}) {
-  const { lessonPath: LESSON_PATH, timeout, context: contextOptions } = settings(options);
+  const { lessonPath: LESSON_PATH, timeout, context: contextOptions, lessonId } = settings(options);
   const context = await browser.newContext({ viewport: VIEWPORT, colorScheme: "light", ...contextOptions });
   const page = await context.newPage();
   page.setDefaultTimeout(timeout);
@@ -50,13 +70,15 @@ export async function fullWalk(browser: any, ORIGIN: string, errors: string[], c
   await page.goto(`${ORIGIN}/`);
   await settle(page);
   await check("shelf · fresh browser shows the demo lesson Not started", async () => {
-    await expect(page.locator(".lstatus")).toHaveText("Not started");
-    await expect(page.locator(".lname")).toHaveText(LESSON.title);
+    const row = lessonId ? page.locator(`[data-lesson="${lessonId}"]`) : page.locator(".lesson").filter({ hasText: LESSON.title });
+    await expect(row).toHaveCount(1);
+    await expect(row.locator(".lstatus")).toHaveText("Not started");
+    await expect(row.locator(".lname")).toHaveText(LESSON.title);
   });
   await surface(page, "shelf fresh", { screenshot: true });
 
   // Overview, fresh.
-  await tap(page, new RegExp(LESSON.title));
+  await openFromShelf(page, lessonId);
   await check("overview · title, assumed knowledge, Concept count, state and Start lesson", async () => {
     await expect(page.locator(".overview h1")).toHaveText(LESSON.title);
     await expect(page.getByText(LESSON.assumedKnowledge)).toBeVisible();
@@ -102,18 +124,18 @@ export async function fullWalk(browser: any, ORIGIN: string, errors: string[], c
   await page.getByRole("button", { name: "Close lesson" }).click();
   await settle(page);
   await check("first step · close returns to the shelf showing In progress", async () => {
-    await expect(page.locator(".lstatus")).toHaveText("In progress");
+    await expect(shelfRow(page, lessonId).locator(".lstatus")).toHaveText("In progress");
     expect(new URL(page.url()).pathname).toBe("/");
   });
   await surface(page, "shelf in progress after close", { screenshot: false });
-  await tap(page, new RegExp(LESSON.title));
+  await openFromShelf(page, lessonId);
   await tap(page, "Resume");
 
   // Browser Back at the first learning step returns to the shelf; reload must keep the shelf.
   await page.goBack();
   await settle(page);
   await check("first step · browser Back returns to the shelf", async () => {
-    await expect(page.locator(".shelf .lstatus")).toHaveText("In progress");
+    await expect(shelfRow(page, lessonId).locator(".lstatus")).toHaveText("In progress");
   });
   await check("first step · browser Back leaves the URL at the shelf path", () => {
     expect(new URL(page.url()).pathname).toBe("/");
@@ -121,7 +143,7 @@ export async function fullWalk(browser: any, ORIGIN: string, errors: string[], c
   await surface(page, "shelf after browser Back from first Card", { screenshot: false });
   // Recover: make sure we are on Card 1 of Concept 1 before continuing.
   if ((await signature(page)).surface !== "learn") {
-    if ((await signature(page)).surface === "shelf") await tap(page, new RegExp(LESSON.title));
+    if ((await signature(page)).surface === "shelf") await openFromShelf(page, lessonId);
     await tap(page, "Resume");
   }
   await check("first step · learner is back on Card 1 after the Back probes", async () => {
@@ -281,8 +303,8 @@ export async function fullWalk(browser: any, ORIGIN: string, errors: string[], c
     const asked = await stem(page);
     await page.getByRole("button", { name: "Close lesson" }).click();
     await settle(page);
-    await expect(page.locator(".lstatus")).toHaveText("Seen");
-    await tap(page, new RegExp(LESSON.title));
+    await expect(shelfRow(page, lessonId).locator(".lstatus")).toHaveText("Seen");
+    await openFromShelf(page, lessonId);
     await tap(page, "Resume");
     await expect(page.locator(".qhead")).toHaveText(asked);
   });
@@ -330,13 +352,13 @@ export async function fullWalk(browser: any, ORIGIN: string, errors: string[], c
   await surface(page, "Learned summary", { screenshot: true });
   await tap(page, "Back to shelf");
   await check("learned · shelf shows Learned", async () => {
-    await expect(page.locator(".lstatus")).toHaveText("Learned");
+    await expect(shelfRow(page, lessonId).locator(".lstatus")).toHaveText("Learned");
   });
   await surface(page, "shelf Learned", { screenshot: true });
 
   // A drill after Learned changes nothing either.
-  const beforeDrill = await snapshot(page);
-  await tap(page, new RegExp(LESSON.title));
+  const beforeDrill = await snapshot(page, lessonId);
+  await openFromShelf(page, lessonId);
   await tap(page, "Every question");
   await answer(page, false);
   await tap(page, "Continue");
@@ -353,15 +375,15 @@ export async function fullWalk(browser: any, ORIGIN: string, errors: string[], c
 }
 
 export async function drillFromFresh(browser: any, ORIGIN: string, errors: string[], consoleMessages: string[], options: WalkOptions = {}) {
-  const { lessonPath: LESSON_PATH, drillPath: DRILL_PATH, timeout, context: contextOptions } = settings(options);
+  const { lessonPath: LESSON_PATH, drillPath: DRILL_PATH, timeout, context: contextOptions, lessonId } = settings(options);
   const context = await browser.newContext({ viewport: VIEWPORT, colorScheme: "light", ...contextOptions });
   const page = await context.newPage();
   page.setDefaultTimeout(timeout);
   attachListeners(page, errors, consoleMessages);
   await page.goto(`${ORIGIN}/`);
   await settle(page);
-  const before = await snapshot(page);
-  await tap(page, new RegExp(LESSON.title));
+  const before = await snapshot(page, lessonId);
+  await openFromShelf(page, lessonId);
   await tap(page, "Every question");
   const total = LESSON.questions.length;
   await check("drill · starts at Question 1 of every Question on the drill URL", async () => {
@@ -464,8 +486,8 @@ export async function drillFromFresh(browser: any, ORIGIN: string, errors: strin
   });
   await tapAction(page, "shelf");
   await check("drill · shelf still says Not started and the learning stores never changed", async () => {
-    await expect(page.locator(".lstatus")).toHaveText("Not started");
-    const after = await snapshot(page);
+    await expect(shelfRow(page, lessonId).locator(".lstatus")).toHaveText("Not started");
+    const after = await snapshot(page, lessonId);
     expect(after).toEqual(before);
     expect(after.learning).toEqual([]);
     expect(await projection(page, "checkpoint")).toBeNull();
@@ -545,10 +567,10 @@ function learnedIds(progress: any): string[] {
  * the reload probes and rebuilt whenever a lesson is opened, so they are not part of the comparison;
  * the evidence stores and the shelf's own status line are.
  */
-async function snapshot(page: any) {
+async function snapshot(page: any, lessonId?: string) {
   return {
     learning: await readStore(page, "learning_events"),
     navigation: await readStore(page, "navigation_events"),
-    shelfStatus: (await page.locator(".lstatus").first().textContent())?.trim() ?? null,
+    shelfStatus: (await shelfRow(page, lessonId).locator(".lstatus").first().textContent())?.trim() ?? null,
   };
 }
