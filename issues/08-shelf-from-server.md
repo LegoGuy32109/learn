@@ -29,7 +29,7 @@ the old revision, then discard and start the new one.
 **Blocked by:** 02 — Lesson content follows the plugin model; 07 — Phone
 sign-in with a passkey from a one-time invite link.
 
-**Status:** done 371d3b8
+**Status:** done 4e0b8ca
 
 - [x] The shelf lists the signed-in account's lessons from the server and
       merges them with locally cached revisions without duplicates.
@@ -53,7 +53,7 @@ deno task check && deno task test && deno task test:db && deno task e2e
 
 ## Report
 
-Implemented at `371d3b8` on branch `ticket/08`.
+Implemented at `4e0b8ca` on branch `ticket/08`.
 
 ### Verification output
 
