@@ -13,13 +13,18 @@ import { assetRoutes } from "./server/routes/assets.ts";
 
 export type { Dependencies };
 
-export function createApp(dependencies: Dependencies) {
-  const routes = [
+/** Every route the server serves, in dispatch order. Exported so tests can compare it with the OpenAPI document. */
+export function composeRoutes(dependencies: Dependencies) {
+  return [
     ...pageRoutes(dependencies),
     ...discoveryRoutes(),
     ...lessonRoutes(dependencies),
     ...assetRoutes(),
   ];
+}
+
+export function createApp(dependencies: Dependencies) {
+  const routes = composeRoutes(dependencies);
   return async function handler(request: Request): Promise<Response> {
     try {
       const response = await dispatch(routes, request);
