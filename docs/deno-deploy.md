@@ -250,7 +250,7 @@ Production was set up on 2026-09-21 in this order:
 
 `LegoGuy32109/learn` is connected to the Deploy app, so a push to `main`
 builds and publishes on its own. Two measured pushes that changed only server
-and generated client files went live in 20 and 22 seconds, from `git push`
+and generated client files went live in 20 seconds each, measured twice, from `git push`
 returning to the new revision answering on `https://learn.joshhale.me`. There
 is no build step to wait for.
 
