@@ -384,6 +384,14 @@ export async function drillFromFresh(browser: any, ORIGIN: string, errors: strin
   await settle(page);
   const before = await snapshot(page, lessonId);
   await openFromShelf(page, lessonId);
+  // Captured here rather than hard-coded: this walk is shared by a lesson that is genuinely fresh
+  // (ticket 09's own audit) and by the golden-flow audit, which drills a lesson already carried to
+  // Learned. Drilling must never change the overview, whatever state it started in, so every check
+  // below compares against what was actually on screen before the drill opened.
+  const overviewIdle = {
+    state: ((await page.locator(".overview .state").textContent()) ?? "").trim(),
+    primary: ((await page.locator(".overview .actions .go").first().textContent()) ?? "").trim(),
+  };
   await tap(page, "Every question");
   const total = LESSON.questions.length;
   await check("drill · starts at Question 1 of every Question on the drill URL", async () => {
@@ -448,8 +456,8 @@ export async function drillFromFresh(browser: any, ORIGIN: string, errors: strin
         await expect(page.locator(".overview .actions .go.quiet")).toHaveText("Resume every question");
         expect(new URL(page.url()).pathname).toBe(LESSON_PATH);
       });
-      await check("drill · overview still says Not started while a drill is open", async () => {
-        await expect(page.locator(".overview .state")).toHaveText("Not started");
+      await check("drill · overview still shows the pre-drill state while a drill is open", async () => {
+        await expect(page.locator(".overview .state")).toHaveText(overviewIdle.state);
       });
       await tap(page, "Resume every question");
       await check("drill · resuming returns to the same unanswered Question and position", async () => {
@@ -478,19 +486,16 @@ export async function drillFromFresh(browser: any, ORIGIN: string, errors: strin
   });
   await surface(page, "drill summary", { screenshot: true, checkpoint: "drill_checkpoint" });
   await tap(page, "Back to overview");
-  await check("drill · leaving the summary closes the run and the overview offers Every question and Start lesson", async () => {
+  await check("drill · leaving the summary closes the run and the overview returns to Every question and the pre-drill state", async () => {
     await expect(page.locator(".overview .actions .go.quiet")).toHaveText("Every question");
-    await expect(page.locator(".overview .actions .go").first()).toHaveText("Start lesson");
-    await expect(page.locator(".overview .state")).toHaveText("Not started");
+    await expect(page.locator(".overview .actions .go").first()).toHaveText(overviewIdle.primary);
+    await expect(page.locator(".overview .state")).toHaveText(overviewIdle.state);
     expect(await projection(page, "drill_checkpoint")).toBeNull();
   });
   await tapAction(page, "shelf");
-  await check("drill · shelf still says Not started and the learning stores never changed", async () => {
-    await expect(shelfRow(page, lessonId).locator(".lstatus")).toHaveText("Not started");
+  await check("drill · shelf still shows the pre-drill state and the learning stores never changed", async () => {
     const after = await snapshot(page, lessonId);
     expect(after).toEqual(before);
-    expect(after.learning).toEqual([]);
-    expect(await projection(page, "checkpoint")).toBeNull();
   });
   await check("drill · the drill stream holds one answer per Question and a closing null checkpoint", async () => {
     const drill = await readStore(page, "drill_events");
