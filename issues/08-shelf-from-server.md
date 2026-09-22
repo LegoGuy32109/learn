@@ -29,7 +29,7 @@ the old revision, then discard and start the new one.
 **Blocked by:** 02 — Lesson content follows the plugin model; 07 — Phone
 sign-in with a passkey from a one-time invite link.
 
-**Status:** done 4e0b8ca
+**Status:** done a2a1c0a
 
 - [x] The shelf lists the signed-in account's lessons from the server and
       merges them with locally cached revisions without duplicates.
