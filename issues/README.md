@@ -84,6 +84,7 @@ bypass. `learn-prod` is created only by ticket 05.
 | 24 | Enter in the answer field does not submit the answer | none | defect |
 | 25 | Production serves 404 for the service worker, so nothing installs or works offline | none | defect |
 | 26 | Production sends no Strict-Transport-Security header | none | defect |
+| 27 | Verify the golden flow end to end, from a working agent session to Learned | none | verify |
 | 30 | Four MCQ diagnostic codes are marked schema-catchable but are not | none | defect |
 | 31 | misconception.id is mislabeled "resolver only" | none | defect |
 
