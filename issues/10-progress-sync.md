@@ -41,7 +41,7 @@ back online. Each shows both Concepts done and neither lost Learned.
 **Blocked by:** 08 — Mine shelf lists the account's lessons and caches them on
 open.
 
-**Status:** done SHA_PLACEHOLDER
+**Status:** done 5f040a2
 
 - [x] Repeated upload of the same event is accepted once and returns success.
 - [x] Events arriving out of order produce the same projection as in order.
