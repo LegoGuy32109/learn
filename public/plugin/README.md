@@ -15,7 +15,7 @@ Three routes, all served by the site. Pick one.
 **Claude Code plugin.** Add the site's marketplace, then install:
 
 ```bash
-claude plugin marketplace add https://learn-joshhale.legoguy32109.deno.net/plugin/marketplace.json
+claude plugin marketplace add https://learn.joshhale.me/plugin/marketplace.json
 claude plugin install learn-lesson@learn-joshhale
 ```
 
@@ -25,11 +25,11 @@ its SHA-256.
 **Clone the plugin directory.** The site serves it as a Git repository:
 
 ```bash
-git clone https://learn-joshhale.legoguy32109.deno.net/plugin/learn-lesson-plugin.git
+git clone https://learn.joshhale.me/plugin/learn-lesson-plugin.git
 claude --plugin-dir ./learn-lesson-plugin
 ```
 
-Or download and unpack the archive: `https://learn-joshhale.legoguy32109.deno.net/plugin/learn-lesson-plugin.zip`.
+Or download and unpack the archive: `https://learn.joshhale.me/plugin/learn-lesson-plugin.zip`.
 `claude --plugin-dir` also accepts the `.zip` directly.
 
 **Copy the one skill.** Everything the skill needs is inside

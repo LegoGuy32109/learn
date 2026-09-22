@@ -29,7 +29,7 @@ Deno.test("the committed plugin directory is exactly what the sources generate (
 
 Deno.test("the public origin is one https value and every generated text that names an origin uses it", () => {
   assertMatch(PUBLIC_ORIGIN, /^https:\/\/[^/]+$/);
-  assertEquals(DEFAULT_PUBLIC_ORIGIN, "https://learn-joshhale.legoguy32109.deno.net");
+  assertEquals(DEFAULT_PUBLIC_ORIGIN, "https://learn.joshhale.me");
   const manifest = JSON.parse(text(`${PLUGIN_ROOT}.claude-plugin/plugin.json`));
   assertEquals(manifest.homepage, `${PUBLIC_ORIGIN}/plugin`);
   for (const path of Object.keys(generated.files).filter((path) => /\.(md|json|mjs)$/.test(path))) {

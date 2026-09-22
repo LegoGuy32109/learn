@@ -8,7 +8,7 @@
  * changing this one value (or setting LEARN_PUBLIC_ORIGIN at generation time), then running
  * `deno task plugin:generate` and `deno task deploy`. See docs/deno-deploy.md.
  */
-export const DEFAULT_PUBLIC_ORIGIN = "https://learn-joshhale.legoguy32109.deno.net";
+export const DEFAULT_PUBLIC_ORIGIN = "https://learn.joshhale.me";
 
 function configuredPublicOrigin(): string {
   try {

@@ -231,4 +231,4 @@ Seen, Learned and Retained.
 | `document.size` | error | The serialized document is over 1,000,000 bytes. |
 
 The full catalog with every code's path and fix is `references/diagnostics.md`,
-served as JSON at https://learn-joshhale.legoguy32109.deno.net/api/v1/diagnostics.
+served as JSON at https://learn.joshhale.me/api/v1/diagnostics.

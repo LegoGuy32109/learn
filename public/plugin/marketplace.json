@@ -12,12 +12,12 @@
       "author": {
         "name": "Josh Hale"
       },
-      "homepage": "https://learn-joshhale.legoguy32109.deno.net/plugin",
+      "homepage": "https://learn.joshhale.me/plugin",
       "category": "learning",
       "source": {
         "source": "archive",
-        "url": "https://learn-joshhale.legoguy32109.deno.net/plugin/learn-lesson-plugin.zip",
-        "sha256": "5087a67aa92ec5afde097e308ba174f47f9bdb005ab7d14f19fbb4c5a813acb9"
+        "url": "https://learn.joshhale.me/plugin/learn-lesson-plugin.zip",
+        "sha256": "c325a75cc1e1c4dcb20a5de916214c90716824a2be54ba1d77817ef904d5b75d"
       }
     }
   ]

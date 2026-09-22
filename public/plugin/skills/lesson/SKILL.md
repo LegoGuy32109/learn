@@ -103,8 +103,8 @@ node scripts/validate.mjs lesson.json
 Or, without Node: `deno run --allow-read scripts/validate.mjs lesson.json`.
 
 The script runs the site's own resolver, bundled here as
-`scripts/lesson-validator.js` and also served at https://learn-joshhale.legoguy32109.deno.net/tools/lesson-validator.js.
-Its result is byte-identical to `POST https://learn-joshhale.legoguy32109.deno.net/api/v1/lesson-resolutions`;
+`scripts/lesson-validator.js` and also served at https://learn.joshhale.me/tools/lesson-validator.js.
+Its result is byte-identical to `POST https://learn.joshhale.me/api/v1/lesson-resolutions`;
 `--remote` proves it against the live API. Every `FAIL` line names a diagnostic
 code, its JSON Pointer path and the fix from `references/diagnostics.md`.
 
@@ -130,9 +130,9 @@ node scripts/submit.mjs lesson.json
 Or: `deno run --allow-read --allow-net --allow-env=LEARN_TOKEN,LEARN_BASE_URL scripts/submit.mjs lesson.json`.
 
 The script resolves the document again, then `POST`s it to
-https://learn-joshhale.legoguy32109.deno.net/api/v1/lessons and prints the created draft: its
+https://learn.joshhale.me/api/v1/lessons and prints the created draft: its
 `lessonId`, `revisionId`, fingerprint and the learning URL
-`https://learn-joshhale.legoguy32109.deno.net/learn/<lessonId>`. Submitting the same document twice returns the
+`https://learn.joshhale.me/learn/<lessonId>`. Submitting the same document twice returns the
 same revision, so a retry is safe. To add a revision to an existing lesson
 instead of creating a new one, pass `--lesson <lessonId>`.
 
@@ -170,10 +170,10 @@ it:
 
 ## Discovery
 
-The site describes itself at https://learn-joshhale.legoguy32109.deno.net/api/v1/capabilities. That
-document links the JSON Schema (https://learn-joshhale.legoguy32109.deno.net/api/v1/schemas/lesson/v1), the
-OpenAPI document (https://learn-joshhale.legoguy32109.deno.net/openapi.json), the diagnostics
-catalog (https://learn-joshhale.legoguy32109.deno.net/api/v1/diagnostics) and the human
-documentation (https://learn-joshhale.legoguy32109.deno.net/docs/api-v1.md). The texts in this plugin
+The site describes itself at https://learn.joshhale.me/api/v1/capabilities. That
+document links the JSON Schema (https://learn.joshhale.me/api/v1/schemas/lesson/v1), the
+OpenAPI document (https://learn.joshhale.me/openapi.json), the diagnostics
+catalog (https://learn.joshhale.me/api/v1/diagnostics) and the human
+documentation (https://learn.joshhale.me/docs/api-v1.md). The texts in this plugin
 are generated from the same sources, so they agree with the server; when in
 doubt, the served documents win.
