@@ -1,0 +1,745 @@
+[
+  {
+    "file": "card-119-words-plus-tags.json",
+    "group": "card-words",
+    "valid": false,
+    "codes": [
+      "card.words"
+    ],
+    "exact": true,
+    "note": "Inline tags add characters but not words."
+  },
+  {
+    "file": "card-119-words.json",
+    "group": "card-words",
+    "valid": false,
+    "codes": [
+      "card.words"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "card-120-words.json",
+    "group": "card-words",
+    "valid": true,
+    "codes": [],
+    "exact": true,
+    "note": "Boundary value; the range is inclusive."
+  },
+  {
+    "file": "card-200-words.json",
+    "group": "card-words",
+    "valid": true,
+    "codes": [],
+    "exact": true,
+    "note": "Boundary value; the range is inclusive."
+  },
+  {
+    "file": "card-201-words.json",
+    "group": "card-words",
+    "valid": false,
+    "codes": [
+      "card.words"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "deixis-as-mentioned.json",
+    "group": "deixis",
+    "valid": false,
+    "codes": [
+      "question.stem.unbound"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "deixis-besides-the.json",
+    "group": "deixis",
+    "valid": false,
+    "codes": [
+      "question.stem.unbound"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "deixis-capitalised.json",
+    "group": "deixis",
+    "valid": false,
+    "codes": [
+      "question.stem.unbound"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "deixis-inside-word.json",
+    "group": "deixis",
+    "valid": true,
+    "codes": [],
+    "exact": true,
+    "note": "\"the otherwise\" is not \"the other\": the rule is word-bounded."
+  },
+  {
+    "file": "deixis-other-than-the.json",
+    "group": "deixis",
+    "valid": false,
+    "codes": [
+      "question.stem.unbound"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "deixis-that-same.json",
+    "group": "deixis",
+    "valid": false,
+    "codes": [
+      "question.stem.unbound"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "deixis-the-above.json",
+    "group": "deixis",
+    "valid": false,
+    "codes": [
+      "question.stem.unbound"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "deixis-the-former.json",
+    "group": "deixis",
+    "valid": false,
+    "codes": [
+      "question.stem.unbound"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "deixis-the-latter.json",
+    "group": "deixis",
+    "valid": false,
+    "codes": [
+      "question.stem.unbound"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "deixis-the-other.json",
+    "group": "deixis",
+    "valid": false,
+    "codes": [
+      "question.stem.unbound"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "deixis-the-previous.json",
+    "group": "deixis",
+    "valid": false,
+    "codes": [
+      "question.stem.unbound"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "deixis-the-second.json",
+    "group": "deixis",
+    "valid": false,
+    "codes": [
+      "question.stem.unbound"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "deixis-the-third.json",
+    "group": "deixis",
+    "valid": false,
+    "codes": [
+      "question.stem.unbound"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "deixis-this-approach.json",
+    "group": "deixis",
+    "valid": false,
+    "codes": [
+      "question.stem.unbound"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "duplicate-card-id-across-concepts.json",
+    "group": "duplicate-ids",
+    "valid": false,
+    "codes": [
+      "card.id"
+    ],
+    "exact": false,
+    "note": ""
+  },
+  {
+    "file": "duplicate-misconception-id-in-concept.json",
+    "group": "duplicate-ids",
+    "valid": false,
+    "codes": [
+      "misconception.id"
+    ],
+    "exact": false,
+    "note": ""
+  },
+  {
+    "file": "duplicate-option-id-across-concepts.json",
+    "group": "duplicate-ids",
+    "valid": true,
+    "codes": [],
+    "exact": true,
+    "note": "Option IDs are local to a Concept, so the same slug in two Concepts is allowed."
+  },
+  {
+    "file": "duplicate-pool-id-across-concepts.json",
+    "group": "duplicate-ids",
+    "valid": false,
+    "codes": [
+      "pool.id"
+    ],
+    "exact": false,
+    "note": ""
+  },
+  {
+    "file": "duplicate-question-id-across-concepts.json",
+    "group": "duplicate-ids",
+    "valid": false,
+    "codes": [
+      "question.id"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "key-longest-every-mcq.json",
+    "group": "key-longest",
+    "valid": false,
+    "codes": [
+      "lesson.key.longest"
+    ],
+    "exact": false,
+    "note": "Same construction as ref-key-longest but with the misconception behind the longest option left unused, as a first draft would."
+  },
+  {
+    "file": "nesting-200-deep.json",
+    "group": "hostile-document",
+    "valid": false,
+    "codes": [
+      "document.nesting"
+    ],
+    "exact": true,
+    "unknownProperties": true,
+    "note": ""
+  },
+  {
+    "file": "nesting-32-deep.json",
+    "group": "hostile-document",
+    "valid": true,
+    "codes": [],
+    "exact": true,
+    "unknownProperties": true,
+    "note": "Exactly the limit inside an unknown property: the resolver drops the property; the schema rejects the unknown key."
+  },
+  {
+    "file": "provenance-declined-with-fields.json",
+    "group": "provenance",
+    "valid": true,
+    "codes": [],
+    "exact": true,
+    "unknownProperties": true,
+    "note": "Declined plus the five fields: the resolver keeps only the status; the schema rejects the extra fields."
+  },
+  {
+    "file": "provenance-declined.json",
+    "group": "provenance",
+    "valid": true,
+    "codes": [],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "provenance-missing-model.json",
+    "group": "provenance",
+    "valid": false,
+    "codes": [
+      "provenance.model"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "provenance-omitted.json",
+    "group": "provenance",
+    "valid": false,
+    "codes": [
+      "provenance.required"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "provenance-status-unknown.json",
+    "group": "provenance",
+    "valid": false,
+    "codes": [
+      "provenance.required"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "ref-card-no-body.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "card.body.paragraphs"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "ref-card-no-heading.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "card.heading"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "ref-card-single-paragraph.json",
+    "group": "reference-validator",
+    "valid": true,
+    "codes": [
+      "card.paragraphs.single"
+    ],
+    "exact": true,
+    "note": "A warning; the document stays valid."
+  },
+  {
+    "file": "ref-card-words.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "card.words"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "ref-drawable-under-3.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "lesson.key.longest",
+      "pool.drawable.minimum"
+    ],
+    "exact": true,
+    "note": "Removing one drawable MCQ also lifts the lesson-wide key-longest rate from 3/9 to 3/8, which is above one third."
+  },
+  {
+    "file": "ref-duplicate-card-id.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "card.id"
+    ],
+    "exact": false,
+    "note": "The second Card's ID repeats the first, so the misconceptions and Questions that named it dangle."
+  },
+  {
+    "file": "ref-duplicate-concept-id.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "concept.id"
+    ],
+    "exact": false,
+    "note": "Questions of the second Concept now resolve to the first, so pool and Card membership also fail."
+  },
+  {
+    "file": "ref-duplicate-question-id.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "question.id"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "ref-key-longest.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "lesson.key.longest"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "ref-mcq-feedback-missing.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "mcq.feedback.missing"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "ref-mcq-key-not-in-set.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "mcq.key"
+    ],
+    "exact": false,
+    "note": "The old key is now a distractor without a map entry."
+  },
+  {
+    "file": "ref-mcq-map-missing.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "mcq.map.missing"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "ref-mcq-map-unknown.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "mcq.map.unknown"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "ref-misconception-card-outside.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "misconception.card"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "ref-misconception-no-statement.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "misconception.statement"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "ref-misconception-unused.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "misconception.unused"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "ref-no-cards.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "concept.cards.minimum"
+    ],
+    "exact": false,
+    "note": "Misconceptions and Questions of the Concept lose their correcting Cards too."
+  },
+  {
+    "file": "ref-no-concepts.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "concepts.required"
+    ],
+    "exact": false,
+    "note": "Every question then references a missing Concept as well."
+  },
+  {
+    "file": "ref-no-reserved.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "pool.reserved.missing"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "ref-no-statement.json",
+    "group": "reference-validator",
+    "valid": true,
+    "codes": [],
+    "exact": true,
+    "note": "validate.mjs fails a Concept without a statement; lesson/v1 made statement optional (Josh's decision of 2026-09-21)."
+  },
+  {
+    "file": "ref-no-stem.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "question.stem"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "ref-no-title.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "title.required"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "ref-numeric-answer-not-number.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "numeric.answer"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "ref-numeric-answer-uncovered.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "numeric.answer.uncovered"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "ref-numeric-no-feedback.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "question.feedback"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "ref-numeric-reserved.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "numeric.reserved"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "ref-numeric-zero-tolerance.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "numeric.tolerance.missing"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "ref-option-ratio.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "concept.options.ratio"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "ref-options-count.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "concept.options.count"
+    ],
+    "exact": false,
+    "note": "Two options; every MCQ of the Concept then has an extra feedback and map entry."
+  },
+  {
+    "file": "ref-stem-deixis.json",
+    "group": "reference-validator",
+    "valid": false,
+    "codes": [
+      "question.stem.unbound"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "reserved-name-feedback-key.json",
+    "group": "reserved-names",
+    "valid": false,
+    "codes": [
+      "mcq.feedback.extra"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "reserved-name-map-key.json",
+    "group": "reserved-names",
+    "valid": false,
+    "codes": [
+      "mcq.map.extra"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "reserved-name-misconception-__proto__.json",
+    "group": "reserved-names",
+    "valid": false,
+    "codes": [
+      "misconception.id"
+    ],
+    "exact": false,
+    "note": ""
+  },
+  {
+    "file": "reserved-name-misconception-constructor.json",
+    "group": "reserved-names",
+    "valid": false,
+    "codes": [
+      "misconception.id"
+    ],
+    "exact": false,
+    "note": ""
+  },
+  {
+    "file": "reserved-name-misconception-prototype.json",
+    "group": "reserved-names",
+    "valid": false,
+    "codes": [
+      "misconception.id"
+    ],
+    "exact": false,
+    "note": ""
+  },
+  {
+    "file": "reserved-name-option-__proto__.json",
+    "group": "reserved-names",
+    "valid": false,
+    "codes": [
+      "concept.option.id"
+    ],
+    "exact": false,
+    "note": ""
+  },
+  {
+    "file": "reserved-name-option-constructor.json",
+    "group": "reserved-names",
+    "valid": false,
+    "codes": [
+      "concept.option.id"
+    ],
+    "exact": false,
+    "note": ""
+  },
+  {
+    "file": "reserved-name-option-prototype.json",
+    "group": "reserved-names",
+    "valid": false,
+    "codes": [
+      "concept.option.id"
+    ],
+    "exact": false,
+    "note": ""
+  },
+  {
+    "file": "reserved-name-top-level-__proto__.json",
+    "group": "reserved-names",
+    "valid": true,
+    "codes": [],
+    "exact": true,
+    "unknownProperties": true,
+    "note": "An unknown top-level key. The resolver drops it; the schema rejects it as a typo."
+  },
+  {
+    "file": "reserved-name-top-level-constructor.json",
+    "group": "reserved-names",
+    "valid": true,
+    "codes": [],
+    "exact": true,
+    "unknownProperties": true,
+    "note": "An unknown top-level key. The resolver drops it; the schema rejects it as a typo."
+  },
+  {
+    "file": "reserved-name-top-level-prototype.json",
+    "group": "reserved-names",
+    "valid": true,
+    "codes": [],
+    "exact": true,
+    "unknownProperties": true,
+    "note": "An unknown top-level key. The resolver drops it; the schema rejects it as a typo."
+  },
+  {
+    "file": "reserved-numeric-only-reserved.json",
+    "group": "reserved-numeric",
+    "valid": false,
+    "codes": [
+      "numeric.reserved"
+    ],
+    "exact": true,
+    "note": "The numeric is the only reserved Question of its Pool. pool.reserved.missing does NOT fire: the resolver counts a reserved numeric toward the Pool's reserved count even while rejecting it. Harmless today because numeric.reserved always rejects the document, but the two rules disagree about what a reserved Question is."
+  },
+  {
+    "file": "reserved-numeric.json",
+    "group": "reserved-numeric",
+    "valid": false,
+    "codes": [
+      "numeric.reserved"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "valid-audit-lesson.json",
+    "group": "baseline",
+    "valid": true,
+    "codes": [],
+    "exact": true,
+    "note": ""
+  }
+]

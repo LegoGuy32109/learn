@@ -84,14 +84,19 @@ bypass. `learn-prod` is created only by ticket 05.
 | 24 | Enter in the answer field does not submit the answer | none | defect |
 | 25 | Production serves 404 for the service worker, so nothing installs or works offline | none | defect |
 | 26 | Production sends no Strict-Transport-Security header | none | defect |
-| 25 | Production serves 404 for /sw.js, so nothing installs or works offline | none | defect |
-| 26 | Production sends no Strict-Transport-Security header | none | defect |
+| 30 | Four MCQ diagnostic codes are marked schema-catchable but are not | none | defect |
+| 31 | misconception.id is mislabeled "resolver only" | none | defect |
 
 Progress on 2026-09-22: 01, 02, 03, 04, 05, 06, 07, 08, 09, 11, 12, 16 and defects
 18, 19, 22, 23, 24 are merged. Also merged: 14 and defects 17, 20, 21. Running: 10, 13 and defects 25, 26.
 
 The frontier at the start was 01, 05 and 11. After 01 lands, 02, 06 and 07
 open. After 02 lands, 03, 09 and, with 07, 08 open.
+
+Tickets 30 and 31 were filed by ticket 13's contract-attack audit. This
+worktree's copy of this README predates tickets 25 and 26 landing on `main`
+(ticket 13 branched before that merge); the coordinator reconciles numbering
+across branches at merge time.
 
 ## Later
 
