@@ -80,9 +80,16 @@ bypass. `learn-prod` is created only by ticket 05.
 | 22 | The Wrap-up can re-ask a missed Concept immediately | none | defect |
 | 23 | Every MCQ in an attempt shows the Concept's options in the same order | none | defect |
 | 24 | Enter in the answer field does not submit the answer | none | defect |
+| 30 | Four MCQ diagnostic codes are marked `schema: true` but are not schema-catchable in general | none | defect |
+| 31 | `misconception.id` (and likely `concept.option.id`) is mislabeled "resolver only" | none | defect |
 
 The frontier at the start is 01, 05 and 11. After 01 lands, 02, 06 and 07
 open. After 02 lands, 03, 09 and, with 07, 08 open.
+
+Tickets 30 and 31 were filed by ticket 13's contract-attack audit. This
+worktree's copy of this README predates tickets 25 and 26 landing on `main`
+(ticket 13 branched before that merge); the coordinator reconciles numbering
+across branches at merge time.
 
 ## Later
 

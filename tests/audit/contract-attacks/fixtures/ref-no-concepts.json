@@ -1,0 +1,259 @@
+{
+  "schema": "lesson/v1",
+  "title": "audit-painting-auth-review-fixes",
+  "assumedKnowledge": "You have worked on the painting app: a Deno server over Turso SQLite, passkey sign-in with signed cookies, and a browser client that keeps strokes in IndexedDB and pushes them through an outbox.",
+  "concepts": [],
+  "questions": [
+    {
+      "id": "7f5f4c95-6cc3-440f-af8d-a2b0c0bb73f4",
+      "conceptId": "93bf98df-910f-4a06-9f89-e3a97cf74f0c",
+      "poolId": "c7256bd8-8ed5-4d3b-b86f-fcf43918be46",
+      "type": "mcq",
+      "reserved": false,
+      "stem": "A user of the painting app removes one of their passkeys. Apart from deleting the credential row, what does the server do to the profile's sessions on other devices?",
+      "correctingCardId": "785da4a4-cca9-4a25-9367-e4399cfec02f",
+      "key": "bump",
+      "map": {
+        "remint": "only_this_device",
+        "recheck": "memo_is_revocation"
+      },
+      "feedback": {
+        "bump": "Right. There is no session row to delete; the epoch is the only thing every cookie is checked against.",
+        "remint": "Re-minting is what keeps the acting device signed in. It is a consequence of the bump, not the revocation itself.",
+        "recheck": "The memo TTL only controls how quickly a device notices; it does not end any session on its own."
+      }
+    },
+    {
+      "id": "b401e431-e83b-4952-be22-825fbdc514c7",
+      "conceptId": "93bf98df-910f-4a06-9f89-e3a97cf74f0c",
+      "poolId": "c7256bd8-8ed5-4d3b-b86f-fcf43918be46",
+      "type": "mcq",
+      "reserved": false,
+      "stem": "Sign out everywhere is pressed on a laptop. The bump would invalidate the laptop's own cookie too. What stops the laptop from being signed out by the request it just sent?",
+      "correctingCardId": "785da4a4-cca9-4a25-9367-e4399cfec02f",
+      "key": "remint",
+      "map": {
+        "bump": "bump_hits_everyone",
+        "recheck": "memo_is_revocation"
+      },
+      "feedback": {
+        "remint": "Right. The same response sets a fresh cookie carrying the new epoch, so only the other devices fail.",
+        "bump": "The bump is what would sign the laptop out. Something in the same response has to undo that for the acting device.",
+        "recheck": "The memo affects when the server re-reads the profile, not which cookie the laptop holds."
+      }
+    },
+    {
+      "id": "6b98db40-0b84-48d3-b95f-81e0fee82eef",
+      "conceptId": "93bf98df-910f-4a06-9f89-e3a97cf74f0c",
+      "poolId": "c7256bd8-8ed5-4d3b-b86f-fcf43918be46",
+      "type": "numeric",
+      "reserved": false,
+      "stem": "After Sign out everywhere, a revoked tablet keeps pushing strokes every four seconds. Because of the ensuredProfiles memo it is still accepted for a bounded time. What is that bound, in seconds?",
+      "correctingCardId": "3b69e7a5-06b4-4fdb-ba00-cb8c9fd15f81",
+      "answer": 30,
+      "tolerance": 5,
+      "unit": "seconds",
+      "feedback": "About 30 seconds, the memo's TTL. The first push after the memo expires re-reads the profile and fails the epoch assertion."
+    },
+    {
+      "id": "4f4f9109-0423-4093-a1de-7c88ab3224bf",
+      "conceptId": "93bf98df-910f-4a06-9f89-e3a97cf74f0c",
+      "poolId": "c7256bd8-8ed5-4d3b-b86f-fcf43918be46",
+      "type": "short",
+      "reserved": false,
+      "stem": "Which POST route backs the Sign out everywhere control in the painting app?",
+      "correctingCardId": "785da4a4-cca9-4a25-9367-e4399cfec02f",
+      "answer": "/api/auth/logout/all",
+      "aliases": [
+        "api/auth/logout/all",
+        "POST /api/auth/logout/all",
+        "logout/all",
+        "/auth/logout/all"
+      ],
+      "feedback": "POST /api/auth/logout/all. It bumps the epoch and re-mints the acting device's cookie in the same response."
+    },
+    {
+      "id": "4986db7f-7a34-4391-b11d-17aba5694820",
+      "conceptId": "93bf98df-910f-4a06-9f89-e3a97cf74f0c",
+      "poolId": "c7256bd8-8ed5-4d3b-b86f-fcf43918be46",
+      "type": "mcq",
+      "reserved": true,
+      "stem": "A tablet was revoked a moment ago and keeps pushing strokes every four seconds. What eventually makes the server notice the new epoch for that tablet?",
+      "correctingCardId": "3b69e7a5-06b4-4fdb-ba00-cb8c9fd15f81",
+      "key": "recheck",
+      "map": {
+        "bump": "bump_hits_everyone",
+        "remint": "only_this_device"
+      },
+      "feedback": {
+        "recheck": "Right. Until the memo expires the server compares the tablet's cookie against a stale profile row.",
+        "bump": "The bump already happened. The question is why the tablet is still accepted for a while afterwards.",
+        "remint": "Only the device that made the revoking request gets a new cookie. The tablet keeps its old one."
+      }
+    },
+    {
+      "id": "2f00e731-b266-4b4a-ba62-d82147773acf",
+      "conceptId": "da0b5b84-3c30-4022-876c-8bb4b4fce32c",
+      "poolId": "e4df820f-389f-4628-b47e-50e2c6873add",
+      "type": "mcq",
+      "reserved": false,
+      "stem": "canvas_events declares ON DELETE CASCADE, yet deleting a painting in dev left hundreds of stroke rows behind. Why did the cascade not run?",
+      "correctingCardId": "e3e94907-cd8e-4041-890f-6a9a3d2790c6",
+      "key": "pragma",
+      "map": {
+        "migration": "migration_sets_globally",
+        "exists": "cascade_now_works"
+      },
+      "feedback": {
+        "pragma": "Right. A declared cascade is enforced only on a connection that has foreign_keys on, and serving connections never did.",
+        "migration": "The migration connection did have it on, which is why the test passed. That setting never reached the serving connections.",
+        "exists": "The EXISTS-guarded delete is the fix. It explains how strokes are removed now, not why the cascade failed."
+      }
+    },
+    {
+      "id": "2b47ecc9-f010-4d3d-a80d-b015d1b752d0",
+      "conceptId": "da0b5b84-3c30-4022-876c-8bb4b4fce32c",
+      "poolId": "e4df820f-389f-4628-b47e-50e2c6873add",
+      "type": "mcq",
+      "reserved": false,
+      "stem": "The test covering the canvas_events cascade passed before the fix, while production kept every orphaned stroke. Why did the test pass?",
+      "correctingCardId": "e3e94907-cd8e-4041-890f-6a9a3d2790c6",
+      "key": "migration",
+      "map": {
+        "pragma": "test_ran_off",
+        "exists": "cascade_now_works"
+      },
+      "feedback": {
+        "migration": "Right. migrateDatabase() had run PRAGMA foreign_keys = ON on the very connection the test then used.",
+        "pragma": "That is why production failed. The test connection was different: it had foreign keys on.",
+        "exists": "The guarded delete did not exist yet when the test passed."
+      }
+    },
+    {
+      "id": "4facb56b-9ac4-4d75-9582-ed8e4a90ab8d",
+      "conceptId": "da0b5b84-3c30-4022-876c-8bb4b4fce32c",
+      "poolId": "e4df820f-389f-4628-b47e-50e2c6873add",
+      "type": "short",
+      "reserved": false,
+      "stem": "Which SQLite pragma must be ON for a declared ON DELETE CASCADE to fire on a connection?",
+      "correctingCardId": "e3e94907-cd8e-4041-890f-6a9a3d2790c6",
+      "answer": "foreign_keys",
+      "aliases": [
+        "PRAGMA foreign_keys",
+        "foreign keys",
+        "PRAGMA foreign_keys = ON",
+        "foreign_keys = ON",
+        "pragma foreign_keys=on"
+      ],
+      "feedback": "foreign_keys. It is per connection and off by default, which is the whole story of this Concept."
+    },
+    {
+      "id": "eaad1a32-9a02-4c03-8da8-a18b7b21a87c",
+      "conceptId": "da0b5b84-3c30-4022-876c-8bb4b4fce32c",
+      "poolId": "e4df820f-389f-4628-b47e-50e2c6873add",
+      "type": "mcq",
+      "reserved": true,
+      "stem": "A request deletes a painting the caller does not own, so the canvas delete matches no row. After the fix, what stops the request from removing that painting's stroke history anyway?",
+      "correctingCardId": "af818c39-e20b-4b1f-8194-cac5a1d6db47",
+      "key": "exists",
+      "map": {
+        "pragma": "test_ran_off",
+        "migration": "migration_sets_globally"
+      },
+      "feedback": {
+        "exists": "Right. The event delete repeats the canvas predicate inside EXISTS, so it matches nothing when the canvas delete matches nothing.",
+        "pragma": "The pragma being off is why the cascade cannot be relied on. It does not protect anything by itself.",
+        "migration": "The migration connection is not the one serving this request."
+      }
+    },
+    {
+      "id": "b1ec3aab-8d2a-48f8-a24a-9c08a339972b",
+      "conceptId": "ef148419-15fa-4f28-8589-f54f6dd5565f",
+      "poolId": "43e1b512-4a2d-4565-8a1a-c2a0e41c7c16",
+      "type": "mcq",
+      "reserved": false,
+      "stem": "Sign-out in the painting app is three steps in a fixed order. Which step happens first, and why must it?",
+      "correctingCardId": "1ed63402-95fa-4512-bba9-47cb920258ef",
+      "key": "drain",
+      "map": {
+        "revoke": "cookie_is_everything",
+        "erase": "local_state_is_scoped"
+      },
+      "feedback": {
+        "drain": "Right. Once the session is revoked the pending strokes have no way to reach the server.",
+        "revoke": "Revoking first would strand every stroke still in the outbox.",
+        "erase": "Erasing first would destroy the outbox before anything in it was sent."
+      }
+    },
+    {
+      "id": "583724b4-c9c1-4942-bc3b-5e2f501c6e12",
+      "conceptId": "ef148419-15fa-4f28-8589-f54f6dd5565f",
+      "poolId": "43e1b512-4a2d-4565-8a1a-c2a0e41c7c16",
+      "type": "mcq",
+      "reserved": false,
+      "stem": "The outbox has been drained and the server has been asked to revoke the session. Why does the app revoke before it erases local state, rather than after?",
+      "correctingCardId": "1ed63402-95fa-4512-bba9-47cb920258ef",
+      "key": "revoke",
+      "map": {
+        "drain": "drain_is_optional",
+        "erase": "local_state_is_scoped"
+      },
+      "feedback": {
+        "revoke": "Right. If revocation fails, a device with its state intact can retry; a device already wiped cannot.",
+        "drain": "The drain is already done at this point. The question is about the order of the last two steps.",
+        "erase": "Erasing first would leave a device with no session to retry the revocation with."
+      }
+    },
+    {
+      "id": "8d17342d-bd11-4e0a-8230-726c9abbd721",
+      "conceptId": "ef148419-15fa-4f28-8589-f54f6dd5565f",
+      "poolId": "43e1b512-4a2d-4565-8a1a-c2a0e41c7c16",
+      "type": "short",
+      "reserved": false,
+      "stem": "The client asked to keep a device draft under a preferred canvas id, but the server granted a different one. Which response field names the canvas the editor must now use and re-key its pending events onto?",
+      "correctingCardId": "9e81aaed-60b6-4e9f-937e-269bea22bdc5",
+      "answer": "acceptedPreferredId",
+      "aliases": [
+        "accepted preferred id",
+        "accepted_preferred_id",
+        "acceptedPreferredID"
+      ],
+      "feedback": "acceptedPreferredId. Trusting the requested id instead pointed the editor at another profile's canvas and drained into a 403 forever."
+    },
+    {
+      "id": "a7cd205c-2411-4d52-8f2c-126c12c44e4e",
+      "conceptId": "ef148419-15fa-4f28-8589-f54f6dd5565f",
+      "poolId": "43e1b512-4a2d-4565-8a1a-c2a0e41c7c16",
+      "type": "mcq",
+      "reserved": true,
+      "stem": "After a sign-out on a shared device, the next profile renamed its handle and the rename relabelled the signed-out account's passkey in the platform password manager. Which sign-out step now prevents that?",
+      "correctingCardId": "9e81aaed-60b6-4e9f-937e-269bea22bdc5",
+      "key": "erase",
+      "map": {
+        "drain": "drain_is_optional",
+        "revoke": "cookie_is_everything"
+      },
+      "feedback": {
+        "erase": "Right. The cached WebAuthn user.id is local state, and only erasing it stops the next profile from reusing it.",
+        "drain": "Draining sends strokes; it does not touch the cached WebAuthn user record.",
+        "revoke": "Server-side revocation cannot reach a value cached in the browser."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "type": "commit",
+      "title": "fix: close the session-revocation, deletion, and sign-out gaps found in an auth review",
+      "locator": "painting 42bb06d8d5e4bc7b0d265910ded9be2bdc232228",
+      "capturedText": null
+    }
+  ],
+  "provenance": {
+    "status": "provided",
+    "client": "Claude Code",
+    "harness": "Claude Code CLI",
+    "model": "claude-fable-5-1",
+    "client_version": "2.1.273",
+    "session_reference": "f0f1d082-385e-43fb-b9f5-627bcebc55fd"
+  }
+}

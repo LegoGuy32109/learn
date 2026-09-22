@@ -1,0 +1,475 @@
+## Contract attacks
+
+458 passed, 0 failed, 8 observations
+
+### Observations
+
+- **reference-validator · ref-duplicate-concept-id.json** — the served diagnostics catalog's schema flag disagrees with the independent validator's actual behavior; filed as issues/30-mcq-map-feedback-extra-missing-not-schema-catchable.md
+- **reference-validator · ref-mcq-key-not-in-set.json** — the served diagnostics catalog's schema flag disagrees with the independent validator's actual behavior; filed as issues/30-mcq-map-feedback-extra-missing-not-schema-catchable.md
+- **reserved-names · reserved-name-misconception-__proto__.json** — the served diagnostics catalog's schema flag disagrees with the independent validator's actual behavior; filed as issues/31-misconception-id-mislabeled-resolver-only.md
+- **reserved-names · reserved-name-misconception-constructor.json** — the served diagnostics catalog's schema flag disagrees with the independent validator's actual behavior; filed as issues/31-misconception-id-mislabeled-resolver-only.md
+- **reserved-names · reserved-name-misconception-prototype.json** — the served diagnostics catalog's schema flag disagrees with the independent validator's actual behavior; filed as issues/31-misconception-id-mislabeled-resolver-only.md
+- **size limit** — At 1,000,001 bytes the API answers 413 problem+json and the validator answers document.size. The bodies are not byte-identical, by design: docs/api-v1.md documents 413 as the transport-level answer to an oversized request, so document.size is only reachable through the validator or through a body whose re-serialization is smaller than the raw request.
+- **openapi drift** — production documents 3 path(s) this worktree's checkout does not (/api/v1/progress/learning-events, /api/v1/progress/navigation-events, /api/v1/progress/checkpoint); expected under the per-ticket worktree model, since this branch point predates a later ticket's merge to main, not a contract defect.
+- **drafts** — The audit lesson resolves to sha256:c5f8aa86c64f81805e207814f3b1feae0bd9b1ab5a64c8a1dd4e3729dddfdf15 and lives at revision 2c1f49c3-765e-4aae-872e-a6ea75085e35 of lesson 59b12656-3b63-4c86-95d2-cc83957265e1.
+
+### Passed
+
+- download · GET /tools/lesson-validator.js is served as JavaScript
+- download · GET /api/v1/schemas/lesson/v1 is draft 2020-12
+- download · GET /api/v1/diagnostics lists every code with a schema flag
+- validator · the downloaded validator runs offline, from a temporary directory, without hanging
+- validator · one result per document, in order
+- card-words · card-119-words-plus-tags.json · the API, the validator and the resolver return byte-identical JSON
+- card-words · card-119-words-plus-tags.json · the API answers 422
+- card-words · card-119-words-plus-tags.json · diagnostics match the committed expectation
+- card-words · card-119-words-plus-tags.json · the independent draft 2020-12 validator agrees with the resolver
+- card-words · card-119-words-plus-tags.json · schema-passing but resolver-rejected, as the contract claims
+- card-words · card-119-words.json · the API, the validator and the resolver return byte-identical JSON
+- card-words · card-119-words.json · the API answers 422
+- card-words · card-119-words.json · diagnostics match the committed expectation
+- card-words · card-119-words.json · the independent draft 2020-12 validator agrees with the resolver
+- card-words · card-119-words.json · schema-passing but resolver-rejected, as the contract claims
+- card-words · card-120-words.json · the API, the validator and the resolver return byte-identical JSON
+- card-words · card-120-words.json · the API answers 200
+- card-words · card-120-words.json · diagnostics match the committed expectation
+- card-words · card-120-words.json · the independent draft 2020-12 validator agrees with the resolver
+- card-words · card-200-words.json · the API, the validator and the resolver return byte-identical JSON
+- card-words · card-200-words.json · the API answers 200
+- card-words · card-200-words.json · diagnostics match the committed expectation
+- card-words · card-200-words.json · the independent draft 2020-12 validator agrees with the resolver
+- card-words · card-201-words.json · the API, the validator and the resolver return byte-identical JSON
+- card-words · card-201-words.json · the API answers 422
+- card-words · card-201-words.json · diagnostics match the committed expectation
+- card-words · card-201-words.json · the independent draft 2020-12 validator agrees with the resolver
+- card-words · card-201-words.json · schema-passing but resolver-rejected, as the contract claims
+- deixis · deixis-as-mentioned.json · the API, the validator and the resolver return byte-identical JSON
+- deixis · deixis-as-mentioned.json · the API answers 422
+- deixis · deixis-as-mentioned.json · diagnostics match the committed expectation
+- deixis · deixis-as-mentioned.json · the independent draft 2020-12 validator agrees with the resolver
+- deixis · deixis-besides-the.json · the API, the validator and the resolver return byte-identical JSON
+- deixis · deixis-besides-the.json · the API answers 422
+- deixis · deixis-besides-the.json · diagnostics match the committed expectation
+- deixis · deixis-besides-the.json · the independent draft 2020-12 validator agrees with the resolver
+- deixis · deixis-capitalised.json · the API, the validator and the resolver return byte-identical JSON
+- deixis · deixis-capitalised.json · the API answers 422
+- deixis · deixis-capitalised.json · diagnostics match the committed expectation
+- deixis · deixis-capitalised.json · the independent draft 2020-12 validator agrees with the resolver
+- deixis · deixis-inside-word.json · the API, the validator and the resolver return byte-identical JSON
+- deixis · deixis-inside-word.json · the API answers 200
+- deixis · deixis-inside-word.json · diagnostics match the committed expectation
+- deixis · deixis-inside-word.json · the independent draft 2020-12 validator agrees with the resolver
+- deixis · deixis-other-than-the.json · the API, the validator and the resolver return byte-identical JSON
+- deixis · deixis-other-than-the.json · the API answers 422
+- deixis · deixis-other-than-the.json · diagnostics match the committed expectation
+- deixis · deixis-other-than-the.json · the independent draft 2020-12 validator agrees with the resolver
+- deixis · deixis-that-same.json · the API, the validator and the resolver return byte-identical JSON
+- deixis · deixis-that-same.json · the API answers 422
+- deixis · deixis-that-same.json · diagnostics match the committed expectation
+- deixis · deixis-that-same.json · the independent draft 2020-12 validator agrees with the resolver
+- deixis · deixis-the-above.json · the API, the validator and the resolver return byte-identical JSON
+- deixis · deixis-the-above.json · the API answers 422
+- deixis · deixis-the-above.json · diagnostics match the committed expectation
+- deixis · deixis-the-above.json · the independent draft 2020-12 validator agrees with the resolver
+- deixis · deixis-the-former.json · the API, the validator and the resolver return byte-identical JSON
+- deixis · deixis-the-former.json · the API answers 422
+- deixis · deixis-the-former.json · diagnostics match the committed expectation
+- deixis · deixis-the-former.json · the independent draft 2020-12 validator agrees with the resolver
+- deixis · deixis-the-latter.json · the API, the validator and the resolver return byte-identical JSON
+- deixis · deixis-the-latter.json · the API answers 422
+- deixis · deixis-the-latter.json · diagnostics match the committed expectation
+- deixis · deixis-the-latter.json · the independent draft 2020-12 validator agrees with the resolver
+- deixis · deixis-the-other.json · the API, the validator and the resolver return byte-identical JSON
+- deixis · deixis-the-other.json · the API answers 422
+- deixis · deixis-the-other.json · diagnostics match the committed expectation
+- deixis · deixis-the-other.json · the independent draft 2020-12 validator agrees with the resolver
+- deixis · deixis-the-previous.json · the API, the validator and the resolver return byte-identical JSON
+- deixis · deixis-the-previous.json · the API answers 422
+- deixis · deixis-the-previous.json · diagnostics match the committed expectation
+- deixis · deixis-the-previous.json · the independent draft 2020-12 validator agrees with the resolver
+- deixis · deixis-the-second.json · the API, the validator and the resolver return byte-identical JSON
+- deixis · deixis-the-second.json · the API answers 422
+- deixis · deixis-the-second.json · diagnostics match the committed expectation
+- deixis · deixis-the-second.json · the independent draft 2020-12 validator agrees with the resolver
+- deixis · deixis-the-third.json · the API, the validator and the resolver return byte-identical JSON
+- deixis · deixis-the-third.json · the API answers 422
+- deixis · deixis-the-third.json · diagnostics match the committed expectation
+- deixis · deixis-the-third.json · the independent draft 2020-12 validator agrees with the resolver
+- deixis · deixis-this-approach.json · the API, the validator and the resolver return byte-identical JSON
+- deixis · deixis-this-approach.json · the API answers 422
+- deixis · deixis-this-approach.json · diagnostics match the committed expectation
+- deixis · deixis-this-approach.json · the independent draft 2020-12 validator agrees with the resolver
+- duplicate-ids · duplicate-card-id-across-concepts.json · the API, the validator and the resolver return byte-identical JSON
+- duplicate-ids · duplicate-card-id-across-concepts.json · the API answers 422
+- duplicate-ids · duplicate-card-id-across-concepts.json · diagnostics match the committed expectation
+- duplicate-ids · duplicate-card-id-across-concepts.json · the independent draft 2020-12 validator agrees with the resolver
+- duplicate-ids · duplicate-card-id-across-concepts.json · schema-passing but resolver-rejected, as the contract claims
+- duplicate-ids · duplicate-misconception-id-in-concept.json · the API, the validator and the resolver return byte-identical JSON
+- duplicate-ids · duplicate-misconception-id-in-concept.json · the API answers 422
+- duplicate-ids · duplicate-misconception-id-in-concept.json · diagnostics match the committed expectation
+- duplicate-ids · duplicate-misconception-id-in-concept.json · the independent draft 2020-12 validator agrees with the resolver
+- duplicate-ids · duplicate-misconception-id-in-concept.json · schema-passing but resolver-rejected, as the contract claims
+- duplicate-ids · duplicate-option-id-across-concepts.json · the API, the validator and the resolver return byte-identical JSON
+- duplicate-ids · duplicate-option-id-across-concepts.json · the API answers 200
+- duplicate-ids · duplicate-option-id-across-concepts.json · diagnostics match the committed expectation
+- duplicate-ids · duplicate-option-id-across-concepts.json · the independent draft 2020-12 validator agrees with the resolver
+- duplicate-ids · duplicate-pool-id-across-concepts.json · the API, the validator and the resolver return byte-identical JSON
+- duplicate-ids · duplicate-pool-id-across-concepts.json · the API answers 422
+- duplicate-ids · duplicate-pool-id-across-concepts.json · diagnostics match the committed expectation
+- duplicate-ids · duplicate-pool-id-across-concepts.json · the independent draft 2020-12 validator agrees with the resolver
+- duplicate-ids · duplicate-pool-id-across-concepts.json · schema-passing but resolver-rejected, as the contract claims
+- duplicate-ids · duplicate-question-id-across-concepts.json · the API, the validator and the resolver return byte-identical JSON
+- duplicate-ids · duplicate-question-id-across-concepts.json · the API answers 422
+- duplicate-ids · duplicate-question-id-across-concepts.json · diagnostics match the committed expectation
+- duplicate-ids · duplicate-question-id-across-concepts.json · the independent draft 2020-12 validator agrees with the resolver
+- duplicate-ids · duplicate-question-id-across-concepts.json · schema-passing but resolver-rejected, as the contract claims
+- key-longest · key-longest-every-mcq.json · the API, the validator and the resolver return byte-identical JSON
+- key-longest · key-longest-every-mcq.json · the API answers 422
+- key-longest · key-longest-every-mcq.json · diagnostics match the committed expectation
+- key-longest · key-longest-every-mcq.json · the independent draft 2020-12 validator agrees with the resolver
+- key-longest · key-longest-every-mcq.json · schema-passing but resolver-rejected, as the contract claims
+- hostile-document · nesting-200-deep.json · the API, the validator and the resolver return byte-identical JSON
+- hostile-document · nesting-200-deep.json · the API answers 422
+- hostile-document · nesting-200-deep.json · diagnostics match the committed expectation
+- hostile-document · nesting-200-deep.json · the independent draft 2020-12 validator agrees with the resolver
+- hostile-document · nesting-32-deep.json · the API, the validator and the resolver return byte-identical JSON
+- hostile-document · nesting-32-deep.json · the API answers 200
+- hostile-document · nesting-32-deep.json · diagnostics match the committed expectation
+- hostile-document · nesting-32-deep.json · the independent draft 2020-12 validator agrees with the resolver
+- provenance · provenance-declined-with-fields.json · the API, the validator and the resolver return byte-identical JSON
+- provenance · provenance-declined-with-fields.json · the API answers 200
+- provenance · provenance-declined-with-fields.json · diagnostics match the committed expectation
+- provenance · provenance-declined-with-fields.json · the independent draft 2020-12 validator agrees with the resolver
+- provenance · provenance-declined.json · the API, the validator and the resolver return byte-identical JSON
+- provenance · provenance-declined.json · the API answers 200
+- provenance · provenance-declined.json · diagnostics match the committed expectation
+- provenance · provenance-declined.json · the independent draft 2020-12 validator agrees with the resolver
+- provenance · provenance-missing-model.json · the API, the validator and the resolver return byte-identical JSON
+- provenance · provenance-missing-model.json · the API answers 422
+- provenance · provenance-missing-model.json · diagnostics match the committed expectation
+- provenance · provenance-missing-model.json · the independent draft 2020-12 validator agrees with the resolver
+- provenance · provenance-omitted.json · the API, the validator and the resolver return byte-identical JSON
+- provenance · provenance-omitted.json · the API answers 422
+- provenance · provenance-omitted.json · diagnostics match the committed expectation
+- provenance · provenance-omitted.json · the independent draft 2020-12 validator agrees with the resolver
+- provenance · provenance-status-unknown.json · the API, the validator and the resolver return byte-identical JSON
+- provenance · provenance-status-unknown.json · the API answers 422
+- provenance · provenance-status-unknown.json · diagnostics match the committed expectation
+- provenance · provenance-status-unknown.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-card-no-body.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-card-no-body.json · the API answers 422
+- reference-validator · ref-card-no-body.json · diagnostics match the committed expectation
+- reference-validator · ref-card-no-body.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-card-no-heading.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-card-no-heading.json · the API answers 422
+- reference-validator · ref-card-no-heading.json · diagnostics match the committed expectation
+- reference-validator · ref-card-no-heading.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-card-single-paragraph.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-card-single-paragraph.json · the API answers 200
+- reference-validator · ref-card-single-paragraph.json · diagnostics match the committed expectation
+- reference-validator · ref-card-single-paragraph.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-card-words.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-card-words.json · the API answers 422
+- reference-validator · ref-card-words.json · diagnostics match the committed expectation
+- reference-validator · ref-card-words.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-card-words.json · schema-passing but resolver-rejected, as the contract claims
+- reference-validator · ref-drawable-under-3.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-drawable-under-3.json · the API answers 422
+- reference-validator · ref-drawable-under-3.json · diagnostics match the committed expectation
+- reference-validator · ref-drawable-under-3.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-drawable-under-3.json · schema-passing but resolver-rejected, as the contract claims
+- reference-validator · ref-duplicate-card-id.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-duplicate-card-id.json · the API answers 422
+- reference-validator · ref-duplicate-card-id.json · diagnostics match the committed expectation
+- reference-validator · ref-duplicate-card-id.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-duplicate-card-id.json · schema-passing but resolver-rejected, as the contract claims
+- reference-validator · ref-duplicate-concept-id.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-duplicate-concept-id.json · the API answers 422
+- reference-validator · ref-duplicate-concept-id.json · diagnostics match the committed expectation
+- reference-validator · ref-duplicate-concept-id.json · the independent draft 2020-12 validator matches the observed (filed-defect) behavior
+- reference-validator · ref-duplicate-question-id.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-duplicate-question-id.json · the API answers 422
+- reference-validator · ref-duplicate-question-id.json · diagnostics match the committed expectation
+- reference-validator · ref-duplicate-question-id.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-duplicate-question-id.json · schema-passing but resolver-rejected, as the contract claims
+- reference-validator · ref-key-longest.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-key-longest.json · the API answers 422
+- reference-validator · ref-key-longest.json · diagnostics match the committed expectation
+- reference-validator · ref-key-longest.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-key-longest.json · schema-passing but resolver-rejected, as the contract claims
+- reference-validator · ref-mcq-feedback-missing.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-mcq-feedback-missing.json · the API answers 422
+- reference-validator · ref-mcq-feedback-missing.json · diagnostics match the committed expectation
+- reference-validator · ref-mcq-feedback-missing.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-mcq-key-not-in-set.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-mcq-key-not-in-set.json · the API answers 422
+- reference-validator · ref-mcq-key-not-in-set.json · diagnostics match the committed expectation
+- reference-validator · ref-mcq-key-not-in-set.json · the independent draft 2020-12 validator matches the observed (filed-defect) behavior
+- reference-validator · ref-mcq-map-missing.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-mcq-map-missing.json · the API answers 422
+- reference-validator · ref-mcq-map-missing.json · diagnostics match the committed expectation
+- reference-validator · ref-mcq-map-missing.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-mcq-map-unknown.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-mcq-map-unknown.json · the API answers 422
+- reference-validator · ref-mcq-map-unknown.json · diagnostics match the committed expectation
+- reference-validator · ref-mcq-map-unknown.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-mcq-map-unknown.json · schema-passing but resolver-rejected, as the contract claims
+- reference-validator · ref-misconception-card-outside.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-misconception-card-outside.json · the API answers 422
+- reference-validator · ref-misconception-card-outside.json · diagnostics match the committed expectation
+- reference-validator · ref-misconception-card-outside.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-misconception-card-outside.json · schema-passing but resolver-rejected, as the contract claims
+- reference-validator · ref-misconception-no-statement.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-misconception-no-statement.json · the API answers 422
+- reference-validator · ref-misconception-no-statement.json · diagnostics match the committed expectation
+- reference-validator · ref-misconception-no-statement.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-misconception-unused.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-misconception-unused.json · the API answers 422
+- reference-validator · ref-misconception-unused.json · diagnostics match the committed expectation
+- reference-validator · ref-misconception-unused.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-misconception-unused.json · schema-passing but resolver-rejected, as the contract claims
+- reference-validator · ref-no-cards.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-no-cards.json · the API answers 422
+- reference-validator · ref-no-cards.json · diagnostics match the committed expectation
+- reference-validator · ref-no-cards.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-no-concepts.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-no-concepts.json · the API answers 422
+- reference-validator · ref-no-concepts.json · diagnostics match the committed expectation
+- reference-validator · ref-no-concepts.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-no-reserved.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-no-reserved.json · the API answers 422
+- reference-validator · ref-no-reserved.json · diagnostics match the committed expectation
+- reference-validator · ref-no-reserved.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-no-reserved.json · schema-passing but resolver-rejected, as the contract claims
+- reference-validator · ref-no-statement.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-no-statement.json · the API answers 200
+- reference-validator · ref-no-statement.json · diagnostics match the committed expectation
+- reference-validator · ref-no-statement.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-no-stem.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-no-stem.json · the API answers 422
+- reference-validator · ref-no-stem.json · diagnostics match the committed expectation
+- reference-validator · ref-no-stem.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-no-title.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-no-title.json · the API answers 422
+- reference-validator · ref-no-title.json · diagnostics match the committed expectation
+- reference-validator · ref-no-title.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-numeric-answer-not-number.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-numeric-answer-not-number.json · the API answers 422
+- reference-validator · ref-numeric-answer-not-number.json · diagnostics match the committed expectation
+- reference-validator · ref-numeric-answer-not-number.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-numeric-answer-uncovered.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-numeric-answer-uncovered.json · the API answers 422
+- reference-validator · ref-numeric-answer-uncovered.json · diagnostics match the committed expectation
+- reference-validator · ref-numeric-answer-uncovered.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-numeric-answer-uncovered.json · schema-passing but resolver-rejected, as the contract claims
+- reference-validator · ref-numeric-no-feedback.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-numeric-no-feedback.json · the API answers 422
+- reference-validator · ref-numeric-no-feedback.json · diagnostics match the committed expectation
+- reference-validator · ref-numeric-no-feedback.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-numeric-reserved.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-numeric-reserved.json · the API answers 422
+- reference-validator · ref-numeric-reserved.json · diagnostics match the committed expectation
+- reference-validator · ref-numeric-reserved.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-numeric-zero-tolerance.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-numeric-zero-tolerance.json · the API answers 422
+- reference-validator · ref-numeric-zero-tolerance.json · diagnostics match the committed expectation
+- reference-validator · ref-numeric-zero-tolerance.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-option-ratio.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-option-ratio.json · the API answers 422
+- reference-validator · ref-option-ratio.json · diagnostics match the committed expectation
+- reference-validator · ref-option-ratio.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-option-ratio.json · schema-passing but resolver-rejected, as the contract claims
+- reference-validator · ref-options-count.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-options-count.json · the API answers 422
+- reference-validator · ref-options-count.json · diagnostics match the committed expectation
+- reference-validator · ref-options-count.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-stem-deixis.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-stem-deixis.json · the API answers 422
+- reference-validator · ref-stem-deixis.json · diagnostics match the committed expectation
+- reference-validator · ref-stem-deixis.json · the independent draft 2020-12 validator agrees with the resolver
+- reserved-names · reserved-name-feedback-key.json · the API, the validator and the resolver return byte-identical JSON
+- reserved-names · reserved-name-feedback-key.json · the API answers 422
+- reserved-names · reserved-name-feedback-key.json · diagnostics match the committed expectation
+- reserved-names · reserved-name-feedback-key.json · the independent draft 2020-12 validator agrees with the resolver
+- reserved-names · reserved-name-map-key.json · the API, the validator and the resolver return byte-identical JSON
+- reserved-names · reserved-name-map-key.json · the API answers 422
+- reserved-names · reserved-name-map-key.json · diagnostics match the committed expectation
+- reserved-names · reserved-name-map-key.json · the independent draft 2020-12 validator agrees with the resolver
+- reserved-names · reserved-name-misconception-__proto__.json · the API, the validator and the resolver return byte-identical JSON
+- reserved-names · reserved-name-misconception-__proto__.json · the API answers 422
+- reserved-names · reserved-name-misconception-__proto__.json · diagnostics match the committed expectation
+- reserved-names · reserved-name-misconception-__proto__.json · the independent draft 2020-12 validator matches the observed (filed-defect) behavior
+- reserved-names · reserved-name-misconception-constructor.json · the API, the validator and the resolver return byte-identical JSON
+- reserved-names · reserved-name-misconception-constructor.json · the API answers 422
+- reserved-names · reserved-name-misconception-constructor.json · diagnostics match the committed expectation
+- reserved-names · reserved-name-misconception-constructor.json · the independent draft 2020-12 validator matches the observed (filed-defect) behavior
+- reserved-names · reserved-name-misconception-prototype.json · the API, the validator and the resolver return byte-identical JSON
+- reserved-names · reserved-name-misconception-prototype.json · the API answers 422
+- reserved-names · reserved-name-misconception-prototype.json · diagnostics match the committed expectation
+- reserved-names · reserved-name-misconception-prototype.json · the independent draft 2020-12 validator matches the observed (filed-defect) behavior
+- reserved-names · reserved-name-option-__proto__.json · the API, the validator and the resolver return byte-identical JSON
+- reserved-names · reserved-name-option-__proto__.json · the API answers 422
+- reserved-names · reserved-name-option-__proto__.json · diagnostics match the committed expectation
+- reserved-names · reserved-name-option-__proto__.json · the independent draft 2020-12 validator agrees with the resolver
+- reserved-names · reserved-name-option-constructor.json · the API, the validator and the resolver return byte-identical JSON
+- reserved-names · reserved-name-option-constructor.json · the API answers 422
+- reserved-names · reserved-name-option-constructor.json · diagnostics match the committed expectation
+- reserved-names · reserved-name-option-constructor.json · the independent draft 2020-12 validator agrees with the resolver
+- reserved-names · reserved-name-option-prototype.json · the API, the validator and the resolver return byte-identical JSON
+- reserved-names · reserved-name-option-prototype.json · the API answers 422
+- reserved-names · reserved-name-option-prototype.json · diagnostics match the committed expectation
+- reserved-names · reserved-name-option-prototype.json · the independent draft 2020-12 validator agrees with the resolver
+- reserved-names · reserved-name-top-level-__proto__.json · the API, the validator and the resolver return byte-identical JSON
+- reserved-names · reserved-name-top-level-__proto__.json · the API answers 200
+- reserved-names · reserved-name-top-level-__proto__.json · diagnostics match the committed expectation
+- reserved-names · reserved-name-top-level-__proto__.json · the independent draft 2020-12 validator agrees with the resolver
+- reserved-names · reserved-name-top-level-constructor.json · the API, the validator and the resolver return byte-identical JSON
+- reserved-names · reserved-name-top-level-constructor.json · the API answers 200
+- reserved-names · reserved-name-top-level-constructor.json · diagnostics match the committed expectation
+- reserved-names · reserved-name-top-level-constructor.json · the independent draft 2020-12 validator agrees with the resolver
+- reserved-names · reserved-name-top-level-prototype.json · the API, the validator and the resolver return byte-identical JSON
+- reserved-names · reserved-name-top-level-prototype.json · the API answers 200
+- reserved-names · reserved-name-top-level-prototype.json · diagnostics match the committed expectation
+- reserved-names · reserved-name-top-level-prototype.json · the independent draft 2020-12 validator agrees with the resolver
+- reserved-numeric · reserved-numeric-only-reserved.json · the API, the validator and the resolver return byte-identical JSON
+- reserved-numeric · reserved-numeric-only-reserved.json · the API answers 422
+- reserved-numeric · reserved-numeric-only-reserved.json · diagnostics match the committed expectation
+- reserved-numeric · reserved-numeric-only-reserved.json · the independent draft 2020-12 validator agrees with the resolver
+- reserved-numeric · reserved-numeric.json · the API, the validator and the resolver return byte-identical JSON
+- reserved-numeric · reserved-numeric.json · the API answers 422
+- reserved-numeric · reserved-numeric.json · diagnostics match the committed expectation
+- reserved-numeric · reserved-numeric.json · the independent draft 2020-12 validator agrees with the resolver
+- baseline · valid-audit-lesson.json · the API, the validator and the resolver return byte-identical JSON
+- baseline · valid-audit-lesson.json · the API answers 200
+- baseline · valid-audit-lesson.json · diagnostics match the committed expectation
+- baseline · valid-audit-lesson.json · the independent draft 2020-12 validator agrees with the resolver
+- hostile-document · 1,000,001 bytes · the validator reports document.size alone
+- hostile-document · 1,000,001 bytes · the API answers 413 with a problem document, not a resolution
+- hostile-document · exactly 1,000,000 bytes · accepted by the API and the validator alike
+- hostile-document · 200 levels deep · document.nesting alone, from the API and the validator
+- hostile-document · a JSON array body is document.object alone, identically
+- hostile-document · a JSON string body is document.object alone, identically
+- hostile-document · a JSON number body is document.object alone, identically
+- hostile-document · a JSON null body is document.object alone, identically
+- hostile-document · a JSON boolean body is document.object alone, identically
+- hostile-document · a malformed body is 400 problem+json
+- hostile-document · prototype pollution through __proto__ and constructor keys leaves Object.prototype clean
+- openapi · the deployed document is served and names the deployed origin
+- openapi · GET /.well-known/learn-joshhale.json is answered by the deployed server
+- openapi · GET /api/v1/capabilities is answered by the deployed server
+- openapi · GET /openapi.json is answered by the deployed server
+- openapi · GET /api/v1/schemas/lesson/v1 is answered by the deployed server
+- openapi · GET /api/v1/diagnostics is answered by the deployed server
+- openapi · GET /tools/lesson-validator.js is answered by the deployed server
+- openapi · GET /tools/lesson-validator.d.ts is answered by the deployed server
+- openapi · GET /docs/api-v1.md is answered by the deployed server
+- openapi · GET /docs/diagnostics.md is answered by the deployed server
+- openapi · GET /plugin is answered by the deployed server
+- openapi · GET /plugin/marketplace.json is answered by the deployed server
+- openapi · GET /plugin/.claude-plugin/plugin.json is answered by the deployed server
+- openapi · GET /plugin/skills/lesson/SKILL.md is answered by the deployed server
+- openapi · GET /plugin/learn-lesson-plugin.zip is answered by the deployed server
+- openapi · GET /plugin/learn-lesson-plugin.git/info/refs is answered by the deployed server
+- openapi · POST /api/v1/lesson-resolutions is answered by the deployed server
+- openapi · GET /api/v1/lessons is answered by the deployed server
+- openapi · POST /api/v1/lessons is answered by the deployed server
+- openapi · GET /api/v1/shelf is answered by the deployed server
+- openapi · GET /api/v1/lessons/{lessonId} is answered by the deployed server
+- openapi · POST /api/v1/lessons/{lessonId}/revisions is answered by the deployed server
+- openapi · GET /api/v1/lessons/{lessonId}/revisions/{revisionId} is answered by the deployed server
+- openapi · GET /api/v1/progress/learning-events is answered by the deployed server
+- openapi · POST /api/v1/progress/learning-events is answered by the deployed server
+- openapi · GET /api/v1/progress/navigation-events is answered by the deployed server
+- openapi · POST /api/v1/progress/navigation-events is answered by the deployed server
+- openapi · GET /api/v1/progress/checkpoint is answered by the deployed server
+- openapi · POST /api/v1/sign-in-invites is answered by the deployed server
+- openapi · GET /sign-in/{token} is answered by the deployed server
+- openapi · POST /api/v1/passkeys/registration-options is answered by the deployed server
+- openapi · POST /api/v1/passkeys/registrations is answered by the deployed server
+- openapi · POST /api/v1/passkeys/authentication-options is answered by the deployed server
+- openapi · POST /api/v1/passkeys/authentications is answered by the deployed server
+- openapi · GET /api/v1/session is answered by the deployed server
+- openapi · DELETE /api/v1/session is answered by the deployed server
+- openapi (local) · GET /.well-known/learn-joshhale.json matches a composed route
+- openapi (local) · GET /api/v1/capabilities matches a composed route
+- openapi (local) · GET /openapi.json matches a composed route
+- openapi (local) · GET /api/v1/schemas/lesson/v1 matches a composed route
+- openapi (local) · GET /api/v1/diagnostics matches a composed route
+- openapi (local) · GET /tools/lesson-validator.js matches a composed route
+- openapi (local) · GET /tools/lesson-validator.d.ts matches a composed route
+- openapi (local) · GET /docs/api-v1.md matches a composed route
+- openapi (local) · GET /docs/diagnostics.md matches a composed route
+- openapi (local) · GET /plugin matches a composed route
+- openapi (local) · GET /plugin/marketplace.json matches a composed route
+- openapi (local) · GET /plugin/.claude-plugin/plugin.json matches a composed route
+- openapi (local) · GET /plugin/skills/lesson/SKILL.md matches a composed route
+- openapi (local) · GET /plugin/learn-lesson-plugin.zip matches a composed route
+- openapi (local) · GET /plugin/learn-lesson-plugin.git/info/refs matches a composed route
+- openapi (local) · POST /api/v1/lesson-resolutions matches a composed route
+- openapi (local) · GET /api/v1/lessons matches a composed route
+- openapi (local) · POST /api/v1/lessons matches a composed route
+- openapi (local) · GET /api/v1/shelf matches a composed route
+- openapi (local) · GET /api/v1/lessons/{lessonId} matches a composed route
+- openapi (local) · POST /api/v1/lessons/{lessonId}/revisions matches a composed route
+- openapi (local) · GET /api/v1/lessons/{lessonId}/revisions/{revisionId} matches a composed route
+- openapi (local) · POST /api/v1/sign-in-invites matches a composed route
+- openapi (local) · GET /sign-in/{token} matches a composed route
+- openapi (local) · POST /api/v1/passkeys/registration-options matches a composed route
+- openapi (local) · POST /api/v1/passkeys/registrations matches a composed route
+- openapi (local) · POST /api/v1/passkeys/authentication-options matches a composed route
+- openapi (local) · POST /api/v1/passkeys/authentications matches a composed route
+- openapi (local) · GET /api/v1/session matches a composed route
+- openapi (local) · DELETE /api/v1/session matches a composed route
+- openapi (local) · GET /.well-known/learn-joshhale.json is documented
+- openapi (local) · GET /api/v1/capabilities is documented
+- openapi (local) · GET /openapi.json is documented
+- openapi (local) · GET /api/v1/schemas/lesson/v1 is documented
+- openapi (local) · GET /api/v1/diagnostics is documented
+- openapi (local) · GET /plugin is documented
+- openapi (local) · POST /api/v1/lesson-resolutions is documented
+- openapi (local) · GET /api/v1/lessons is documented
+- openapi (local) · GET /api/v1/shelf is documented
+- openapi (local) · POST /api/v1/lessons is documented
+- openapi (local) · POST /api/v1/lessons/:lessonId/revisions is documented
+- openapi (local) · GET /api/v1/lessons/:lessonId is documented
+- openapi (local) · GET /api/v1/lessons/:lessonId/revisions/:revisionId is documented
+- openapi (local) · POST /api/v1/sign-in-invites is documented
+- openapi (local) · GET /sign-in/:token is documented
+- openapi (local) · POST /api/v1/passkeys/registration-options is documented
+- openapi (local) · POST /api/v1/passkeys/registrations is documented
+- openapi (local) · POST /api/v1/passkeys/authentication-options is documented
+- openapi (local) · POST /api/v1/passkeys/authentications is documented
+- openapi (local) · GET /api/v1/session is documented
+- openapi (local) · DELETE /api/v1/session is documented
+- openapi (local) · GET /tools/* is documented
+- openapi (local) · GET /docs/* is documented
+- openapi (local) · GET /plugin/* is documented
+- openapi · GET /tools/lesson-validator.js is served and documented
+- openapi · GET /tools/lesson-validator.d.ts is served and documented
+- openapi · GET /docs/api-v1.md is served and documented
+- openapi · GET /docs/diagnostics.md is served and documented
+- openapi · GET /plugin/marketplace.json is served and documented
+- openapi · GET /plugin/.claude-plugin/plugin.json is served and documented
+- openapi · GET /plugin/skills/lesson/SKILL.md is served and documented
+- openapi · GET /plugin/learn-lesson-plugin.zip is served and documented
+- openapi · the capability document's public route /api/v1/lesson-resolutions is in the OpenAPI document
+- openapi · the capability document's public route /api/v1/capabilities is in the OpenAPI document
+- openapi · the capability document's public route /openapi.json is in the OpenAPI document
+- openapi · the capability document's public route /api/v1/schemas/lesson/v1 is in the OpenAPI document
+- openapi · the capability document's public route /api/v1/diagnostics is in the OpenAPI document
+- openapi · the capability document's public route /docs/api-v1.md is in the OpenAPI document
+- openapi · the capability document's public route /docs/diagnostics.md is in the OpenAPI document
+- openapi · the capability document's public route /tools/lesson-validator.js is in the OpenAPI document
+- openapi · the capability document's public route /tools/lesson-validator.d.ts is in the OpenAPI document
+- openapi · the capability document's public route /plugin is in the OpenAPI document
+- openapi · the capability document's public route /plugin/marketplace.json is in the OpenAPI document
+- openapi · the capability document's public route /plugin/learn-lesson-plugin.zip is in the OpenAPI document
+- openapi · the capability document's public route /plugin/learn-lesson-plugin.git is in the OpenAPI document
+- openapi · the capability document's public route /plugin/skills/lesson/SKILL.md is in the OpenAPI document
+- drafts · the same valid lesson twice with the same token returns the same revision
+- drafts · an unknown bearer token is 401, not 403 and not a draft
+- drafts · no bearer token at all is 401
+- drafts · the same lesson from a second account is a separate lesson, not the first account's
+- drafts · a second account cannot read the first account's revision
+- drafts · a second account cannot add a revision to the first account's lesson
+- drafts · a read-only token is 403 on a write route
