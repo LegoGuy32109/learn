@@ -80,6 +80,8 @@ bypass. `learn-prod` is created only by ticket 05.
 | 22 | The Wrap-up can re-ask a missed Concept immediately | none | defect |
 | 23 | Every MCQ in an attempt shows the Concept's options in the same order | none | defect |
 | 24 | Enter in the answer field does not submit the answer | none | defect |
+| 25 | Production serves 404 for /sw.js, so nothing installs or works offline | none | defect |
+| 26 | Production sends no Strict-Transport-Security header | none | defect |
 
 The frontier at the start is 01, 05 and 11. After 01 lands, 02, 06 and 07
 open. After 02 lands, 03, 09 and, with 07, 08 open.

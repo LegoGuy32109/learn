@@ -39,6 +39,11 @@ and the rule that Card and Question position stay out of the URL still hold.
 Code: `public/js/app.js` `boot()` and the `popstate` handler; `public/js/learn.js`
 `goBack()` calls `nav.show("overview")` without a path.
 
+**Also on production:** reproduced on 2026-09-22 against
+`https://learn-joshhale.legoguy32109.deno.net` (revisions `h649s2fpr17r` and `p6jad39tqqge`) by
+`deno task audit:prod`, the ticket 14 audit, which runs the same walk with the
+production lesson path. The failing check names are the same.
+
 **Blocked by:** None.
 
 **Status:** ready-for-agent

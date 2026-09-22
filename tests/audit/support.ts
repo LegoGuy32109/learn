@@ -8,12 +8,23 @@ export const VIEWPORT = { width: 390, height: 844 };
 export const LESSON = lesson as any;
 export const LESSON_PATH = `/learn/${LESSON.lessonId}`;
 export const DRILL_PATH = `${LESSON_PATH}/drill`;
-export const SCREENSHOTS = new URL("./screenshots/", import.meta.url).pathname;
+let screenshotDirectory = new URL("./screenshots/", import.meta.url).pathname;
+
+/** Where `schemes` writes its screenshots. The production audit points this at its own directory. */
+export function setScreenshotDirectory(path: string) {
+  screenshotDirectory = path.endsWith("/") ? path : `${path}/`;
+}
+
+export function screenshotDirectoryPath(): string {
+  return screenshotDirectory;
+}
 
 export interface Result {
   name: string;
   ok: boolean;
   detail?: string;
+  /** What proves the outcome: a status line, a header, a screenshot path. Printed for passes and failures. */
+  evidence?: string;
 }
 
 export interface Observation {
@@ -24,14 +35,19 @@ export interface Observation {
 export const results: Result[] = [];
 export const observations: Observation[] = [];
 
-/** Run one named check; a failure is recorded, not thrown, so the walk continues. */
-export async function check(name: string, fn: () => Promise<void> | void) {
+/**
+ * Run one named check; a failure is recorded, not thrown, so the walk continues. The check may
+ * return a string of evidence, which the report prints next to the pass or fail line.
+ */
+export async function check(name: string, fn: () => Promise<void | string> | void | string): Promise<boolean> {
   try {
-    await fn();
-    results.push({ name, ok: true });
+    const evidence = await fn();
+    results.push({ name, ok: true, evidence: typeof evidence === "string" ? evidence : undefined });
+    return true;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     results.push({ name, ok: false, detail: message.split("\n").filter((line) => line.trim()).slice(0, 8).join("\n") });
+    return false;
   }
 }
 
@@ -151,9 +167,15 @@ export async function readStore(page: any, store: string): Promise<any[]> {
     }), store);
 }
 
+/**
+ * A projection by its name. Since ticket 08 projections are keyed `<name>:<revision>:<epoch>`, so
+ * the name alone matches the one record for the lesson this context opened; the bare id is still
+ * accepted for the older layout.
+ */
 export async function projection(page: any, id: string): Promise<any> {
   const records = await readStore(page, "projections");
-  return records.find((record) => record.id === id)?.value ?? null;
+  const record = records.find((candidate) => candidate.id === id) ?? records.find((candidate) => String(candidate.id).startsWith(`${id}:`));
+  return record?.value ?? null;
 }
 
 export async function clearProjections(page: any) {
@@ -195,9 +217,12 @@ export async function reloadSame(page: any, name: string, options: { checkpoint?
   await check(`reload · ${name} · surface comes back`, () => {
     expect(after).toEqual(expected);
   });
-  await check(`reload · ${name} · checkpoint rebuilt from events`, () => {
-    expect(checkpointAfter).toEqual(checkpointBefore);
-  });
+  // The shelf has no open lesson, so nothing rebuilds a checkpoint there until a lesson is opened.
+  if (before.surface !== "shelf") {
+    await check(`reload · ${name} · checkpoint rebuilt from events`, () => {
+      expect(checkpointAfter).toEqual(checkpointBefore);
+    });
+  }
   return { before, after };
 }
 
@@ -305,7 +330,7 @@ export async function schemes(page: any, name: string) {
     await page.emulateMedia({ colorScheme: scheme });
     await page.waitForTimeout(30);
     colours[scheme] = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-    await page.screenshot({ path: `${SCREENSHOTS}${prefix}-${scheme}.jpg`, type: "jpeg", quality: 55, fullPage: true });
+    await page.screenshot({ path: `${screenshotDirectory}${prefix}-${scheme}.jpg`, type: "jpeg", quality: 55, fullPage: true });
   }
   await page.emulateMedia({ colorScheme: "light" });
   await check(`scheme · ${name} · light and dark render different backgrounds`, () => {
@@ -344,6 +369,6 @@ export function report(title: string) {
     lines.push("");
   }
   lines.push("### Passed", "");
-  for (const result of passed) lines.push(`- ${result.name}`);
+  for (const result of passed) lines.push(result.evidence ? `- ${result.name}\n  ${result.evidence.replaceAll("\n", "\n  ")}` : `- ${result.name}`);
   return lines.join("\n");
 }

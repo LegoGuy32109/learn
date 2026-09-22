@@ -17,6 +17,11 @@ square treatment the shell header uses, or place it in a header row.
 Failing assertion: `expect(small).toEqual([])` received
 `[{ label: "Back to shelf", w: 30, h: 29 }]` (width may vary by a pixel).
 
+**Also on production:** reproduced on 2026-09-22 against
+`https://learn-joshhale.legoguy32109.deno.net` revision `h649s2fpr17r` by
+`deno task audit:prod`, the ticket 14 audit. Revision `p6jad39tqqge`,
+deployed later the same day, no longer fails these checks.
+
 **Blocked by:** None.
 
 **Status:** ready-for-agent

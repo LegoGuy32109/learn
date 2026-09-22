@@ -23,6 +23,11 @@ no inset; `.shell` has `calc(18px + env(safe-area-inset-bottom,0px))`.
 Screenshot `tests/audit/screenshots/02-overview-fresh-dark.jpg` shows the
 "Every question" action flush with the bottom edge.
 
+**Also on production:** reproduced on 2026-09-22 against
+`https://learn-joshhale.legoguy32109.deno.net` revision `h649s2fpr17r` by
+`deno task audit:prod`, the ticket 14 audit. Revision `p6jad39tqqge`,
+deployed later the same day, no longer fails these checks.
+
 **Blocked by:** None.
 
 **Status:** ready-for-agent
