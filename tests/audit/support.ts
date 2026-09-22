@@ -5,10 +5,25 @@ import { expect } from "@playwright/test";
 import lesson from "../../fixtures/lessons/browser-http-cache.json" with { type: "json" };
 
 export const VIEWPORT = { width: 390, height: 844 };
-export const LESSON = lesson as any;
+export let LESSON = lesson as any;
 export const LESSON_PATH = `/learn/${LESSON.lessonId}`;
 export const DRILL_PATH = `${LESSON_PATH}/drill`;
 let screenshotDirectory = new URL("./screenshots/", import.meta.url).pathname;
+
+/**
+ * Point every shared helper (fullWalk, drillFromFresh, keyFor, answer, idk, stem...) at a
+ * different lesson document, by ES module live binding: everything that reads `LESSON` reads it at
+ * call time, so this takes effect for code that has not run yet, wherever it imported `LESSON`
+ * from. The golden-flow audit calls this with the content the server actually stored for its own
+ * freshly-titled submission (a fresh title changes the fingerprint, so every run gets its own
+ * Lesson Revision with no progress), so the walk and its answer key derive from whatever that run
+ * actually submitted rather than from a fixed literal. Local suites never call this and keep
+ * walking the bundled fixture; `LESSON_PATH`/`DRILL_PATH` above stay pointed at it too, since only
+ * a local suite (never a `useLesson` caller) reads them.
+ */
+export function useLesson(nextLesson: any) {
+  LESSON = nextLesson;
+}
 
 /** Where `schemes` writes its screenshots. The production audit points this at its own directory. */
 export function setScreenshotDirectory(path: string) {
@@ -74,6 +89,36 @@ export function keyFor(stem: string) {
 export async function settle(page: any) {
   await page.waitForTimeout(80);
   await page.waitForFunction(() => (document.querySelector("#app")?.textContent ?? "").trim().length > 0);
+}
+
+/**
+ * A locator's text once it stops changing: poll every 300ms, up to `timeout`ms, and return once it
+ * has read the same value four times running (at least ~900ms quiet). A freshly opened surface on a
+ * brand new browser context renders once from IndexedDB alone (empty) and again once the background
+ * sync pull merges in whatever progress the account already has on the server, exactly as ticket 10
+ * documents; the pull itself only starts after `kick()`'s own debounce (`KICK_DELAY_MS` in
+ * src/client/sync/client.js, 150ms), so two reads a mere 200ms apart can both land inside that
+ * initial quiet gap and agree before the real change ever begins. Four in a row makes that far less
+ * likely without hard-coding the debounce constant here. Not needed after an assertion against a
+ * known literal, which Playwright's own `expect(...).toHaveText(...)` already retries; this is for
+ * capturing a "before" value the caller does not know in advance.
+ */
+export async function stableText(locator: any, timeout = 15000): Promise<string> {
+  const deadline = Date.now() + timeout;
+  let previous: string | null = null;
+  let matches = 0;
+  while (Date.now() < deadline) {
+    const current = ((await locator.textContent()) ?? "").trim();
+    if (current === previous) {
+      matches += 1;
+      if (matches >= 4) return current;
+    } else {
+      matches = 0;
+    }
+    previous = current;
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+  return previous ?? "";
 }
 
 export async function tap(page: any, name: string | RegExp, exact = true) {

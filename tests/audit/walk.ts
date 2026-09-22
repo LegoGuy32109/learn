@@ -19,6 +19,7 @@ import {
   reloadSame,
   settle,
   signature,
+  stableText,
   stem,
   surface,
   tap,
@@ -382,16 +383,20 @@ export async function drillFromFresh(browser: any, ORIGIN: string, errors: strin
   attachListeners(page, errors, consoleMessages);
   await page.goto(`${ORIGIN}/`);
   await settle(page);
-  const before = await snapshot(page, lessonId);
   await openFromShelf(page, lessonId);
-  // Captured here rather than hard-coded: this walk is shared by a lesson that is genuinely fresh
-  // (ticket 09's own audit) and by the golden-flow audit, which drills a lesson already carried to
-  // Learned. Drilling must never change the overview, whatever state it started in, so every check
-  // below compares against what was actually on screen before the drill opened.
+  // Captured here, once settled, rather than hard-coded or captured before the lesson was ever
+  // opened: this walk is shared by a lesson that is genuinely fresh (ticket 09's own audit) and by
+  // the golden-flow audit, which drills a lesson already carried to Learned on the server. A freshly
+  // opened surface on a new browser context (this function's own, a "second device" in ticket 10's
+  // terms) renders once from empty local IndexedDB and again a moment later once the background sync
+  // pull merges in whatever the account already has; stableText waits out that settle so the baseline
+  // below is the real pre-drill state, not the transient first paint. Drilling must never change it,
+  // whatever it was.
   const overviewIdle = {
-    state: ((await page.locator(".overview .state").textContent()) ?? "").trim(),
-    primary: ((await page.locator(".overview .actions .go").first().textContent()) ?? "").trim(),
+    state: await stableText(page.locator(".overview .state")),
+    primary: await stableText(page.locator(".overview .actions .go").first()),
   };
+  const before = { learning: await readStore(page, "learning_events"), navigation: await readStore(page, "navigation_events") };
   await tap(page, "Every question");
   const total = LESSON.questions.length;
   await check("drill · starts at Question 1 of every Question on the drill URL", async () => {
@@ -495,7 +500,9 @@ export async function drillFromFresh(browser: any, ORIGIN: string, errors: strin
   await tapAction(page, "shelf");
   await check("drill · shelf still shows the pre-drill state and the learning stores never changed", async () => {
     const after = await snapshot(page, lessonId);
-    expect(after).toEqual(before);
+    expect(after.shelfStatus).toBe(overviewIdle.state);
+    expect(after.learning).toEqual(before.learning);
+    expect(after.navigation).toEqual(before.navigation);
   });
   await check("drill · the drill stream holds one answer per Question and a closing null checkpoint", async () => {
     const drill = await readStore(page, "drill_events");
