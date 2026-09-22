@@ -50,14 +50,14 @@ Failing audit checks:
 
 **Blocked by:** None.
 
-**Status:** ready-for-agent
+**Status:** done 5ec0a73
 
-- [ ] Every response over HTTPS carries `strict-transport-security` with
+- [x] Every response over HTTPS carries `strict-transport-security` with
       `max-age` of at least 15552000; a unit test proves it for a page, an
       API document and a problem response, and proves the header is absent
       for a plain `http://localhost` request.
-- [ ] The two audit checks above pass in `deno task audit:prod`.
-- [ ] `deno task check`, `deno task test` and `deno task e2e` pass.
+- [x] The two audit checks above pass in `deno task audit:prod`.
+- [x] `deno task check`, `deno task test` and `deno task e2e` pass.
 
 ## Verification
 
@@ -65,3 +65,61 @@ Failing audit checks:
 deno task deploy
 deno task audit:prod
 ```
+
+## Report
+
+**Fix.** `src/app.ts`'s existing response wrapper (previously only
+`withRevision`) now sets, on every response:
+
+- `x-content-type-options: nosniff` and `referrer-policy: same-origin`
+  unconditionally (suggested by the ticket as cheap additions; not required
+  by acceptance);
+- `strict-transport-security: max-age=31536000; includeSubDomains` only when
+  `isSecureRequest(request)` is true, i.e. the request URL scheme is `https:`
+  or the first value of `x-forwarded-proto` is `https`. A plain
+  `http://localhost` request (the dev server) never gets the header, so a
+  browser never pins HSTS for the port-less local host.
+
+`max-age=31536000` is one year, well over the ticket's 180-day (15552000s)
+floor. The session cookie was already `Secure`, so nothing else changed
+there, matching the ticket's note.
+
+Kept the header-setting logic and the response-copy fallback (for a
+`Response` whose headers are immutable) in one place, `responseHeaders` +
+`withHeaders`, replacing the narrower `withRevision`/`REVISION_HEADER`-only
+version. `REVISION_HEADER` and its behavior are unchanged.
+
+New `tests/server/security_headers_test.ts`:
+- proves HSTS with `max-age >= 15552000` on a page (`/`), an API document
+  (`/api/v1/capabilities`) and a problem response (`/no/such/route`, 404);
+- proves the 404 is still a well-formed `application/problem+json` document
+  carrying the header;
+- proves the header is absent for `http://localhost:8000` on all three
+  shapes;
+- unit-tests `isSecureRequest` directly against a bare HTTPS request, a
+  forwarded HTTP request with `x-forwarded-proto: https` (including a
+  comma-separated value), and both local-HTTP cases;
+- proves `nosniff` and `same-origin` on both an HTTPS and an HTTP request.
+
+**Verification, run against production:**
+
+```
+$ curl -sS -D - -o /dev/null https://learn-joshhale.legoguy32109.deno.net/
+strict-transport-security: max-age=31536000; includeSubDomains
+$ curl -sS -D - -o /dev/null https://learn-joshhale.legoguy32109.deno.net/api/v1/capabilities
+strict-transport-security: max-age=31536000; includeSubDomains
+```
+
+`deno task audit:prod`: both `hsts · Strict-Transport-Security is present on
+the shell` and `hsts · Strict-Transport-Security is present on an API
+response` pass, as part of 377 passed, 0 failed overall (the other 375
+include ticket 25's checks, worked in the same pass — see issue 25's report).
+
+`deno task check` (132 checks), `deno task test` (132 passed, including the
+4 new cases above) and `deno task e2e` (8 passed) all pass.
+
+**Decisions:** Left the five optional headers the ticket names as
+not-required (`content-security-policy`, `x-frame-options`,
+`permissions-policy`) unset; only added the two the ticket calls out as cheap
+(`x-content-type-options`, `referrer-policy`). Did not add a CSP, since
+designing one is a separate scoped decision this ticket does not ask for.
