@@ -24,7 +24,7 @@ the schema and OpenAPI, writes a lesson, and the resolution API accepts it.
 
 **Blocked by:** 02 — Lesson content follows the plugin model.
 
-**Status:** done PENDING_SHA
+**Status:** done 832078b
 
 - [x] The JSON Schema rejects every invalid fixture and accepts every valid one
       when evaluated by a standard draft 2020-12 validator in a test.
@@ -43,7 +43,7 @@ deno task check && deno task test
 
 ## Report
 
-Implementation commit: `PENDING_SHA`.
+Implementation commit: `832078b`.
 
 ### Verification output
 
