@@ -82,7 +82,7 @@ this was found during.
 
 **Blocked by:** None.
 
-**Status:** ready-for-agent
+**Status:** done, by the coordinator on 2026-09-22
 
 - [ ] The real cause is confirmed (read the production `learn-prod` schema state, or the actual
       deployed revision's code, rather than assuming the hypothesis above).
@@ -92,3 +92,26 @@ this was found during.
 - [ ] A regression test (or an addition to `tests/audit-prod` or `tests/audit-golden`) asserts this
       against production so a future deploy or migration drift is caught before another audit finds
       it by hand.
+
+## Resolution
+
+The hypothesis was right. Migration `003_progress_sync.sql` had never been
+applied to `learn-prod`: the coordinator applied 002 by hand after ticket 07
+merged and did not repeat that step for ticket 10, so the route code shipped
+against tables that did not exist and every query threw, which the handler
+correctly turned into a 500.
+
+`deno task db:migrate:prod` applied it and reported `Applied:
+003_progress_sync.sql`. Rechecked against production immediately afterwards,
+with a real revision from the owner's shelf:
+
+```text
+GET  /api/v1/progress/checkpoint         200
+GET  /api/v1/progress/learning-events    200
+GET  /api/v1/progress/navigation-events  200
+POST /api/v1/progress/learning-events    200   (body field is lessonRevisionId)
+```
+
+The standing lesson for whoever deploys next: a merged migration is not an
+applied one. `deno task db:migrate:prod` belongs in the deploy procedure, and
+`docs/deno-deploy.md` should say so. Filed as ticket 51.

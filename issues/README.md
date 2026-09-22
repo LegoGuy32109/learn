@@ -87,6 +87,8 @@ bypass. `learn-prod` is created only by ticket 05.
 | 27 | Verify the golden flow end to end, from a working agent session to Learned | none | verify |
 | 30 | Four MCQ diagnostic codes are marked schema-catchable but are not | none | defect |
 | 31 | misconception.id is mislabeled "resolver only" | none | defect |
+| 50 | Every progress-sync route answers 500 in production | none | defect |
+| 51 | A deploy can ship code whose migration was never applied | none | defect |
 
 Progress on 2026-09-22: every implementation ticket (01 to 11) and the audits
 12, 13 and 14 are merged, with defects 17 to 26 fixed. Running: 15 (cross-device
