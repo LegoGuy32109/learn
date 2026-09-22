@@ -64,6 +64,14 @@ bypass. `learn-prod` is created only by ticket 05.
 | 14 | Verify the deployed phone experience | 05, 06, 07, 08 | verify |
 | 15 | Verify cross-device sync | 10 | verify |
 | 16 | The first authenticated request after a deploy answers 401 | none | defect |
+| 17 | Reload and browser Back land on the learning shell instead of the surface on screen | none | defect |
+| 18 | Shelf and overview have no bottom safe-area padding | none | defect |
+| 19 | The overview's Back to shelf control is 29 pixels tall | none | defect |
+| 20 | A double tap on the action after feedback skips an unseen Question | none | defect |
+| 21 | The square Back control does nothing on Questions, feedback, the correcting Card and later first Cards | none | defect |
+| 22 | The Wrap-up can re-ask a missed Concept immediately | none | defect |
+| 23 | Every MCQ in an attempt shows the Concept's options in the same order | none | defect |
+| 24 | Enter in the answer field does not submit the answer | none | defect |
 
 The frontier at the start is 01, 05 and 11. After 01 lands, 02, 06 and 07
 open. After 02 lands, 03, 09 and, with 07, 08 open.
