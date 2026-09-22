@@ -29,7 +29,7 @@ that no navigation event references a smaller frontier than the one chosen.
 
 **Blocked by:** 10 — Client progress sync.
 
-**Status:** done 5db78d6
+**Status:** done 29a4566
 
 - [x] Every scenario is a Playwright test the swarm can rerun, with the
       database assertions inline.
