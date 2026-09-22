@@ -66,4 +66,7 @@ Deno.test("an update may not interrupt an unanswered Question", () => {
   assert(canInterrupt("learn", { ...question, feedback: { correct: true, text: "" } }));
   assert(canInterrupt("learn", { ...flow, screen: "corrective" }));
   assert(canInterrupt("learn", { ...flow, screen: "summary" }));
+  assertEquals(canInterrupt("drill", { screen: "question", feedback: null }), false);
+  assert(canInterrupt("drill", { screen: "question", feedback: { correct: false, text: "" } }));
+  assert(canInterrupt("drill", { screen: "summary", feedback: null }));
 });

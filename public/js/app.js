@@ -8,6 +8,7 @@ import { canInterrupt } from "../../src/client/pwa/update-policy.js";
 import { renderShelf } from "./shelf.js";
 import { renderOverview } from "./overview.js";
 import { renderLearning } from "./learn.js";
+import { renderDrill } from "./drill.js";
 
 /** @type {{ signedIn: boolean, displayName: string | null }} */
 const account = (/** @type {any} */ (window)).__SESSION__ ?? { signedIn: false, displayName: null };
@@ -31,15 +32,16 @@ async function loadLesson() {
 /** @param {any} lesson */
 function start(lesson) {
   const session = createSession(lesson);
-  const pwa = installPwa({ canInterrupt: () => canInterrupt(session.surface, session.flow) });
+  const pwa = installPwa({ canInterrupt: () => canInterrupt(session.surface, session.surface === "drill" ? session.drillFlow : session.flow) });
 
   const nav = {
     lessonPath: `/learn/${lesson.lessonId}`,
+    drillPath: `/learn/${lesson.lessonId}/drill`,
     /** The signed-in account as the server rendered it; sign-in and sign-out replace it. */
     account,
     /**
      * Switch surface. A path pushes a history entry; without one the URL stays as it is.
-     * @param {"shelf"|"overview"|"learn"} surface
+     * @param {"shelf"|"overview"|"learn"|"drill"} surface
      * @param {string} [path]
      */
     async show(surface, path) {
@@ -56,6 +58,7 @@ function start(lesson) {
     const progress = await session.rebuildProgress();
     if (session.surface === "shelf") renderShelf(root, session, progress, nav);
     else if (session.surface === "overview") renderOverview(root, session, progress, nav);
+    else if (session.surface === "drill") renderDrill(root, session, nav);
     else renderLearning(root, session, progress, nav);
     pwa.notifyRender();
   }
@@ -65,12 +68,19 @@ function start(lesson) {
       session.surface = "shelf";
       session.flow = null;
     }
+    if (session.surface === "drill") {
+      session.surface = "overview";
+      session.drillFlow = null;
+    }
     render();
   });
 
   async function boot() {
     await session.load();
-    if (location.pathname.startsWith("/learn/")) {
+    if (location.pathname === nav.drillPath && session.savedDrillCheckpoint) {
+      session.drillFlow = session.savedDrillCheckpoint;
+      session.surface = "drill";
+    } else if (location.pathname.startsWith("/learn/")) {
       session.flow = session.savedCheckpoint || null;
       session.surface = session.savedCheckpoint ? "learn" : "overview";
     }

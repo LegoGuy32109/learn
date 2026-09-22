@@ -2,6 +2,7 @@
 // Renders the Card, Question, feedback, corrective and summary views of the learning shell.
 import { shuffled } from "../../shared/learning/shuffle.js";
 import { card as findCard } from "../../shared/lessons/lesson.js";
+import { describeOutcome } from "../../shared/learning/drill.js";
 import { actionButton, backButton } from "../ui/controls.js";
 
 /** @param {string} value */
@@ -79,9 +80,28 @@ function answerForm(concept, question, flow) {
  * @param {any} flow
  */
 export function questionView(concept, question, flow) {
-  const kind = flow.flowKind === "check" ? "Concept check" : "Wrap-up";
+  const kind = flow.flowKind === "check" ? "Concept check" : flow.flowKind === "drill" ? drillKind(flow) : "Wrap-up";
   const from = `${kind} · ${concept?.title || "Review"}`;
   return `<div class="prompt"><p class="from">${from}</p><p class="qhead">${escape(question.stem)}</p></div>${answerForm(concept, question, flow)}`;
+}
+
+/**
+ * "Every question · 4 of 12" while drilling.
+ * @param {any} flow
+ */
+function drillKind(flow) {
+  return `Every question · ${flow.total - flow.queue.length + 1} of ${flow.total}`;
+}
+
+/**
+ * The drill summary: what happened to each Concept, and the reminder that drill never earns
+ * Learned. No score and no percentage.
+ * @param {ReturnType<typeof import("../../shared/learning/drill.js").reduceDrill>} outcomes
+ */
+export function drillSummaryView(outcomes) {
+  const hero = `<div class="lessonhero"><p class="eyebrow">Every question</p><h1>Every question seen</h1><p>You went through every question in every pool, reserved ones included. Drill does not earn Learned. That comes from the Wrap-up in a normal run.</p></div>`;
+  const lines = outcomes.map((outcome) => `<div class="line"><span>${escape(outcome.title)}</span><b>${describeOutcome(outcome)}</b></div>`);
+  return `${hero}<div class="summary drill">${lines.join("")}</div>`;
 }
 
 /** @param {any} lesson */
@@ -123,6 +143,7 @@ export function afterFooterView(lesson, flow) {
  */
 export function footerView(flow) {
   const back = backButton("back", "Back");
+  if (flow.screen === "summary" && flow.flowKind === "drill") return `<div class="actions">${actionButton("Back to overview", "overview")}</div>`;
   if (flow.screen === "summary") return `<div class="actions">${actionButton("Back to shelf", "shelf")}</div>`;
   if (flow.screen === "card") return `<div class="actions">${back}${actionButton("Continue", "continue")}</div>`;
   if (flow.screen === "corrective") return `<div class="actions">${back}${actionButton("Return to questions", "return")}</div>`;
@@ -150,6 +171,21 @@ function wrapUpFill(flow) {
   const total = flow.wrapTotal || 1;
   const answered = flow.wrapTotal - flow.queue.length + (flow.feedback?.correct ? 1 : 0);
   return Math.min(100, Math.round(100 * (answered / total)));
+}
+
+/**
+ * Segmented rail for a drill run: one segment per Concept, filled by how many of its Questions
+ * this run has answered. Learning progress is not shown, because drill does not change it.
+ * @param {any} lesson
+ * @param {ReturnType<typeof import("../../shared/learning/drill.js").reduceDrill>} outcomes
+ */
+export function drillRailView(lesson, outcomes) {
+  const segments = lesson.concepts.map((concept) => {
+    const outcome = outcomes.find((candidate) => candidate.id === concept.id);
+    const fill = outcome && outcome.questions ? Math.round(100 * (outcome.asked / outcome.questions)) : 0;
+    return `<i><b style="width:${fill}%"></b></i>`;
+  });
+  return `<div class="rail" aria-label="Drill progress">${segments.join("")}</div>`;
 }
 
 /**

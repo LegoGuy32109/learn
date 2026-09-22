@@ -2,16 +2,18 @@
 // IndexedDB adapter. UI modules never issue raw IndexedDB operations; they call this repository.
 
 const DB = "learn-local-v1";
-const STORES = ["lessons", "learning_events", "navigation_events", "projections"];
+// Version 2 added `drill_events`: the drill's own evidence and checkpoint stream.
+const VERSION = 2;
+const STORES = ["lessons", "learning_events", "navigation_events", "drill_events", "projections"];
 
 /** @returns {Promise<IDBDatabase>} */
 function open() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB, 1);
+    const request = indexedDB.open(DB, VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
       for (const name of STORES) {
-        db.createObjectStore(name, { keyPath: "id" });
+        if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: "id" });
       }
     };
     request.onsuccess = () => resolve(request.result);
