@@ -6,9 +6,9 @@
 
 - wrap-up retry: The missed Concept came back as Wrap-up Question 4 of 4, asked with the same Question.
 - Learned summary line: The Learned summary shows ["Concepts learned\n3 of 3"]; a count, never a score.
+- drill option order · Validators and conditional requests: 2 distinct option order(s) across this Concept's MCQs in one run.
 - drill option order · Freshness and age: 2 distinct option order(s) across this Concept's MCQs in one run.
 - drill option order · Cache directives and revalidation: 2 distinct option order(s) across this Concept's MCQs in one run.
-- drill option order · Validators and conditional requests: 2 distinct option order(s) across this Concept's MCQs in one run.
 
 ### Passed
 
@@ -301,7 +301,7 @@
 - reload · drill Question after halfway reload · surface comes back
 - reload · drill Question after halfway reload · checkpoint rebuilt from events
 - drill · browser Back returns to the overview with Resume every question
-- drill · overview still says Not started while a drill is open
+- drill · overview still shows the pre-drill state while a drill is open
 - drill · resuming returns to the same unanswered Question and position
 - drill · correct at 7 shows Correct and Continue
 - drill · I don't know at 8 shows the answer, the correcting Card and Continue
@@ -320,8 +320,8 @@
 - scheme · drill summary · light and dark render different backgrounds
 - reload · drill summary · surface comes back
 - reload · drill summary · checkpoint rebuilt from events
-- drill · leaving the summary closes the run and the overview offers Every question and Start lesson
-- drill · shelf still says Not started and the learning stores never changed
+- drill · leaving the summary closes the run and the overview returns to Every question and the pre-drill state
+- drill · shelf still shows the pre-drill state and the learning stores never changed
 - drill · the drill stream holds one answer per Question and a closing null checkpoint
 - listeners · no pageerror during the whole run
 - listeners · no console error or warning during the whole run
