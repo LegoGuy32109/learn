@@ -2,15 +2,26 @@
 // Learner session: holds the loaded evidence for one Lesson Revision and appends new evidence
 // through the storage repository. Progress and checkpoints are projections rebuilt by shared reducers.
 // Drill evidence is a separate stream with its own checkpoint; it never feeds the progress reducer.
+// Evidence is read and written under one progress epoch: a discard advances the epoch, and evidence
+// from an older epoch or another revision is never part of this session.
 import { localRepository } from "../storage/repository.js";
 import { reduceProgress } from "../../shared/learning/progress.js";
 import { reduceCheckpoint } from "../../shared/learning/checkpoint.js";
 import { DRILL_CHECKPOINTED, reduceDrillCheckpoint } from "../../shared/learning/drill.js";
 
-const EPOCH = 0;
-
 function now() {
   return new Date().toISOString();
+}
+
+/**
+ * Only evidence for this revision under this epoch counts. Events written before epochs existed
+ * carry none and belong to epoch 0.
+ * @param {any[]} events
+ * @param {string} revisionId
+ * @param {number} epoch
+ */
+export function evidenceFor(events, revisionId, epoch) {
+  return events.filter((event) => event.lessonRevisionId === revisionId && (event.epoch ?? 0) === epoch);
 }
 
 /**
@@ -35,18 +46,24 @@ function now() {
 
 /**
  * @param {any} lesson
+ * @param {number} epoch
  * @param {string} type
  * @param {Record<string, unknown>} data
  */
-function event(lesson, type, data) {
-  return { id: crypto.randomUUID(), type, lessonRevisionId: lesson.revisionId, epoch: EPOCH, occurredAt: now(), ...data };
+function event(lesson, epoch, type, data) {
+  return { id: crypto.randomUUID(), type, lessonRevisionId: lesson.revisionId, epoch, occurredAt: now(), ...data };
 }
 
 /**
  * @param {any} lesson
+ * @param {{ epoch: number }} [stream]  The Lesson's progress stream; new evidence is written under its epoch.
  * @returns {Session}
  */
-export function createSession(lesson) {
+export function createSession(lesson, stream = { epoch: 0 }) {
+  const EPOCH = stream.epoch;
+  const progressKey = `progress:${lesson.revisionId}:${EPOCH}`;
+  const checkpointKey = `checkpoint:${lesson.revisionId}:${EPOCH}`;
+  const drillCheckpointKey = `drill_checkpoint:${lesson.revisionId}:${EPOCH}`;
   /** @type {Session} */
   const session = {
     lesson,
@@ -60,22 +77,22 @@ export function createSession(lesson) {
 
     async load() {
       await localRepository.seed(lesson);
-      session.learningEvents = await localRepository.events("learning_events");
-      session.drillEvents = await localRepository.events("drill_events");
-      session.savedCheckpoint = await localRepository.projection("checkpoint");
+      session.learningEvents = evidenceFor(await localRepository.events("learning_events"), lesson.revisionId, EPOCH);
+      session.drillEvents = evidenceFor(await localRepository.events("drill_events"), lesson.revisionId, EPOCH);
+      session.savedCheckpoint = await localRepository.projection(checkpointKey);
       if (!session.savedCheckpoint) {
-        session.savedCheckpoint = reduceCheckpoint(await localRepository.events("navigation_events"));
-        if (session.savedCheckpoint) await localRepository.projection("checkpoint", session.savedCheckpoint);
+        session.savedCheckpoint = reduceCheckpoint(evidenceFor(await localRepository.events("navigation_events"), lesson.revisionId, EPOCH));
+        if (session.savedCheckpoint) await localRepository.projection(checkpointKey, session.savedCheckpoint);
       }
-      session.savedDrillCheckpoint = await localRepository.projection("drill_checkpoint");
+      session.savedDrillCheckpoint = await localRepository.projection(drillCheckpointKey);
       if (!session.savedDrillCheckpoint) {
         session.savedDrillCheckpoint = reduceDrillCheckpoint(session.drillEvents);
-        if (session.savedDrillCheckpoint) await localRepository.projection("drill_checkpoint", session.savedDrillCheckpoint);
+        if (session.savedDrillCheckpoint) await localRepository.projection(drillCheckpointKey, session.savedDrillCheckpoint);
       }
     },
 
     async recordEvent(type, data = {}) {
-      const recorded = event(lesson, type, data);
+      const recorded = event(lesson, EPOCH, type, data);
       session.learningEvents.push(recorded);
       await localRepository.append("learning_events", recorded);
       await session.rebuildProgress();
@@ -88,12 +105,12 @@ export function createSession(lesson) {
         learningEventFrontier: session.learningEvents.map((event) => event.id),
       };
       session.savedCheckpoint = checkpoint;
-      await localRepository.append("navigation_events", event(lesson, "navigation_checkpointed", { checkpoint }));
-      await localRepository.projection("checkpoint", checkpoint);
+      await localRepository.append("navigation_events", event(lesson, EPOCH, "navigation_checkpointed", { checkpoint }));
+      await localRepository.projection(checkpointKey, checkpoint);
     },
 
     async recordDrillEvent(type, data = {}) {
-      const recorded = event(lesson, type, data);
+      const recorded = event(lesson, EPOCH, type, data);
       session.drillEvents.push(recorded);
       await localRepository.append("drill_events", recorded);
     },
@@ -106,7 +123,7 @@ export function createSession(lesson) {
       };
       session.savedDrillCheckpoint = checkpoint;
       await session.recordDrillEvent(DRILL_CHECKPOINTED, { checkpoint });
-      await localRepository.projection("drill_checkpoint", checkpoint);
+      await localRepository.projection(drillCheckpointKey, checkpoint);
     },
 
     /** Close the drill run: a null checkpoint means there is nothing to resume. */
@@ -114,12 +131,12 @@ export function createSession(lesson) {
       session.drillFlow = null;
       session.savedDrillCheckpoint = null;
       await session.recordDrillEvent(DRILL_CHECKPOINTED, { checkpoint: null });
-      await localRepository.projection("drill_checkpoint", null);
+      await localRepository.projection(drillCheckpointKey, null);
     },
 
     async rebuildProgress() {
       const progress = reduceProgress(lesson, session.learningEvents);
-      await localRepository.projection("progress", progress);
+      await localRepository.projection(progressKey, progress);
       return progress;
     },
 

@@ -1,10 +1,29 @@
 // @ts-check
 // IndexedDB adapter. UI modules never issue raw IndexedDB operations; they call this repository.
+//
+// Stores: `lessons` holds cached Lesson Revisions keyed by revision ID; `learning_events` and
+// `navigation_events` hold immutable evidence for every revision on the device; `projections`
+// holds rebuildable derived state; `drill_events` is the drill's own stream; `progress_streams` pins each Lesson to the revision the
+// learner is on and the progress epoch new evidence is written under.
 
 const DB = "learn-local-v1";
-// Version 2 added `drill_events`: the drill's own evidence and checkpoint stream.
+// Version 2 added `drill_events` (the drill's own evidence and checkpoint stream) and
+// `progress_streams` (the revision and epoch each Lesson is pinned to).
 const VERSION = 2;
-const STORES = ["lessons", "learning_events", "navigation_events", "drill_events", "projections"];
+const STORES = ["lessons", "learning_events", "navigation_events", "drill_events", "projections", "progress_streams"];
+
+/**
+ * @typedef {object} ProgressStream
+ * @property {string} id           The Lesson ID
+ * @property {string} revisionId   The Lesson Revision the learner's progress is pinned to
+ * @property {number} epoch        Advanced only by an explicit discard; older epochs are never read
+ */
+
+/**
+ * @typedef {object} CachedRevision
+ * @property {any} lesson
+ * @property {string} cachedAt  ISO time this device stored the revision
+ */
 
 /** @returns {Promise<IDBDatabase>} */
 function open() {
@@ -44,13 +63,19 @@ export const localRepository = {
     const db = await open();
     const found = await done(objectStore(db, "lessons", "readonly").get(lesson.revisionId));
     if (found) return;
-    await done(objectStore(db, "lessons", "readwrite").put({ id: lesson.revisionId, lesson }));
+    await done(objectStore(db, "lessons", "readwrite").put({ id: lesson.revisionId, lesson, cachedAt: new Date().toISOString() }));
   },
   /** Every cached Lesson Revision, for a launch with no network and no inlined lesson. */
   async lessons() {
     const db = await open();
     const records = /** @type {any[]} */ (await done(objectStore(db, "lessons", "readonly").getAll()));
     return records.map((record) => record.lesson);
+  },
+  /** Every cached Lesson Revision with when this device stored it. @returns {Promise<CachedRevision[]>} */
+  async revisions() {
+    const db = await open();
+    const records = /** @type {any[]} */ (await done(objectStore(db, "lessons", "readonly").getAll()));
+    return records.map((record) => ({ lesson: record.lesson, cachedAt: record.cachedAt ?? "" }));
   },
   /** @param {string} id */
   async lesson(id) {
@@ -80,5 +105,15 @@ export const localRepository = {
   async clearProjections() {
     const db = await open();
     await done(objectStore(db, "projections", "readwrite").clear());
+  },
+  /** Every Lesson's pinned revision and epoch. @returns {Promise<ProgressStream[]>} */
+  async streams() {
+    const db = await open();
+    return /** @type {ProgressStream[]} */ (await done(objectStore(db, "progress_streams", "readonly").getAll()));
+  },
+  /** Pin a Lesson to a revision and epoch. Discarding progress writes a higher epoch here. @param {ProgressStream} stream */
+  async saveStream(stream) {
+    const db = await open();
+    await done(objectStore(db, "progress_streams", "readwrite").put(stream));
   },
 };

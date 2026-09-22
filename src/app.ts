@@ -2,7 +2,7 @@
 // Bootstrap (main.ts) chooses the adapters; this file only composes.
 import type { Dependencies } from "./server/dependencies.ts";
 import { RejectingAuthenticator } from "./server/auth.ts";
-import { FixtureLessonRepository } from "./server/repositories/lessons.ts";
+import { FIXTURE_OWNER_ID, FixtureLessonRepository } from "./server/repositories/lessons.ts";
 import { MemoryIdentityRepository } from "./server/repositories/identity.ts";
 import { PasskeyService } from "./server/identity/passkeys.ts";
 import { HmacSessionCookies, randomSessionKey } from "./server/identity/sessions.ts";
@@ -66,7 +66,7 @@ export function createApp(dependencies: Dependencies) {
 }
 
 /** The account the database-free application knows about. Tests sign it in with a passkey. */
-export const FIXTURE_ACCOUNT = { id: "fixture-owner", displayName: "Josh" };
+export const FIXTURE_ACCOUNT = { id: FIXTURE_OWNER_ID, displayName: "Josh" };
 
 /**
  * Database-free dependencies backed by the bundled demo fixture and in-memory identity

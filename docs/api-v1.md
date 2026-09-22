@@ -222,6 +222,31 @@ revision instead of duplicating it.
 
 There is no publish API and no validation bypass.
 
+### Reads for the phone shelf
+
+Every `GET` above, and the shelf route, resolves the account through
+`src/server/identity/current-account.ts`: the browser session cookie first,
+then a `lessons:read` bearer token. Nobody gets `401`; a token without the
+scope gets `403`. Responses carry `cache-control: private, no-store`.
+
+```text
+GET /api/v1/shelf                                -> { lessons: [ShelfLesson] }
+GET /api/v1/lessons/{lesson_id}                  -> the newest StoredRevision the account owns
+GET /api/v1/lessons/{lesson_id}/revisions/{id}   -> one StoredRevision, with content to cache
+```
+
+A `ShelfLesson` is one lesson the account owns with its newest revision and no
+content: `lessonId`, `title`, `conceptCount`, `questionCount`,
+`latestRevisionId`, `latestRevisionNumber`, `status`, `updatedAt`. The list is
+newest first. The browser merges it with the revisions cached in IndexedDB,
+pins each lesson to one revision in a local progress stream, and marks a
+lesson Outdated when progress exists on an older revision than
+`latestRevisionId`. Discarding that progress advances the stream's epoch; the
+old evidence is kept but never read again.
+
+The page shell at `/learn/{lesson_id}` inlines the newest revision of that
+lesson for its signed-in owner, and the featured lesson for anyone else.
+
 ## Phone sign-in: invites, passkeys and the browser session
 
 A browser signs in with a passkey instead of a token. The two credentials
