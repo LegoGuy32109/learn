@@ -10,7 +10,8 @@
 //   deno run --env-file=.env -A --no-lock scripts/set-deploy-env.ts <Context> <KEY> <value> [secret]
 //
 // The --from form reads TURSO_DB_URL and TURSO_DB_TOKEN from an ignored env
-// file and never places a secret on the command line. `deno task deploy:env`
+// file, plus LEARN_SESSION_KEY, WEBAUTHN_RP_ID and WEBAUTHN_ORIGINS when the
+// file has them, and never places a secret on the command line. `deno task deploy:env`
 // runs it for Production (.env.prod), Preview (.env.dev) and Local (.env).
 //
 // Requires DENO_DEPLOY_TOKEN in the environment. Never print it. The CLI auth
@@ -21,9 +22,12 @@ const { createTrpcClient, tokenStorage } = await import(authModuleUrl);
 
 const ORG = "legoguy32109";
 const APP = "learn-joshhale";
-const FILE_KEYS: Array<{ key: string; secret: boolean }> = [
+const FILE_KEYS: Array<{ key: string; secret: boolean; optional?: boolean }> = [
   { key: "TURSO_DB_URL", secret: false },
   { key: "TURSO_DB_TOKEN", secret: true },
+  { key: "LEARN_SESSION_KEY", secret: true, optional: true },
+  { key: "WEBAUTHN_RP_ID", secret: false, optional: true },
+  { key: "WEBAUTHN_ORIGINS", secret: false, optional: true },
 ];
 
 interface Assignment {
@@ -45,11 +49,16 @@ async function assignmentsFromFile(path: string): Promise<Assignment[]> {
     const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
     if (match) values.set(match[1], match[2]);
   }
-  return FILE_KEYS.map(({ key, secret }) => {
+  const assignments: Assignment[] = [];
+  for (const { key, secret, optional } of FILE_KEYS) {
     const value = values.get(key);
-    if (!value) throw new Error(`${path} has no ${key}`);
-    return { key, value, secret };
-  });
+    if (!value) {
+      if (optional) continue;
+      throw new Error(`${path} has no ${key}`);
+    }
+    assignments.push({ key, value, secret });
+  }
+  return assignments;
 }
 
 const [contextName, second, third, fourth] = Deno.args;
