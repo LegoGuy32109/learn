@@ -63,6 +63,7 @@ bypass. `learn-prod` is created only by ticket 05.
 | 13 | Verify the authoring contract and the plugin end to end | 03, 04 | verify |
 | 14 | Verify the deployed phone experience | 05, 06, 07, 08 | verify |
 | 15 | Verify cross-device sync | 10 | verify |
+| 16 | The first authenticated request after a deploy answers 401 | none | defect |
 
 The frontier at the start is 01, 05 and 11. After 01 lands, 02, 06 and 07
 open. After 02 lands, 03, 09 and, with 07, 08 open.
