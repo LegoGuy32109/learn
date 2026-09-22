@@ -28,7 +28,7 @@ draft, airplane mode resume, and drill mode. Leave space for him to mark each.
 **Blocked by:** 05 — Production deployment; 06 — Installable PWA shell; 07 —
 Phone sign-in with a passkey; 08 — Mine shelf lists the account's lessons.
 
-**Status:** done (audit commit; the SHA is recorded in the next commit)
+**Status:** done d93edf2
 
 - [x] The production audit is a rerunnable Playwright suite that takes the
       base URL and the owner token from the environment and creates only
@@ -110,7 +110,7 @@ screenshots were left as ticket 12 wrote them.
 | --- | --- | --- | --- |
 | Deployed phone experience | 367 | 12 | 15 |
 
-Of the 367, 299 are the ticket 12 walk and drill against production.
+Of the 367, 308 are the ticket 12 walk and drill against production.
 
 ### Pass or fail per check the ticket names
 
@@ -126,7 +126,7 @@ Of the 367, 299 are the ticket 12 walk and drill against production.
 | Completes offline | PASS in-page, FAIL on reload | With the network off the first Concept completed from IndexedDB, 4 events against revision 1 (screenshot 08). Reloading the learning URL offline failed (ticket 25). |
 | Second revision shows Outdated | PASS | `POST .../revisions` -> 201 revision 2; shelf shows In progress and Outdated (screenshot 09); Resume this revision keeps revision 1 at Card 1 of Concept 2. |
 | Discard needs confirmation | PASS | Discard shows `#discard-confirm` (screenshot 10); Keep my progress changes nothing; confirming pins revision 2 at epoch 1, keeps the old events, opens the new overview Not started (screenshots 11, 12). |
-| Learning: ticket 12 loop on production | PASS except ticket 17 | 299 passed, 4 failed: the reload-after-Back and browser-Back URL cases ticket 17 already describes. Sixteen surfaces screenshotted in light and dark. |
+| Learning: ticket 12 loop on production | PASS except ticket 17 | 308 passed, 4 failed: the reload-after-Back and browser-Back URL cases ticket 17 already describes. Sixteen surfaces screenshotted in light and dark. |
 | HTTPS only | PASS | `GET http://…/` -> 301 `location: https://…/`; every response over HTTPS carries `x-learn-revision`. |
 | HSTS present | FAIL, ticket 26 | No `strict-transport-security` on the shell or on `/api/v1/capabilities`. |
 | Cookie flags | PASS | `Set-Cookie: learn_session=[redacted]; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000; Secure`; the browser sees httpOnly, secure, Lax, host-only, 30.0 days. |
