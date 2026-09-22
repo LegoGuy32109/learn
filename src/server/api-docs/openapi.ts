@@ -172,7 +172,7 @@ export function openapiDocument(origin: string = CANONICAL_ORIGIN) {
           tags: ["drafts"],
           operationId: "listRevisions",
           summary: "List the account's Lesson Revisions, newest first",
-          security: [{ bearer: ["lessons:read"] }],
+          security: [{ session: [] }, { bearer: ["lessons:read"] }],
           responses: {
             200: jsonResponse("The account's revisions.", "#/components/schemas/RevisionList", "revisionList"),
             401: problems[401],
@@ -187,6 +187,30 @@ export function openapiDocument(origin: string = CANONICAL_ORIGIN) {
           security: [{ bearer: ["lessons:write"] }],
           requestBody: lessonBody,
           responses: { 201: createdRevision, 400: problems[400], 401: problems[401], 403: problems[403], 413: problems[413], 422: resolutionFailed },
+        },
+      },
+      "/api/v1/shelf": {
+        get: {
+          tags: ["drafts"],
+          operationId: "shelf",
+          summary: "The account's lessons for the phone shelf, newest first, each with its newest revision and no content",
+          description: "The browser merges this list with the revisions cached in IndexedDB and marks a lesson Outdated when progress exists on an older revision than latestRevisionId.",
+          security: [{ session: [] }, { bearer: ["lessons:read"] }],
+          responses: {
+            200: jsonResponse("The account's lessons.", "#/components/schemas/Shelf", "shelf"),
+            401: problems[401],
+            403: problems[403],
+          },
+        },
+      },
+      "/api/v1/lessons/{lessonId}": {
+        parameters: [lessonIdParameter],
+        get: {
+          tags: ["drafts"],
+          operationId: "getLatestRevision",
+          summary: "Read the newest revision of an owned Lesson",
+          security: [{ session: [] }, { bearer: ["lessons:read"] }],
+          responses: { 200: jsonResponse("The newest stored revision.", "#/components/schemas/StoredRevision", "storedRevision"), 401: problems[401], 403: problems[403], 404: problems[404] },
         },
       },
       "/api/v1/lessons/{lessonId}/revisions": {
@@ -205,8 +229,8 @@ export function openapiDocument(origin: string = CANONICAL_ORIGIN) {
         get: {
           tags: ["drafts"],
           operationId: "getRevision",
-          summary: "Read one owned Lesson Revision",
-          security: [{ bearer: ["lessons:read"] }],
+          summary: "Read one owned Lesson Revision, the content the phone caches on open",
+          security: [{ session: [] }, { bearer: ["lessons:read"] }],
           responses: { 200: jsonResponse("The stored revision.", "#/components/schemas/StoredRevision", "storedRevision"), 401: problems[401], 403: problems[403], 404: problems[404] },
         },
       },
@@ -326,10 +350,20 @@ export function openapiDocument(origin: string = CANONICAL_ORIGIN) {
           summary: "One account with one revision",
           value: { revisions: [{ lessonId: exampleLessonId, revisionId: exampleRevisionId, revisionNumber: 1, status: "draft", title: exampleLesson.title, fingerprint: resolved.fingerprint, createdAt: 1758412800000 }] },
         },
+        shelf: {
+          summary: "One account with one lesson on its shelf",
+          value: { lessons: [{ lessonId: exampleLessonId, title: exampleLesson.title, conceptCount: 3, questionCount: 12, latestRevisionId: exampleRevisionId, latestRevisionNumber: 1, status: "draft", updatedAt: 1758412800000 }] },
+        },
         capabilities: { summary: "The capability document for this origin", value: capabilitiesFor(origin) },
         diagnosticsReference: { summary: "The served diagnostics reference", value: diagnosticsReference },
       },
       securitySchemes: {
+        session: {
+          type: "apiKey",
+          in: "cookie",
+          name: "learn_session",
+          description: "The browser session cookie a passkey sign-in sets. Read routes accept it in place of a bearer token; it resolves to the same account.",
+        },
         bearer: {
           type: "http",
           scheme: "bearer",
@@ -373,6 +407,30 @@ export function openapiDocument(origin: string = CANONICAL_ORIGIN) {
             fingerprint: { type: "string", pattern: "^sha256:[0-9a-f]{64}$" },
             content: { type: "object", description: "The normalized lesson plus lessonId and revisionId." },
             createdAt: { type: "integer", description: "Unix time in milliseconds." },
+          },
+        },
+        Shelf: {
+          type: "object",
+          required: ["lessons"],
+          properties: {
+            lessons: {
+              type: "array",
+              description: "Newest first. One entry per Lesson the account owns.",
+              items: {
+                type: "object",
+                required: ["lessonId", "title", "conceptCount", "questionCount", "latestRevisionId", "latestRevisionNumber", "status", "updatedAt"],
+                properties: {
+                  lessonId: { type: "string", format: "uuid" },
+                  title: { type: "string" },
+                  conceptCount: { type: "integer", minimum: 0 },
+                  questionCount: { type: "integer", minimum: 0 },
+                  latestRevisionId: { type: "string", format: "uuid", description: "The newest revision. The browser compares it with the revision its progress is pinned to." },
+                  latestRevisionNumber: { type: "integer", minimum: 1 },
+                  status: { type: "string", enum: ["draft", "published", "superseded", "withdrawn"] },
+                  updatedAt: { type: "integer", description: "When the newest revision was created, in milliseconds." },
+                },
+              },
+            },
           },
         },
         RevisionList: {

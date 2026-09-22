@@ -172,3 +172,44 @@ ok | 6 passed | 0 failed (10s)
 - The real-phone demo path (curl on the laptop, pull down on the phone) needs
   the deployed origin; the same path runs here in Playwright at 390x844.
 - No change to `main.ts`, `deno.json` or migrations was needed.
+
+## Rebase
+
+Rebased onto `main` after tickets 09 (drill mode), 03 (schema and OpenAPI)
+and 16 (revision header, smoke) merged. Conflicts in `public/js/app.js`,
+`public/js/overview.js`, `public/css/app.css`,
+`src/client/learning/session.js` and `src/client/storage/repository.js` were
+resolved so both the shelf and drill keep working:
+
+- IndexedDB version 2 creates every store from both tickets: `drill_events`
+  and `progress_streams`.
+- The session keeps drill evidence, `drillFlow` and `savedDrillCheckpoint`,
+  now scoped to the same revision and epoch as learning evidence, with the
+  drill checkpoint projection keyed `drill_checkpoint:<revision>:<epoch>`.
+- The boot module has a `drill` surface at `/learn/<id>/drill`, resumes a
+  saved drill checkpoint from that URL, and holds the update affordance on an
+  unanswered drill Question.
+- The overview keeps "Every question" (or "Resume every question") next to
+  Start or Resume, and also on an outdated revision, since drill never
+  touches progress.
+- `GET /api/v1/shelf` and `GET /api/v1/lessons/{lessonId}` are documented in
+  `src/server/api-docs/openapi.ts` with a `Shelf` schema, a shared example and
+  a `session` cookie security scheme; every lesson read lists cookie or
+  bearer. `deno task tools:generate` was run. The page shell went back to one
+  `/learn/*` route (the contract test lists it as browser-only) and reads the
+  lesson ID from the path.
+
+Verification after the rebase, `deno task check && deno task test && deno task test:db && deno task e2e`, exited 0:
+
+```text
+ok | 107 passed | 0 failed (2s)
+ok | 3 passed (17 steps) | 0 failed (20s)
+./tests/e2e/contract_regressions_test.ts
+./tests/e2e/drill_test.ts
+./tests/e2e/happy_path_test.ts
+./tests/e2e/passkey_test.ts
+./tests/e2e/plugin_pedagogy_test.ts
+./tests/e2e/pwa_offline_test.ts
+./tests/e2e/shelf_test.ts
+ok | 7 passed | 0 failed (13s)
+```

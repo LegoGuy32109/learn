@@ -10,15 +10,15 @@ export function pageRoutes(dependencies: Dependencies): Route[] {
    * or at a learning URL the newest revision of that lesson when the signed-in account owns it.
    * The browser app still decides which cached revision the learner is pinned to.
    */
-  const shell = async (request: Request, lessonId?: string) => {
+  const shell = async (request: Request) => {
+    const lessonId = new URL(request.url).pathname.match(/^\/learn\/([^/]+)/)?.[1];
     const session = await dependencies.sessions.read(request);
     const owned = session && lessonId ? await dependencies.lessons.latestRevision(session.accountId, lessonId) : null;
     const lesson = owned ? owned.content : await dependencies.lessons.featured();
     return html(page(lesson, { signedIn: session != null, displayName: session?.displayName ?? null }));
   };
   return [
-    route("GET", "/", (request) => shell(request)),
-    route("GET", "/learn/:lessonId", (request, params) => shell(request, params.lessonId)),
-    route("GET", "/learn/:lessonId/*", (request, params) => shell(request, params.lessonId)),
+    route("GET", "/", shell),
+    route("GET", "/learn/*", shell),
   ];
 }
