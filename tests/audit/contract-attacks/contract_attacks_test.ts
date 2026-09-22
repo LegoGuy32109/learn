@@ -42,18 +42,14 @@ const addFormats = ((addFormatsModule as unknown as { default?: unknown }).defau
  * two stop disagreeing, which is exactly when the ticket should be closed.
  */
 const KNOWN_SCHEMA_CATALOG_MISMATCHES: Record<string, { schemaAccepts: boolean; ticket: string }> = {
-  // The catalog marks mcq.map.extra / mcq.map.missing / mcq.feedback.extra "schema and resolver",
-  // but the schema's map/feedback definitions only constrain property COUNT and key FORMAT; they
-  // cannot know a Concept's real option IDs. A same-count, wrong-identity mismatch (reachable via
-  // a duplicated Concept id, or a key naming no real option) passes the schema regardless.
-  "ref-duplicate-concept-id.json": { schemaAccepts: true, ticket: "issues/30-mcq-map-feedback-extra-missing-not-schema-catchable.md" },
-  "ref-mcq-key-not-in-set.json": { schemaAccepts: true, ticket: "issues/30-mcq-map-feedback-extra-missing-not-schema-catchable.md" },
-  // The catalog marks misconception.id "resolver only", but its localId type carries the same
-  // `not: enum(__proto__, constructor, prototype)` and pattern restrictions as concept.option.id,
-  // so the schema independently rejects a reserved-name or malformed misconception id.
-  "reserved-name-misconception-__proto__.json": { schemaAccepts: false, ticket: "issues/31-misconception-id-mislabeled-resolver-only.md" },
-  "reserved-name-misconception-constructor.json": { schemaAccepts: false, ticket: "issues/31-misconception-id-mislabeled-resolver-only.md" },
-  "reserved-name-misconception-prototype.json": { schemaAccepts: false, ticket: "issues/31-misconception-id-mislabeled-resolver-only.md" },
+  // Tickets 30 and 31 closed the catalog/schema disagreements this map used to carry:
+  //   - mcq.map.extra / mcq.map.missing / mcq.feedback.extra / mcq.feedback.missing are now
+  //     schema: false, matching that map/feedback only constrain property COUNT and key FORMAT.
+  //   - misconception.id and concept.option.id now name only their resolver-only condition
+  //     (a duplicate ID within the Concept); the schema-catchable conditions (missing, malformed,
+  //     reserved name) moved to new schema: true codes misconception.id.invalid and
+  //     concept.option.id.invalid.
+  // This map is empty again; a future mismatch is filed as a new ticket and a new entry.
 };
 
 /** The runner the downloaded validator is driven by: one result JSON per line, in argument order. */

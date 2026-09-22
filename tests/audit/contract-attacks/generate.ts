@@ -190,7 +190,7 @@ await fixture("duplicate-option-id-across-concepts", "duplicate-ids", { valid: t
 await fixture("duplicate-misconception-id-in-concept", "duplicate-ids", { valid: false, codes: ["misconception.id"], exact: false }, (lesson) => lesson.concepts[2].misconceptions[1].id = lesson.concepts[2].misconceptions[0].id);
 
 for (const name of ["__proto__", "constructor", "prototype"]) {
-  await fixture(`reserved-name-option-${name}`, "reserved-names", { valid: false, codes: ["concept.option.id"], exact: false }, (lesson) => {
+  await fixture(`reserved-name-option-${name}`, "reserved-names", { valid: false, codes: ["concept.option.id.invalid"], exact: false }, (lesson) => {
     const concept = lesson.concepts[2];
     const old = concept.options[0].id;
     concept.options[0].id = name;
@@ -204,7 +204,7 @@ for (const name of ["__proto__", "constructor", "prototype"]) {
       delete question.feedback[old];
     }
   });
-  await fixture(`reserved-name-misconception-${name}`, "reserved-names", { valid: false, codes: ["misconception.id"], exact: false }, (lesson) => {
+  await fixture(`reserved-name-misconception-${name}`, "reserved-names", { valid: false, codes: ["misconception.id.invalid"], exact: false }, (lesson) => {
     const concept = lesson.concepts[2];
     const old = concept.misconceptions[0].id;
     concept.misconceptions[0].id = name;

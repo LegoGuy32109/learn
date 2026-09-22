@@ -36,7 +36,8 @@ export const DIAGNOSTICS = [
   { code: "concept.statement", severity: "error", path: "/concepts/<i>/statement", schema: true, meaning: "statement is present but not a non-empty string.", fix: "Write the statement as one sentence, or remove the field." },
   { code: "pool.id", severity: "error", path: "/concepts/<i>/poolId", schema: false, meaning: "The poolId is not a UUIDv4 or repeats another Concept's poolId.", fix: "Generate a fresh UUIDv4 for each Concept's Pool." },
   { code: "concept.options.count", severity: "error", path: "/concepts/<i>/options", schema: true, meaning: "The Concept does not own exactly three options.", fix: "Write exactly three options shared by every MCQ in the Concept." },
-  { code: "concept.option.id", severity: "error", path: "/concepts/<i>/options/<j>/id", schema: false, meaning: "The option ID is missing, repeats another option in the Concept, does not match ^[A-Za-z0-9_-]{1,64}$, or is __proto__, constructor or prototype.", fix: "Use a short unique slug such as reuse or revalidate." },
+  { code: "concept.option.id", severity: "error", path: "/concepts/<i>/options/<j>/id", schema: false, meaning: "The option ID repeats another option's ID in the Concept.", fix: "Use a short unique slug such as reuse or revalidate." },
+  { code: "concept.option.id.invalid", severity: "error", path: "/concepts/<i>/options/<j>/id", schema: true, meaning: "The option ID is missing, does not match ^[A-Za-z0-9_-]{1,64}$, or is __proto__, constructor or prototype.", fix: "Use a short unique slug such as reuse or revalidate." },
   { code: "concept.option.text", severity: "error", path: "/concepts/<i>/options/<j>/text", schema: true, meaning: "The option text is missing or blank.", fix: "Write the option as the learner reads it." },
   { code: "concept.options.ratio", severity: "error", path: "/concepts/<i>/options", schema: false, meaning: "The longest option is more than 1.35 times the length of the shortest, so length signals the key.", fix: "Lengthen the short options or shorten the long one until the ratio is at most 1.35." },
   { code: "concept.cards.minimum", severity: "error", path: "/concepts/<i>/cards", schema: true, meaning: "The Concept has fewer than two Cards.", fix: "Split the idea into at least two Cards. Each Card teaches one idea." },
@@ -49,7 +50,8 @@ export const DIAGNOSTICS = [
   { code: "card.paragraphs.single", severity: "warning", path: "/concepts/<i>/cards/<j>/body", schema: false, meaning: "The Card has one paragraph, so the clamped corrective view has nothing to expand.", fix: "Split the Card into at least two paragraphs. The first is shown after a wrong answer." },
 
   // Misconception.
-  { code: "misconception.id", severity: "error", path: "/concepts/<i>/misconceptions/<j>/id", schema: false, meaning: "The misconception ID is missing, repeats another in the Concept, does not match ^[A-Za-z0-9_-]{1,64}$, or is a reserved name.", fix: "Use a short unique slug that names the belief, such as fresh_means_newest." },
+  { code: "misconception.id", severity: "error", path: "/concepts/<i>/misconceptions/<j>/id", schema: false, meaning: "The misconception ID repeats another misconception's ID in the Concept.", fix: "Use a short unique slug that names the belief, such as fresh_means_newest." },
+  { code: "misconception.id.invalid", severity: "error", path: "/concepts/<i>/misconceptions/<j>/id", schema: true, meaning: "The misconception ID is missing, does not match ^[A-Za-z0-9_-]{1,64}$, or is a reserved name.", fix: "Use a short unique slug that names the belief, such as fresh_means_newest." },
   { code: "misconception.statement", severity: "error", path: "/concepts/<i>/misconceptions/<j>/statement", schema: true, meaning: "The statement is missing or blank.", fix: "Write the belief itself, as the learner would hold it." },
   { code: "misconception.card", severity: "error", path: "/concepts/<i>/misconceptions/<j>/correctingCardId", schema: false, meaning: "correctingCardId is not the ID of a Card in the same Concept.", fix: "Name a Card of this Concept that corrects the belief." },
   { code: "misconception.unused", severity: "error", path: "/concepts/<i>/misconceptions/<j>", schema: false, meaning: "No MCQ distractor in the Concept maps to this misconception.", fix: "Map a distractor to it, or remove the misconception." },
@@ -67,11 +69,11 @@ export const DIAGNOSTICS = [
 
   // MCQ.
   { code: "mcq.key", severity: "error", path: "/questions/<i>/key", schema: false, meaning: "key is not one option ID of the Concept's shared option set.", fix: "Set key to the id of the correct option in the Concept's options." },
-  { code: "mcq.feedback.missing", severity: "error", path: "/questions/<i>/feedback/<optionId>", schema: true, meaning: "An option of the Concept, possibly the key, has no feedback entry.", fix: "Add feedback for every option ID in the Concept's set, including the key." },
-  { code: "mcq.feedback.extra", severity: "error", path: "/questions/<i>/feedback/<optionId>", schema: true, meaning: "feedback has a key that is not an option ID of the Concept.", fix: "Remove the entry or correct the option ID." },
-  { code: "mcq.map.missing", severity: "error", path: "/questions/<i>/map/<optionId>", schema: true, meaning: "A distractor option has no map entry.", fix: "Map every non-key option ID to a misconception ID in the Concept." },
+  { code: "mcq.feedback.missing", severity: "error", path: "/questions/<i>/feedback/<optionId>", schema: false, meaning: "An option of the Concept, possibly the key, has no feedback entry.", fix: "Add feedback for every option ID in the Concept's set, including the key." },
+  { code: "mcq.feedback.extra", severity: "error", path: "/questions/<i>/feedback/<optionId>", schema: false, meaning: "feedback has a key that is not an option ID of the Concept.", fix: "Remove the entry or correct the option ID." },
+  { code: "mcq.map.missing", severity: "error", path: "/questions/<i>/map/<optionId>", schema: false, meaning: "A distractor option has no map entry.", fix: "Map every non-key option ID to a misconception ID in the Concept." },
   { code: "mcq.map.unknown", severity: "error", path: "/questions/<i>/map/<optionId>", schema: false, meaning: "The map entry names a misconception ID that is not in the Concept.", fix: "Use an id from the Concept's misconceptions, or add the misconception there." },
-  { code: "mcq.map.extra", severity: "error", path: "/questions/<i>/map/<optionId>", schema: true, meaning: "map has an entry for the key or for an ID that is not an option of the Concept.", fix: "Keep only the distractor option IDs in map." },
+  { code: "mcq.map.extra", severity: "error", path: "/questions/<i>/map/<optionId>", schema: false, meaning: "map has an entry for the key or for an ID that is not an option of the Concept.", fix: "Keep only the distractor option IDs in map." },
 
   // Numeric.
   { code: "numeric.reserved", severity: "error", path: "/questions/<i>/reserved", schema: true, meaning: "A numeric Question is marked reserved.", fix: "Reserve an MCQ or short Question for the Wrap-up instead; numeric Questions are never reserved." },

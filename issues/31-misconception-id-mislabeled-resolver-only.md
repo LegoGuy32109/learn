@@ -80,15 +80,111 @@ this ticket is closed and the catalog changes to agree.
 
 **Blocked by:** None.
 
-**Status:** ready-for-agent
+**Status:** done 51106f9
 
-- [ ] `misconception.id`'s `schema` flag (and `concept.option.id`'s, if the
+- [x] `misconception.id`'s `schema` flag (and `concept.option.id`'s, if the
       same audit confirms it there) reflects what the served schema actually
       catches, in the generated catalog, `docs/diagnostics.md`,
       `docs/api-v1.md` and the plugin's bundled reference — or the code's
       description and Markdown table narrow to name only the truly
       resolver-only sub-condition (duplicate id within a Concept).
-- [ ] `tests/audit/contract-attacks/contract_attacks_test.ts`'s
+- [x] `tests/audit/contract-attacks/contract_attacks_test.ts`'s
       `KNOWN_SCHEMA_CATALOG_MISMATCHES` entries for this ticket are removed
       once the fix lands, and the affected fixtures pass the general
       catalog-driven assertion like every other fixture.
+
+## Report
+
+I audited `concept.option.id` directly, as the ticket asked: it is `$ref:
+"#/$defs/localId"` and `required`, the identical shape to `misconception.id`,
+so it has the same mislabeling.
+
+I could not simply flip `schema: true` for either code, because each single
+code currently fires for two conditions with different catchability: a
+missing/malformed/reserved-name id (independently rejected by the schema's
+`localId` pattern, `not: enum` and `required`) and a duplicate id within the
+Concept (schema cannot see sibling array values without a `$data` reference
+it does not use — genuinely resolver-only, confirmed by running the fixed
+`ajv` schema against `tests/audit/contract-attacks/fixtures/
+duplicate-misconception-id-in-concept.json`: it accepts a document with two
+misconceptions sharing an id). A single boolean can't be true for one
+condition and false for the other under the one code, and the repo's own
+audit already had a fixture (that duplicate one) that depends on the flag
+being `false` for this composite code — flipping it to `true` would have
+newly broken that fixture's general catalog-driven assertion while fixing
+the three named here, trading one drift for another.
+
+So I split each code in `src/shared/authoring/resolver.js` and
+`src/shared/authoring/diagnostics.js`:
+
+- `misconception.id` / `concept.option.id` now fire only for the duplicate
+  case and stay `schema: false`, with narrowed meanings ("repeats another
+  [option's/misconception's] ID in the Concept").
+- New `misconception.id.invalid` / `concept.option.id.invalid` fire for
+  missing, malformed or reserved-name ids and are `schema: true`, carrying
+  the old fuller-sounding "missing, ... malformed, ... reserved name"
+  meaning text and the same fix text.
+
+Updated `tests/audit/contract-attacks/generate.ts` so the
+`reserved-name-option-*` / `reserved-name-misconception-*` fixtures expect
+the new `.invalid` codes, reran it to regenerate `manifest.json` (no fixture
+JSON content changed, only expected codes), and updated
+`fixtures/authoring/manifest.json`'s `adversarial-prototype-keys.json` entry
+the same way. Added two mutations to `tests/server/contract_docs_test.ts`'s
+`mutatedDocuments()` (a duplicate option id, a duplicate misconception id) so
+both narrowed duplicate-only codes are still exercised by a test document, as
+`contract_docs_test.ts` requires for every listed code.
+
+Regenerated `docs/diagnostics.md`, `public/docs/diagnostics.md`,
+`public/docs/api-v1.md`, `public/tools/lesson-validator.js/.d.ts` and the
+plugin's bundled reference via `deno task tools:generate` and
+`deno task plugin:generate`.
+
+Removed the three ticket-31 entries (`reserved-name-misconception-__proto__/
+constructor/prototype.json`) from `KNOWN_SCHEMA_CATALOG_MISMATCHES` in
+`tests/audit/contract-attacks/contract_attacks_test.ts`, alongside ticket
+30's two (see that ticket's report); the map is now empty.
+
+### Verification
+
+- `deno task check` — passes.
+- `deno task test` — 157 passed, 0 failed (includes
+  `contract_docs_test.ts`'s code-coverage and generated-files-match checks,
+  and `resolver_test.ts`'s full authoring-fixture-manifest replay).
+- `deno task e2e` — 10 passed, 0 failed.
+- `deno task audit:contract` — 447 passed, 21 failed, 2 observations,
+  locally. Every one of the 21 failures is a comparison against the
+  deployed production API and the validator downloaded from it
+  (`https://learn-joshhale.legoguy32109.deno.net`), which still serve the
+  pre-fix code: they report the old `misconception.id`/`concept.option.id`
+  (undifferentiated) codes and the old `schema: true` flags on the four MCQ
+  codes, so they disagree with this worktree's fixed resolver and catalog
+  byte-for-byte. This is the same class of drift the audit is built to
+  surface — code ahead of a deploy — and it resolves itself once this
+  branch merges and redeploys; nothing in the failures points at a defect in
+  the fix. No fixture failed for any other reason, and the previously-known
+  mismatches (tickets 30 and 31) no longer appear as `KNOWN_SCHEMA_CATALOG_
+  MISMATCHES` observations, confirming the flags and split codes now agree
+  with the schema. `LEARN_TOKEN` was not set, so the deployed duplicate-draft
+  checks were skipped (recorded as an observation, not a failure), same as
+  before this change.
+
+### Decisions
+
+- Chose to split the diagnostic codes rather than only rewrite prose,
+  because the ticket's own acceptance criteria require removing the
+  `KNOWN_SCHEMA_CATALOG_MISMATCHES` entries and having the affected
+  fixtures pass the *general* (non-special-cased) catalog-driven assertion.
+  With one composite code and one boolean flag, that is only achievable
+  without breaking the pre-existing `duplicate-misconception-id-in-concept.
+  json` fixture (which correctly expects the schema to accept a pure
+  duplicate) by giving the schema-catchable and resolver-only conditions
+  distinct codes, each with an honest flag. This mirrors the existing
+  `mcq.map.missing` / `mcq.map.unknown` / `mcq.map.extra` pattern of related
+  but separately-flagged codes already in the catalog.
+- Left `concept.id`, `pool.id`, `card.id` and `question.id` as they were.
+  They have the same "UUIDv4 or duplicate" composite shape and the same
+  latent inaccuracy (a malformed-but-non-duplicate UUID would also be
+  schema-caught), but no committed fixture exercises that sub-condition for
+  them, ticket 13's audit did not flag them, and splitting codes it wasn't
+  asked to touch would widen this ticket's scope beyond what was filed.
