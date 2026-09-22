@@ -245,3 +245,26 @@ Production was set up on 2026-09-21 in this order:
    variables existed yet.
 6. `deno task deploy:env` populated Production, Preview and Local.
 7. `deno task deploy` published a working revision and the smoke passed.
+
+## Deploying by pushing to GitHub
+
+`LegoGuy32109/learn` is connected to the Deploy app, so a push to `main`
+builds and publishes on its own. Two measured pushes that changed only server
+and generated client files went live in 20 and 22 seconds, from `git push`
+returning to the new revision answering on `https://learn.joshhale.me`. There
+is no build step to wait for.
+
+`deno task deploy` still works and is the way to publish something that is not
+committed, or to run the production smoke as part of publishing. Prefer the
+push for ordinary work.
+
+Whichever route you use, a migration is not applied by either one. Run
+`deno task db:migrate:prod` before publishing code that needs a new table.
+
+### After changing the public origin
+
+`WEBAUTHN_RP_ID` and `WEBAUTHN_ORIGINS` in the Production context, and
+`DEFAULT_PUBLIC_ORIGIN` in `src/server/plugin/links.ts`, all name the
+canonical origin. Changing it means running `deno task deploy:env`, then
+`deno task plugin:generate`, and registering passkeys again: a credential is
+bound to the relying-party ID it was created under.
