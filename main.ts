@@ -6,6 +6,7 @@ import { configuredRelyingParty } from "./src/server/identity/relying-party.ts";
 import { HmacSessionCookies, randomSessionKey, sessionKeyFromEnv } from "./src/server/identity/sessions.ts";
 import { TursoIdentityRepository } from "./src/server/repositories/identity.ts";
 import { TursoLessonRepository } from "./src/server/repositories/lessons.ts";
+import { TursoProgressRepository } from "./src/server/repositories/progress.ts";
 
 /**
  * Deno Deploy sets DENO_DEPLOY_BUILD_ID to the id of the running revision. A
@@ -29,6 +30,7 @@ if (!sessionKey) {
 }
 const app = createApp({
   lessons: new TursoLessonRepository(db),
+  progress: new TursoProgressRepository(db),
   auth: new TokenAuthenticator(db),
   sessions: new HmacSessionCookies(sessionKey),
   passkeys: new PasskeyService(new TursoIdentityRepository(db)),

@@ -38,7 +38,7 @@ Deno.test("passkey sign-in in an ephemeral database", async (t) => {
 
     await t.step("migration 002 applied and 001 is untouched", async () => {
       const versions = await db.execute("SELECT version FROM schema_migrations ORDER BY version");
-      assertEquals(versions.rows.map((row) => String(row.version)), ["001_initial.sql", "002_passkeys_and_invites.sql"]);
+      assertEquals(versions.rows.map((row) => String(row.version)).slice(0, 2), ["001_initial.sql", "002_passkeys_and_invites.sql"]);
       const tables = await db.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('passkey_credentials', 'sign_in_invites', 'webauthn_challenges') ORDER BY name");
       assertEquals(tables.rows.map((row) => String(row.name)), ["passkey_credentials", "sign_in_invites", "webauthn_challenges"]);
     });

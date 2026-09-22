@@ -246,6 +246,7 @@ class MemoryLessons implements LessonRepository {
   async createRevision(account: string, _lessonId: string, resolved: ResolvedLesson) { return this.createLesson(account, resolved); }
   async getRevision() { return null; }
   async latestRevision() { return null; }
+  async learnableRevision() { return null; }
   async listMine() { return []; }
   async shelf() { return []; }
 }

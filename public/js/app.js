@@ -14,6 +14,9 @@ import { buildShelf, discardTo, pinOnOpen } from "../../src/client/library/shelf
 import { fetchRevision, fetchShelf } from "../../src/client/library/remote.js";
 import { installPwa } from "../../src/client/pwa/register.js";
 import { canInterrupt } from "../../src/client/pwa/update-policy.js";
+import { createSyncClient } from "../../src/client/sync/client.js";
+import { createTransport } from "../../src/client/sync/transport.js";
+import { mountSyncStatus, withDraftPreserved } from "../../src/client/sync/status.js";
 import { renderLessonPrompt, renderShelf } from "./shelf.js";
 import { renderOverview } from "./overview.js";
 import { renderLearning } from "./learn.js";
@@ -23,8 +26,24 @@ import { renderDrill } from "./drill.js";
 /** @typedef {import("../../src/client/library/shelf-model.js").RemoteLesson} RemoteLesson */
 
 /** @type {{ signedIn: boolean, displayName: string | null, message?: string }} */
-const account = (/** @type {any} */ (window)).__SESSION__ ?? { signedIn: false, displayName: null };
+let account = (/** @type {any} */ (window)).__SESSION__ ?? { signedIn: false, displayName: null };
 const root = /** @type {HTMLElement} */ (document.querySelector("#app"));
+
+/**
+ * Background sync for the signed-in account. Every event is stored and queued locally first; a cycle
+ * runs only after a render (`kick`), when the network returns, or on the retry timer. The compact
+ * state shows in the shell outside the surface root.
+ */
+const sync = createSyncClient({
+  repository: localRepository,
+  transport: createTransport(),
+  onStatus: mountSyncStatus(document.querySelector("#sync-status"), { onDiscard: adoptRemoteEpoch }),
+});
+sync.setEnabled(account.signedIn);
+window.addEventListener("online", () => sync.wake());
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") sync.wake();
+});
 
 const state = {
   /** @type {"shelf"|"overview"|"learn"|"drill"|"prompt"} */
@@ -109,17 +128,44 @@ async function openEntry(entry) {
   const streams = await localRepository.streams();
   const stream = pinOnOpen(streams.find((candidate) => candidate.id === entry.lessonId), entry);
   await localRepository.saveStream(stream);
-  const session = createSession(entry.lesson, stream);
+  const session = createSession(entry.lesson, stream, { onEvidence: () => sync.kick() });
   await session.load();
   state.entry = entry;
   state.session = session;
   state.confirmingDiscard = false;
+  sync.attach({ lessonId: entry.lessonId, lessonRevisionId: entry.revisionId, epoch: stream.epoch }, mergeRemoteEvidence);
   return null;
+}
+
+/** Remote events were stored on this device: replay the reducers and redraw, keeping any typed draft. */
+async function mergeRemoteEvidence() {
+  const session = state.session;
+  if (!session) return;
+  await session.reload();
+  if (state.surface === "shelf" || state.surface === "prompt") return render();
+  await withDraftPreserved(() => render());
+}
+
+/**
+ * The learner chose to follow the newer epoch the server reported: another device discarded this
+ * progress. The local stream moves only here, then the lesson reopens from Not started.
+ */
+async function adoptRemoteEpoch() {
+  const stream = await sync.adoptRemoteEpoch();
+  if (!stream) return;
+  location.assign(`/learn/${encodeURIComponent(stream.id)}`);
 }
 
 const nav = {
   /** The signed-in account as the server rendered it; sign-in and sign-out replace it. */
-  account,
+  get account() {
+    return account;
+  },
+  set account(value) {
+    account = value;
+    sync.setEnabled(value.signedIn);
+    if (value.signedIn) sync.kick();
+  },
   get lessonPath() {
     return `/learn/${state.entry?.lessonId ?? ""}`;
   },
@@ -158,7 +204,10 @@ const nav = {
   async show(surface, path, { replace = false } = {}) {
     state.surface = surface;
     if (state.session) state.session.surface = surface === "prompt" ? "shelf" : surface;
-    if (surface === "shelf") state.session = null;
+    if (surface === "shelf") {
+      state.session = null;
+      sync.attach(null);
+    }
     if (path !== undefined && !replace) history.pushState({ surface }, "", path);
     else history.replaceState({ surface }, "", path ?? location.pathname);
     await render();
@@ -206,12 +255,16 @@ const nav = {
     }
     const streams = await localRepository.streams();
     const current = streams.find((candidate) => candidate.id === entry.lessonId) ?? { id: entry.lessonId, revisionId: entry.revisionId, epoch: entry.epoch };
-    await localRepository.saveStream(discardTo(current, next.revisionId));
+    const discarded = discardTo(current, next.revisionId);
+    await localRepository.saveStream(discarded);
     await rebuildShelf();
     const reopened = state.shelf.find((candidate) => candidate.lessonId === entry.lessonId);
     if (reopened) await openEntry(reopened);
     state.notice = null;
     await render();
+    // Tell the server about the new epoch now, so a device that was offline is refused instead of
+    // restoring the discarded progress.
+    await sync.announce({ lessonId: discarded.id, lessonRevisionId: discarded.revisionId, epoch: discarded.epoch });
   },
 };
 
@@ -236,6 +289,8 @@ async function render() {
     else renderLearning(root, state.session, progress, nav);
   }
   pwa.notifyRender();
+  // The surface is on screen with the new event already stored and queued; only now may a request leave.
+  sync.kick();
 }
 
 /** Browser Back or Forward: the entry we land on says which surface it showed. */

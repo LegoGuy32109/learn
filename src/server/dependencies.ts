@@ -4,10 +4,13 @@ import type { PasskeyService } from "./identity/passkeys.ts";
 import type { RelyingParty } from "./identity/relying-party.ts";
 import type { SessionCookies } from "./identity/sessions.ts";
 import type { LessonRepository } from "./repositories/lessons.ts";
+import type { ProgressRepository } from "./repositories/progress.ts";
 
 /** Everything a route group needs from the outside world. Bootstrap decides the concrete adapters. */
 export interface Dependencies {
   lessons: LessonRepository;
+  /** Synchronized learning and navigation events, one stream per account and Lesson. */
+  progress: ProgressRepository;
   auth: Authenticator;
   /** Names the shell version for the service worker. Omitted, the shell on disk is hashed once per process. */
   build?: BuildProvider;

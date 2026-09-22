@@ -4,9 +4,13 @@
 // Drill evidence is a separate stream with its own checkpoint; it never feeds the progress reducer.
 // Evidence is read and written under one progress epoch: a discard advances the epoch, and evidence
 // from an older epoch or another revision is never part of this session.
+// Every learning and navigation event this device creates enters the outbox in the same transaction
+// as its store, so it is queued for upload before the UI can update; `onEvidence` then lets the sync
+// client know. Drill evidence stays on the device. The resume checkpoint is the one that depends on
+// the most learning evidence, so a stale checkpoint from another device never moves this one back.
 import { localRepository } from "../storage/repository.js";
 import { reduceProgress } from "../../shared/learning/progress.js";
-import { reduceCheckpoint } from "../../shared/learning/checkpoint.js";
+import { selectCheckpoint } from "../../shared/learning/sync.js";
 import { DRILL_CHECKPOINTED, reduceDrillCheckpoint } from "../../shared/learning/drill.js";
 
 function now() {
@@ -42,6 +46,7 @@ export function evidenceFor(events, revisionId, epoch) {
  * @property {(type: string, data?: Record<string, unknown>) => Promise<void>} recordDrillEvent
  * @property {() => Promise<void>} saveDrillCheckpoint
  * @property {() => Promise<void>} endDrill
+ * @property {() => Promise<boolean>} reload  Re-read evidence after a merge; true when the resume checkpoint changed
  */
 
 /**
@@ -57,10 +62,17 @@ function event(lesson, epoch, type, data) {
 /**
  * @param {any} lesson
  * @param {{ epoch: number }} [stream]  The Lesson's progress stream; new evidence is written under its epoch.
+ * @param {{ onEvidence?: () => void }} [hooks]  `onEvidence` runs after each learning or navigation event is stored and queued.
  * @returns {Session}
  */
-export function createSession(lesson, stream = { epoch: 0 }) {
+export function createSession(lesson, stream = { epoch: 0 }, hooks = {}) {
   const EPOCH = stream.epoch;
+  const onEvidence = hooks.onEvidence ?? (() => {});
+  /** The canonical resume position from this device's navigation evidence. */
+  async function rebuildCheckpoint() {
+    const navigation = evidenceFor(await localRepository.events("navigation_events"), lesson.revisionId, EPOCH);
+    return selectCheckpoint(navigation, session.learningEvents);
+  }
   const progressKey = `progress:${lesson.revisionId}:${EPOCH}`;
   const checkpointKey = `checkpoint:${lesson.revisionId}:${EPOCH}`;
   const drillCheckpointKey = `drill_checkpoint:${lesson.revisionId}:${EPOCH}`;
@@ -81,7 +93,7 @@ export function createSession(lesson, stream = { epoch: 0 }) {
       session.drillEvents = evidenceFor(await localRepository.events("drill_events"), lesson.revisionId, EPOCH);
       session.savedCheckpoint = await localRepository.projection(checkpointKey);
       if (!session.savedCheckpoint) {
-        session.savedCheckpoint = reduceCheckpoint(evidenceFor(await localRepository.events("navigation_events"), lesson.revisionId, EPOCH));
+        session.savedCheckpoint = await rebuildCheckpoint();
         if (session.savedCheckpoint) await localRepository.projection(checkpointKey, session.savedCheckpoint);
       }
       session.savedDrillCheckpoint = await localRepository.projection(drillCheckpointKey);
@@ -94,8 +106,9 @@ export function createSession(lesson, stream = { epoch: 0 }) {
     async recordEvent(type, data = {}) {
       const recorded = event(lesson, EPOCH, type, data);
       session.learningEvents.push(recorded);
-      await localRepository.append("learning_events", recorded);
+      await localRepository.appendOutgoing("learning_events", recorded);
       await session.rebuildProgress();
+      onEvidence();
     },
 
     async saveCheckpoint() {
@@ -105,8 +118,22 @@ export function createSession(lesson, stream = { epoch: 0 }) {
         learningEventFrontier: session.learningEvents.map((event) => event.id),
       };
       session.savedCheckpoint = checkpoint;
-      await localRepository.append("navigation_events", event(lesson, EPOCH, "navigation_checkpointed", { checkpoint }));
+      await localRepository.appendOutgoing("navigation_events", event(lesson, EPOCH, "navigation_checkpointed", { checkpoint }));
       await localRepository.projection(checkpointKey, checkpoint);
+      onEvidence();
+    },
+
+    /**
+     * Another device's events were merged into this device's stores. Re-read the evidence, replay the
+     * shared reducers and store the projections again. The live flow is untouched.
+     */
+    async reload() {
+      const before = JSON.stringify(session.savedCheckpoint ?? null);
+      session.learningEvents = evidenceFor(await localRepository.events("learning_events"), lesson.revisionId, EPOCH);
+      session.savedCheckpoint = await rebuildCheckpoint();
+      await localRepository.projection(checkpointKey, session.savedCheckpoint);
+      await session.rebuildProgress();
+      return JSON.stringify(session.savedCheckpoint ?? null) !== before;
     },
 
     async recordDrillEvent(type, data = {}) {

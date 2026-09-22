@@ -123,17 +123,24 @@ reads the lesson from IndexedDB. A waiting update shows "Update ready" only
 between Questions (`src/client/pwa/update-policy.js`) and activates when the
 learner chooses Reload.
 
-Guest progress is authoritative locally. An account later adds cross-device
-sync by accepting the idempotent union of immutable UUIDv4 events. A progress
-stream epoch prevents an old offline device from restoring deliberately
-discarded progress.
+Guest progress is authoritative locally. A signed-in account adds cross-device
+sync: `src/client/sync` keeps an outbox in IndexedDB, uploads immutable UUIDv4
+events in bounded batches with idempotent retries, pulls the server's events by
+opaque cursor, unions them by ID and replays the shared reducers. Every event is
+written to its store and the outbox in one transaction, the surface renders, and
+only then does a cycle run. The server (`src/server/routes/progress.ts`,
+`src/server/repositories/progress.ts`, migration 003) stores the union and one
+progress stream per account and Lesson; a stream epoch prevents an old offline
+device from restoring deliberately discarded progress, and the browser adopts a
+newer epoch only through the explicit discard flow.
 
-Navigation checkpoints must also survive cross-device pickup. They are
-projections over immutable `navigation_checkpointed` events, not local-only
-mutable state. The server will eventually rebuild and return the canonical
-checkpoint. It must reject a stale checkpoint as canonical when that checkpoint
-depends on less progress than the existing one. Specify simultaneous-device
-conflict resolution with the sync API; do not invent that API in this milestone.
+Navigation checkpoints are projections over immutable `navigation_checkpointed`
+events, not local-only mutable state. The canonical checkpoint is selected by
+`src/shared/learning/sync.js` on both sides: the checkpoint that depends on the
+most accepted learning events wins, so a stale checkpoint never replaces a
+fuller one; equal frontiers are broken by the later client clock, then by the
+greater event ID. The server stores no checkpoint projection and rebuilds it
+from the streams on every read.
 
 ## Future deployment model
 

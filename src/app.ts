@@ -4,6 +4,7 @@ import type { Dependencies } from "./server/dependencies.ts";
 import { RejectingAuthenticator } from "./server/auth.ts";
 import { FIXTURE_OWNER_ID, FixtureLessonRepository } from "./server/repositories/lessons.ts";
 import { MemoryIdentityRepository } from "./server/repositories/identity.ts";
+import { MemoryProgressRepository } from "./server/repositories/progress.ts";
 import { PasskeyService } from "./server/identity/passkeys.ts";
 import { HmacSessionCookies, randomSessionKey } from "./server/identity/sessions.ts";
 import { redactedErrorText } from "./server/identity/redaction.ts";
@@ -13,6 +14,7 @@ import { pageRoutes } from "./server/routes/pages.ts";
 import { discoveryRoutes } from "./server/routes/discovery.ts";
 import { lessonRoutes } from "./server/routes/lessons.ts";
 import { identityRoutes } from "./server/routes/identity.ts";
+import { progressRoutes } from "./server/routes/progress.ts";
 import { assetRoutes } from "./server/routes/assets.ts";
 import { pwaRoutes } from "./server/routes/pwa.ts";
 import { pluginRoutes } from "./server/routes/plugin.ts";
@@ -28,6 +30,7 @@ export function composeRoutes(dependencies: Dependencies) {
     ...lessonRoutes(dependencies),
     ...pwaRoutes(dependencies),
     ...identityRoutes(dependencies),
+    ...progressRoutes(dependencies),
     ...assetRoutes(),
   ];
 }
@@ -78,6 +81,7 @@ export async function fixtureDependencies(): Promise<Dependencies> {
   const fixture = JSON.parse(await Deno.readTextFile(new URL("../fixtures/lessons/browser-http-cache.json", import.meta.url)));
   return {
     lessons: new FixtureLessonRepository(fixture),
+    progress: new MemoryProgressRepository(),
     auth: new RejectingAuthenticator(),
     sessions: new HmacSessionCookies(randomSessionKey()),
     passkeys: new PasskeyService(new MemoryIdentityRepository([FIXTURE_ACCOUNT])),

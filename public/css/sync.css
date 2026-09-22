@@ -1,0 +1,7 @@
+/* The compact sync state pinned above every surface. It is outside the surface root, so a render
+   never wipes it, and small enough to sit in the shell's top padding on a phone. */
+.syncstatus{position:fixed;top:calc(2px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:9;margin:0;padding:1px 8px;font-family:var(--a-mono);font-size:10px;line-height:14px;letter-spacing:.04em;text-transform:uppercase;color:var(--a-ink-3);background:var(--a-bg);border-radius:8px;pointer-events:none;white-space:nowrap}
+.syncstatus[hidden]{display:none}
+.syncstatus[data-sync="failed"]{color:var(--a-bad)}
+.syncstatus[data-sync="synced"]{color:var(--a-good)}
+.syncbanner span{flex:1}
