@@ -59,19 +59,45 @@ export function feedbackView(feedback) {
 }
 
 /**
+ * Small deterministic string hash (FNV-1a, 32-bit) so an option order can depend on the Question.
+ * @param {string} value
+ */
+function hashString(value) {
+  let hash = 0x811C9DC5;
+  for (let index = 0; index < value.length; index++) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash;
+}
+
+/**
+ * The option display order for one MCQ. It depends on the attempt seed and the Question ID, so it
+ * survives a reload of the same attempt yet differs between the Questions of one Concept.
+ * @param {any} concept
+ * @param {any} question
+ * @param {any} flow
+ */
+export function optionOrder(concept, question, flow) {
+  return shuffled(concept.options, (flow.seed + hashString(String(question.id))) >>> 0);
+}
+
+/**
+ * The MCQ options, or the typed-answer form. The typed form submits on Enter as well as on the
+ * Answer button: `bind` in controls.js turns the form's submit event into the `submit` action.
  * @param {any} concept
  * @param {any} question
  * @param {any} flow
  */
 function answerForm(concept, question, flow) {
   if (question.type === "mcq") {
-    const options = shuffled(concept.options, flow.seed);
+    const options = optionOrder(concept, question, flow);
     const buttons = options.map((/** @type {any} */ option) => `<button class="opt" data-answer="${option.id}">${escape(option.text)}</button>`);
     return `<div class="opts">${buttons.join("")}</div>`;
   }
   const hint = question.unit ? `answer in ${question.unit}` : "one word or short phrase";
   const inputMode = question.type === "numeric" ? ' inputmode="decimal"' : "";
-  return `<div class="fieldwrap"><span class="hintline">${hint}</span><input class="field" id="answer"${inputMode} aria-label="Answer"><button class="go" data-action="submit">Answer</button></div>`;
+  return `<form class="fieldwrap" data-submit="submit"><span class="hintline">${hint}</span><input class="field" id="answer"${inputMode} aria-label="Answer" autocomplete="off"><button class="go" type="submit">Answer</button></form>`;
 }
 
 /**

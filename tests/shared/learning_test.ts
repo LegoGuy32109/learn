@@ -44,3 +44,13 @@ Deno.test("Check and Wrap-up transitions preserve their distinct retry rules", (
   const retry=advanceWrapUp({queue:["a","b"],correct:false,seed:2});
   assertEquals(new Set(retry.queue),new Set(["a","b"])); assert(!retry.done);
 });
+Deno.test("a missed Wrap-up Concept is asked last, behind every remaining Concept, for many seeds", () => {
+  for (let seed = 0; seed < 50; seed++) {
+    const next = advanceWrapUp({ queue: ["missed", "b", "c", "d"], correct: false, seed });
+    assertEquals(next.queue.at(-1), "missed");
+    assertEquals(new Set(next.queue.slice(0, 3)), new Set(["b", "c", "d"]));
+    assert(!next.done);
+  }
+  assertEquals(advanceWrapUp({ queue: ["missed", "b"], correct: false, seed: 5 }).queue, ["b", "missed"]);
+  assertEquals(advanceWrapUp({ queue: ["missed"], correct: false, seed: 5 }).queue, ["missed"]);
+});
