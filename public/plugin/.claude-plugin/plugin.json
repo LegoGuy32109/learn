@@ -5,8 +5,8 @@
   "author": {
     "name": "Josh Hale"
   },
-  "homepage": "https://learn.joshhale.me/plugin",
-  "repository": "https://learn.joshhale.me/plugin/learn-lesson-plugin.git",
+  "homepage": "https://learn-joshhale.legoguy32109.deno.net/plugin",
+  "repository": "https://learn-joshhale.legoguy32109.deno.net/plugin/learn-lesson-plugin.git",
   "license": "UNLICENSED",
   "keywords": [
     "learning",

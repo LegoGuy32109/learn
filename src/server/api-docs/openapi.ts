@@ -7,7 +7,10 @@ import { MAX_LESSON_BYTES } from "../http.ts";
 import { capabilitiesFor } from "./capabilities.ts";
 
 /** The canonical origin. Per-request documents substitute the request origin in `servers`. */
-export const CANONICAL_ORIGIN = "https://learn.joshhale.me";
+import { PUBLIC_ORIGIN } from "../plugin/links.ts";
+
+/** The origin documents default to when no request origin is known. One value, set in src/server/plugin/links.ts. */
+export const CANONICAL_ORIGIN = PUBLIC_ORIGIN;
 
 export const exampleLesson: Record<string, unknown> = JSON.parse(
   await Deno.readTextFile(new URL("../../../fixtures/authoring/valid/demo-without-ids.json", import.meta.url)),

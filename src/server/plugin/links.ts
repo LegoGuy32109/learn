@@ -1,6 +1,28 @@
 // Names and served locations of the agent plugin. Imported by the capability document and
 // the plugin texts alike, so it depends on nothing else.
 
+/**
+ * The public origin the site is reached at, and the one baked into every generated text
+ * (plugin, marketplace archive URL, OpenAPI default). The custom domain learn.joshhale.me is
+ * not attached yet, so this is the Deno Deploy hostname. Switching to the custom domain means
+ * changing this one value (or setting LEARN_PUBLIC_ORIGIN at generation time), then running
+ * `deno task plugin:generate` and `deno task deploy`. See docs/deno-deploy.md.
+ */
+export const DEFAULT_PUBLIC_ORIGIN = "https://learn-joshhale.legoguy32109.deno.net";
+
+function configuredPublicOrigin(): string {
+  try {
+    const value = Deno.env.get("LEARN_PUBLIC_ORIGIN");
+    if (value) return new URL(value).origin;
+  } catch (error) {
+    if (!(error instanceof Deno.errors.NotCapable)) throw error;
+  }
+  return DEFAULT_PUBLIC_ORIGIN;
+}
+
+/** The public origin in effect: LEARN_PUBLIC_ORIGIN when set and readable, else the default. */
+export const PUBLIC_ORIGIN = configuredPublicOrigin();
+
 export const PLUGIN_NAME = "learn-lesson";
 export const PLUGIN_VERSION = "0.3.0";
 export const SKILL_NAME = "lesson";

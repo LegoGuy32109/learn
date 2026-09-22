@@ -4,11 +4,11 @@
 // `deno task plugin:generate` writes them; a test regenerates them in memory and fails when
 // the committed tree differs in any file.
 import { DIAGNOSTIC_CODES, diagnosticsReference } from "../../shared/authoring/diagnostics.js";
-import { CANONICAL_ORIGIN } from "../api-docs/openapi.ts";
 import { generatedFiles } from "../api-docs/generated.ts";
 import { diagnosticsMarkdown } from "../api-docs/diagnostics-reference.ts";
 import { bareRepository } from "./git.ts";
 import { submitScript, validateScript } from "./scripts.ts";
+import { PUBLIC_ORIGIN as CANONICAL_ORIGIN } from "./links.ts";
 import { ARCHIVE_FILE, authoringMarkdown, lessonSchemaMarkdown, marketplaceManifest, PLUGIN_VERSION, pluginManifest, readmeMarkdown, REPOSITORY_DIR, SKILL_NAME, skillMarkdown } from "./texts.ts";
 import { zip } from "./zip.ts";
 

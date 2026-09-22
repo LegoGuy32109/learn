@@ -182,6 +182,25 @@ must also undo data, write a new migration.
    LEARN_BASE_URL=https://learn.joshhale.me deno task smoke:prod
    ```
 
+4. Switch the public origin the generated texts name. The agent plugin, its
+   marketplace manifest (whose archive URL the Claude Code CLI downloads) and
+   the OpenAPI default server all read one constant, `DEFAULT_PUBLIC_ORIGIN`
+   in `src/server/plugin/links.ts`, currently
+   `https://learn-joshhale.legoguy32109.deno.net`. Change it to
+   `https://learn.joshhale.me`, regenerate and deploy:
+
+   ```bash
+   deno task plugin:generate
+   deno task check && deno task test
+   deno task deploy
+   ```
+
+   `LEARN_PUBLIC_ORIGIN=<origin> deno task plugin:generate` overrides the
+   constant for one generation without editing the file. The tests read the
+   same value, so they stay green either way. Until this step runs,
+   `claude plugin install learn-lesson@learn-joshhale` downloads the archive
+   from the Deno Deploy hostname, which is why route 1 works before DNS.
+
 Nothing in the repository waits on DNS. The default URL keeps serving.
 
 ## First-time setup record

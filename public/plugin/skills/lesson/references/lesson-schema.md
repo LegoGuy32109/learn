@@ -1,7 +1,7 @@
 # lesson.json reference (lesson/v1)
 
 One file. The site validates and stores it; nothing else is authored. This
-reference is rendered from the JSON Schema served at https://learn.joshhale.me/api/v1/schemas/lesson/v1,
+reference is rendered from the JSON Schema served at https://learn-joshhale.legoguy32109.deno.net/api/v1/schemas/lesson/v1,
 so the field names and counts below are the server's own.
 
 One lesson document authored by an external agent. This schema is necessary but not sufficient: it fixes shapes, counts and patterns. Rules that span items (option IDs named by MCQ keys and maps, Card membership, word counts, option-length ratio, the lesson-wide key-length rule, numeric answers covered by Cards, three drawable Questions and one reserved Question per Pool) are checked by the resolver at POST /api/v1/lesson-resolutions and by the downloadable validator. Every rule has a diagnostic code listed at /api/v1/diagnostics.

@@ -168,3 +168,27 @@ empty directory: `git clone http://127.0.0.1:8123/plugin/learn-lesson-plugin.git
   the browser-only set, so the route-coverage test keeps its shape.
 - `.env.example` on `main` contains an unresolved merge marker from ticket 07;
   not touched here.
+
+## Follow-up
+
+The custom domain is not attached yet, so texts naming
+`https://learn.joshhale.me` made route 1 fail: the CLI tried to download the
+archive from a host that does not serve it. The public origin is now one
+constant, `DEFAULT_PUBLIC_ORIGIN` in `src/server/plugin/links.ts`, set to
+`https://learn-joshhale.legoguy32109.deno.net`, overridable for one generation
+with `LEARN_PUBLIC_ORIGIN`. The plugin texts, the marketplace archive URL, the
+plugin manifest's homepage and repository, the skill scripts' default base URL
+and the OpenAPI default server all read it; `public/plugin` was regenerated
+(archive sha256 `0b0a77b4...`, commit `2d93b8d4...`). A new test asserts the
+value is one https origin and that no generated text names any other origin
+(the JSON Schema `$id` inside the bundled validator is an identifier, not a
+URL to fetch, and stays as it is). `docs/deno-deploy.md` gains step 4 of the
+domain switch: change the constant, `deno task plugin:generate`, `deno task
+check && deno task test`, `deno task deploy`.
+
+Verification after the change: `deno task plugin:generate && git diff
+--exit-code public/plugin` clean; `claude plugin validate public/plugin
+--strict` passed; `deno task check` clean; `deno task test` 109 passed.
+Route 1 (`claude plugin install learn-lesson@learn-joshhale`) can now succeed
+once this branch is deployed, since the archive URL points at the hostname
+that serves it.

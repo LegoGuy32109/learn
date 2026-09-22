@@ -9,7 +9,7 @@ import { app, createApp, fixtureDependencies } from "../../src/app.ts";
 import type { LessonRepository, ResolvedLesson, StoredRevision } from "../../src/server/repositories/lessons.ts";
 import { committedPluginFiles, PLUGIN_ROOT, pluginFiles, pluginTree } from "../../src/server/plugin/files.ts";
 import { exampleLesson } from "../../src/server/plugin/texts.ts";
-import { ARCHIVE_FILE, MARKETPLACE_NAME, PLUGIN_NAME, REPOSITORY_DIR, SKILL_NAME } from "../../src/server/plugin/links.ts";
+import { ARCHIVE_FILE, DEFAULT_PUBLIC_ORIGIN, MARKETPLACE_NAME, PLUGIN_NAME, PUBLIC_ORIGIN, REPOSITORY_DIR, SKILL_NAME } from "../../src/server/plugin/links.ts";
 import { crc32 } from "../../src/server/plugin/zip.ts";
 
 const repo = new URL("../../", import.meta.url);
@@ -27,6 +27,17 @@ Deno.test("the committed plugin directory is exactly what the sources generate (
   for (const [path, bytes] of Object.entries(generated.files)) assertEquals(committed[path], bytes, `${path} is stale`);
 });
 
+Deno.test("the public origin is one https value and every generated text that names an origin uses it", () => {
+  assertMatch(PUBLIC_ORIGIN, /^https:\/\/[^/]+$/);
+  assertEquals(DEFAULT_PUBLIC_ORIGIN, "https://learn-joshhale.legoguy32109.deno.net");
+  const manifest = JSON.parse(text(`${PLUGIN_ROOT}.claude-plugin/plugin.json`));
+  assertEquals(manifest.homepage, `${PUBLIC_ORIGIN}/plugin`);
+  for (const path of Object.keys(generated.files).filter((path) => /\.(md|json|mjs)$/.test(path))) {
+    const urls = text(path).match(/https?:\/\/[^\s"'`)<>]+/g) ?? [];
+    for (const url of urls) assert(url.startsWith(PUBLIC_ORIGIN) || url.startsWith("https://json-schema.org") || url.startsWith("https://example.com"), `${path} names ${url}; only the public origin is allowed`);
+  }
+});
+
 Deno.test("generation is deterministic and the marketplace pins the archive it serves", async () => {
   const again = await pluginFiles();
   assertEquals(again.files, generated.files);
@@ -35,7 +46,7 @@ Deno.test("generation is deterministic and the marketplace pins the archive it s
   assertEquals(marketplace.name, MARKETPLACE_NAME);
   assertEquals(marketplace.plugins.length, 1, "this marketplace lists the one plugin the site serves");
   assertEquals(marketplace.plugins[0].name, PLUGIN_NAME);
-  assertEquals(marketplace.plugins[0].source, { source: "archive", url: `https://learn.joshhale.me/plugin/${ARCHIVE_FILE}`, sha256: generated.archiveSha256 });
+  assertEquals(marketplace.plugins[0].source, { source: "archive", url: `${PUBLIC_ORIGIN}/plugin/${ARCHIVE_FILE}`, sha256: generated.archiveSha256 });
   const digest = await crypto.subtle.digest("SHA-256", generated.files[`${PLUGIN_ROOT}${ARCHIVE_FILE}`] as BufferSource);
   assertEquals([...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join(""), generated.archiveSha256);
   const manifest = JSON.parse(text(`${PLUGIN_ROOT}.claude-plugin/plugin.json`));
@@ -159,7 +170,7 @@ Deno.test("the skill's texts are the plugin's texts adapted for lesson/v1 and ca
   assertMatch(skillDocument, /^---\nname: lesson\ndescription: .+\n---\n/);
   for (const step of ["### 1. Establish the source", "### 2. Read the authoring rules", "### 3. Write lesson.json", "### 3b. Attack your own draft", "### 4. Validate", "### 5. Submit", "### 6. Report"]) assertStringIncludes(skillDocument, step);
   assert(!/build\.mjs|renderer|show_widget|fragment\.html/.test(skillDocument), "the build-and-render steps are gone");
-  for (const required of [`exactly ${OPTION_COUNT} options`, `${CARD_WORDS_MIN} to\n${CARD_WORDS_MAX} words`, `at least ${DRAWABLE_MIN} drawable`, '"reserved": true', "LEARN_TOKEN", "unknown", "client_version", "session_reference", "https://learn.joshhale.me/api/v1/lessons", "https://learn.joshhale.me/api/v1/capabilities", "/learn/<lessonId>"]) assertStringIncludes(skillDocument, required);
+  for (const required of [`exactly ${OPTION_COUNT} options`, `${CARD_WORDS_MIN} to\n${CARD_WORDS_MAX} words`, `at least ${DRAWABLE_MIN} drawable`, '"reserved": true', "LEARN_TOKEN", "unknown", "client_version", "session_reference", `${PUBLIC_ORIGIN}/api/v1/lessons`, `${PUBLIC_ORIGIN}/api/v1/capabilities`, "/learn/<lessonId>"]) assertStringIncludes(skillDocument, required);
   assert(!skillDocument.includes("mastery.") || skillDocument.includes("never the word mastery"));
 
   const authoring = text(`${skill}references/authoring.md`);

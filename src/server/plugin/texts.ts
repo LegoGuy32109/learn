@@ -6,7 +6,7 @@
 import { CARD_WORDS_MAX, CARD_WORDS_MIN, DRAWABLE_MIN, KEY_LONGEST_MAX, lessonSchema, MAX_DOCUMENT_BYTES, OPTION_COUNT, OPTION_RATIO_MAX } from "../../shared/authoring/resolver.js";
 import { DIAGNOSTICS } from "../../shared/authoring/diagnostics.js";
 import { capabilitiesFor } from "../api-docs/capabilities.ts";
-import { ARCHIVE_FILE, MARKETPLACE_NAME, PLUGIN_NAME, PLUGIN_VERSION, pluginLinks, REPOSITORY_DIR, SKILL_NAME } from "./links.ts";
+import { ARCHIVE_FILE, MARKETPLACE_NAME, PLUGIN_NAME, PLUGIN_VERSION, PUBLIC_ORIGIN, pluginLinks, REPOSITORY_DIR, SKILL_NAME } from "./links.ts";
 
 export { ARCHIVE_FILE, MARKETPLACE_NAME, PLUGIN_NAME, PLUGIN_PATH, PLUGIN_VERSION, pluginLinks, REPOSITORY_DIR, SKILL_NAME } from "./links.ts";
 
@@ -18,8 +18,8 @@ export function pluginManifest() {
     version: PLUGIN_VERSION,
     description: "Turn the work an agent just did into a retrieval-practice lesson on learn.joshhale.me: author lesson.json, attack the draft, validate it with the site's own validator and create a private draft with a bearer token.",
     author: { name: "Josh Hale" },
-    homepage: pluginLinks("https://learn.joshhale.me").page,
-    repository: pluginLinks("https://learn.joshhale.me").repository,
+    homepage: pluginLinks(PUBLIC_ORIGIN).page,
+    repository: pluginLinks(PUBLIC_ORIGIN).repository,
     license: "UNLICENSED",
     keywords: ["learning", "retrieval-practice", "lesson", "learn.joshhale.me"],
   };

@@ -1,7 +1,7 @@
 // The skill's two scripts, as source text. They run under Node 20+ and Deno, import the
 // bundled validator (a copy of the shared resolver) and never print the bearer token.
-import { CANONICAL_ORIGIN } from "../api-docs/openapi.ts";
 import { discoveryLinks } from "../api-docs/capabilities.ts";
+import { PUBLIC_ORIGIN as CANONICAL_ORIGIN } from "./links.ts";
 
 export function validateScript(): string {
   return `#!/usr/bin/env node

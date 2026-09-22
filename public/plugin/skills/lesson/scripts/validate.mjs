@@ -38,7 +38,7 @@ const errors = result.diagnostics.filter((diagnostic) => diagnostic.severity ===
 const warnings = result.diagnostics.length - errors;
 
 if (remote) {
-  const origin = (process.env.LEARN_BASE_URL || "https://learn.joshhale.me").replace(/\/$/, "");
+  const origin = (process.env.LEARN_BASE_URL || "https://learn-joshhale.legoguy32109.deno.net").replace(/\/$/, "");
   const response = await fetch(origin + "/api/v1/lesson-resolutions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(document) });
   const served = await response.text();
   const same = served === JSON.stringify(result);
