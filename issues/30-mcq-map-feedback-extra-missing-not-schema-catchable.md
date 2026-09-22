@@ -80,14 +80,51 @@ this ticket is closed and the catalog or the schema changes to agree.
 
 **Blocked by:** None.
 
-**Status:** ready-for-agent
+**Status:** done 51106f9
 
-- [ ] Either the schema independently rejects a same-count, wrong-identity
+- [x] Either the schema independently rejects a same-count, wrong-identity
       `map`/`feedback` mismatch (so `schema: true` becomes true), or the
       catalog, `docs/diagnostics.md`, `docs/api-v1.md` and the generated
       plugin texts are corrected to `schema: false` for these four codes,
       with a test that fails if the two representations disagree again.
-- [ ] `tests/audit/contract-attacks/contract_attacks_test.ts`'s
+- [x] `tests/audit/contract-attacks/contract_attacks_test.ts`'s
       `KNOWN_SCHEMA_CATALOG_MISMATCHES` entries for this ticket are removed
       once the fix lands, and the affected fixtures pass the general
       catalog-driven assertion like every other fixture.
+
+## Report
+
+Corrected the `schema` flag for `mcq.map.missing`, `mcq.map.extra`,
+`mcq.feedback.missing` and `mcq.feedback.extra` to `false` in
+`src/shared/authoring/diagnostics.js`. No `$data` reference was added to the
+schema — the served schema's `map`/`feedback` definitions stay shape-only, as
+ticket 13's audit demonstrated they must be to compose with plain draft
+2020-12 (no cross-item, sibling-array-aware constraint exists without one),
+and the ticket explicitly allowed correcting the flag as the alternative to
+that.
+
+Regenerated `docs/diagnostics.md`, `public/docs/diagnostics.md`,
+`public/docs/api-v1.md`, `public/tools/lesson-validator.js/.d.ts` and the
+plugin's `public/plugin/skills/lesson/references/diagnostics.md` (and
+`diagnostics.json`) via `deno task tools:generate` and
+`deno task plugin:generate`. `docs/api-v1.md` itself only names these codes,
+without repeating their schema-catchability claim, so it needed no manual
+edit.
+
+Removed the two ticket-30 entries (`ref-duplicate-concept-id.json`,
+`ref-mcq-key-not-in-set.json`) from `KNOWN_SCHEMA_CATALOG_MISMATCHES` in
+`tests/audit/contract-attacks/contract_attacks_test.ts`. Both fixtures now
+pass the general catalog-driven assertion locally (see the combined
+verification note in ticket 31's report — the same `deno task test` and
+`deno task audit:contract` runs cover both tickets).
+
+### Verification
+
+- `deno task check` — passes.
+- `deno task test` — 157 passed, 0 failed.
+- `deno task e2e` — 10 passed, 0 failed.
+- `deno task audit:contract` — passes locally except for checks that compare
+  this worktree's fixed resolver/catalog against the still-deployed
+  production API and downloaded validator, which run the pre-fix code (see
+  ticket 31's report for the full explanation; it applies identically here).
+  No other audit check failed.
