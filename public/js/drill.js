@@ -15,6 +15,23 @@ function newRun() {
   return { seed: Math.floor(Math.random() * 2 ** 31), runId: crypto.randomUUID() };
 }
 
+let inFlight = false;
+
+/**
+ * One action at a time: a second tap that lands before the re-render replaces the DOM is dropped,
+ * and so is a click on a button rendered from a drill flow that has since moved.
+ * @param {() => Promise<unknown>} work
+ */
+async function once(work) {
+  if (inFlight) return;
+  inFlight = true;
+  try {
+    await work();
+  } finally {
+    inFlight = false;
+  }
+}
+
 /**
  * Enter the drill from the overview, resuming an open run when one exists.
  * @param {Session} session
@@ -43,7 +60,12 @@ export function renderDrill(root, session, nav) {
   const footer = `<footer class="footer">${footerView(flow)}</footer>`;
   const corrects = afterFooterView(lesson, flow);
   root.innerHTML = `<section class="shell drill">${header}${drillRailView(lesson, outcomes)}${region}${footer}${corrects}</section>`;
-  bind(root, (action) => handle(action, session, nav), (answer) => submit(session, nav, answer, false));
+  const live = () => session.drillFlow === flow;
+  bind(
+    root,
+    (action) => once(async () => live() && await handle(action, session, nav)),
+    (answer) => once(async () => live() && await submit(session, nav, answer, false)),
+  );
 }
 
 /**
@@ -69,13 +91,14 @@ async function handle(action, session, nav) {
 
 /**
  * Leave the drill for the overview. A finished run is closed; an unfinished run stays resumable.
+ * The drill's history entry becomes the overview's, so browser Back does not reopen the drill.
  * @param {Session} session
  * @param {any} nav
  */
 async function leave(session, nav) {
   if (session.drillFlow?.screen === "summary") await session.endDrill();
   session.drillFlow = null;
-  return nav.show("overview", nav.lessonPath);
+  return nav.show("overview", nav.lessonPath, { replace: true });
 }
 
 /**

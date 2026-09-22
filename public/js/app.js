@@ -2,8 +2,13 @@
 // Boot module: seeds the inlined lesson, builds the shelf from the server and this device, picks the
 // surface from the URL and routes between surface entries. One learner session exists at a time,
 // for the Lesson Revision the opened Lesson is pinned to.
+//
+// The overview and the learning shell share the stable URL `/learn/<lesson-id>`, so the URL alone
+// cannot name the surface. Every history entry therefore records its surface in `history.state`,
+// which survives reload and comes back with browser Back and Forward. Boot and `popstate` restore
+// the surface from that record and the flows from the saved checkpoints; the URL and the surface
+// on screen never disagree.
 import { createSession } from "../../src/client/learning/session.js";
-import { atFirstCard } from "../../src/client/learning/flow.js";
 import { localRepository } from "../../src/client/storage/repository.js";
 import { buildShelf, discardTo, pinOnOpen } from "../../src/client/library/shelf-model.js";
 import { fetchRevision, fetchShelf } from "../../src/client/library/remote.js";
@@ -143,15 +148,19 @@ const nav = {
     return state.promptReason;
   },
   /**
-   * Switch surface. A path pushes a history entry; without one the URL stays as it is.
+   * Switch surface and keep the history entry in step. A path pushes a new entry, or with `replace`
+   * rewrites the current one; without a path the URL stays and only the entry's surface changes.
+   * Either way the entry records the surface on screen, so a reload brings that surface back.
    * @param {"shelf"|"overview"|"learn"|"drill"|"prompt"} surface
    * @param {string} [path]
+   * @param {{ replace?: boolean }} [options]
    */
-  async show(surface, path) {
+  async show(surface, path, { replace = false } = {}) {
     state.surface = surface;
     if (state.session) state.session.surface = surface === "prompt" ? "shelf" : surface;
     if (surface === "shelf") state.session = null;
-    if (path !== undefined) history.pushState({ surface }, "", path);
+    if (path !== undefined && !replace) history.pushState({ surface }, "", path);
+    else history.replaceState({ surface }, "", path ?? location.pathname);
     await render();
   },
   async refresh() {
@@ -229,56 +238,74 @@ async function render() {
   pwa.notifyRender();
 }
 
-window.addEventListener("popstate", () => {
-  const session = state.session;
-  if (state.surface === "learn" && session?.flow && atFirstCard(session.flow)) {
-    state.surface = "shelf";
-    session.flow = null;
-  } else if (state.surface === "drill" && session) {
-    state.surface = "overview";
-    session.drillFlow = null;
-  } else if (!location.pathname.startsWith("/learn/")) {
-    state.surface = "shelf";
-  }
-  render();
+/** Browser Back or Forward: the entry we land on says which surface it showed. */
+window.addEventListener("popstate", async (event) => {
+  await restoreFromLocation(event.state?.surface);
+  await render();
 });
 
 /**
- * A learning URL names a Lesson. Its owner lands on the overview, back in the lesson when a
- * checkpoint exists, or back in the drill at its drill URL. Anyone else who has not cached it is
- * asked to sign in.
- * @param {string} lessonId
+ * Bring the surface back for the current URL and history entry: on boot, after a reload and after
+ * browser Back or Forward. Outside a learning URL that is the shelf, with no learner session.
+ * @param {string|undefined} recorded  The surface the history entry recorded, if any
  */
-async function openFromUrl(lessonId) {
+async function restoreFromLocation(recorded) {
+  const match = location.pathname.match(/^\/learn\/([^/]+)/);
+  if (!match) {
+    state.surface = "shelf";
+    state.session = null;
+    state.confirmingDiscard = false;
+    return;
+  }
+  await openFromUrl(decodeURIComponent(match[1]), recorded);
+}
+
+/**
+ * A learning URL names a Lesson. Its owner lands on the surface the history entry recorded: the
+ * learning shell at its checkpoint, or the drill at its drill URL, and otherwise the overview. A
+ * URL typed or followed fresh records nothing and opens the overview, where Resume waits. Anyone
+ * else who has not cached the lesson is asked to sign in.
+ * @param {string} lessonId
+ * @param {string|undefined} recorded  The surface the history entry recorded, if any
+ */
+async function openFromUrl(lessonId, recorded) {
   const entry = state.shelf.find((candidate) => candidate.lessonId === lessonId);
   if (!entry) {
     state.promptReason = nav.account.signedIn ? "This lesson is not on your shelf." : "This lesson is not on this device yet.";
     state.surface = "prompt";
     return;
   }
-  const failure = await openEntry(entry);
-  if (failure) {
-    state.promptReason = failure;
-    state.surface = "prompt";
-    return;
+  const reopened = state.session && state.entry?.lessonId === lessonId;
+  if (!reopened) {
+    const failure = await openEntry(entry);
+    if (failure) {
+      state.promptReason = failure;
+      state.surface = "prompt";
+      return;
+    }
   }
   const session = /** @type {import("../../src/client/learning/session.js").Session} */ (state.session);
+  state.confirmingDiscard = false;
+  session.flow = null;
+  session.drillFlow = null;
   if (location.pathname === nav.drillPath && session.savedDrillCheckpoint) {
     session.drillFlow = session.savedDrillCheckpoint;
     state.surface = "drill";
+  } else if (recorded === "learn" && session.savedCheckpoint) {
+    session.flow = session.savedCheckpoint;
+    state.surface = "learn";
   } else {
-    session.flow = session.savedCheckpoint || null;
-    state.surface = session.savedCheckpoint ? "learn" : "overview";
+    state.surface = "overview";
   }
   session.surface = state.surface;
+  history.replaceState({ surface: state.surface }, "", state.surface === "drill" ? nav.drillPath : nav.lessonPath);
 }
 
 async function main() {
   const inlined = (/** @type {any} */ (window)).__LESSON__;
   if (inlined) await localRepository.seed(inlined);
   await loadShelf();
-  const match = location.pathname.match(/^\/learn\/([^/]+)/);
-  if (match) await openFromUrl(decodeURIComponent(match[1]));
+  await restoreFromLocation(history.state?.surface);
   await render();
 }
 

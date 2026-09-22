@@ -136,7 +136,9 @@ export function startWrapUp(lesson, attempt) {
 }
 
 /**
- * Continue from a Card: the next Card, or the Concept Check after the last one.
+ * Continue from a Card: the next Card, or the Concept Check after the last one. While the learner
+ * is looking back at Cards they already read (a `detour` is set), the last Card returns to the
+ * Question or Card the look-back started from instead of opening a new Check.
  * @param {any} lesson
  * @param {Flow} flow
  * @param {Attempt} attempt
@@ -145,6 +147,7 @@ export function startWrapUp(lesson, attempt) {
 export function continueFromCard(lesson, flow, attempt) {
   const concept = lesson.concepts[flow.conceptIndex];
   if (flow.cardIndex < concept.cards.length - 1) return { ...flow, cardIndex: flow.cardIndex + 1 };
+  if (flow.detour) return leaveCorrective(flow);
   return startCheck(lesson, flow, attempt);
 }
 
@@ -252,11 +255,48 @@ export function leaveCorrective(flow) {
 }
 
 /**
- * Inspect the previous Card without touching progress. Other screens stay put.
+ * Look back at the last Card of a Concept from a Question or from the first Card of the next
+ * Concept. The look-back is a detour like the correcting Card: it remembers the flow it started
+ * from, and Continue on that last Card returns there. An open detour is kept, never nested.
+ * @param {any} lesson
+ * @param {Flow} flow
+ * @param {number} conceptIndex  The Concept whose Cards to look back at
+ * @returns {Flow}
+ */
+function lookBack(lesson, flow, conceptIndex) {
+  const detour = flow.detour ?? structuredClone(flow);
+  const cardIndex = lesson.concepts[conceptIndex].cards.length - 1;
+  return { ...flow, detour, screen: "card", conceptIndex, cardIndex };
+}
+
+/**
+ * The square Back action: move to the prior surface without touching progress.
+ * - A correcting Card returns to the Question it interrupted, as in drill.
+ * - A Question, answered or not, looks back at the last Card of its Concept.
+ * - A Card shows the previous Card, or the last Card of the previous Concept at a Concept's first
+ *   Card. Looking back never reverses progress: Continue on the last Card of a look-back returns to
+ *   where the look-back started rather than opening a Check.
+ * - The very first Card and the Learned summary stay put; the shell leaves for the overview there.
+ * @param {any} lesson
  * @param {Flow} flow
  * @returns {Flow}
  */
-export function stepBack(flow) {
+export function stepBack(lesson, flow) {
+  if (flow.screen === "corrective") return leaveCorrective(flow);
+  if (flow.screen === "question") {
+    const concept = activeConcept(lesson, flow);
+    return lookBack(lesson, flow, lesson.concepts.indexOf(concept));
+  }
   if (flow.screen === "card" && flow.cardIndex > 0) return { ...flow, cardIndex: flow.cardIndex - 1 };
+  if (flow.screen === "card" && flow.conceptIndex > 0) return lookBack(lesson, flow, flow.conceptIndex - 1);
   return flow;
+}
+
+/**
+ * Whether the square Back action has nowhere to go inside the lesson: the first Card of the first
+ * Concept, or the Learned summary. The shell then returns to the overview.
+ * @param {Flow} flow
+ */
+export function leavesShellOnBack(flow) {
+  return atFirstCard(flow) || flow.screen === "summary";
 }
