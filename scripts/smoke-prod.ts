@@ -13,11 +13,16 @@
 // `deno task deploy`) would otherwise hand this script the local owner token,
 // which production rejects with 401. Ticket 16 has the evidence.
 //
+// Ticket 51: it also compares the repository's migration history with what learn-prod reports as
+// applied, and fails when they differ, so a deploy that somehow bypassed scripts/deploy.ts's own
+// pre-flight guard (or a migration merged after the deploy that ran) is still caught here.
+//
 // Usage: deno task smoke:prod
 // Environment: LEARN_BASE_URL (optional). File: .env.prod (LEARN_OWNER_TOKEN)
 
 import { parse } from "jsr:@std/dotenv@0.225.8/parse";
 import { redactBearerTokens } from "../src/server/identity/redaction.ts";
+import { pendingProductionMigrations } from "./production-migrations.ts";
 
 const REVISION_HEADER = "x-learn-revision";
 const BODY_LIMIT = 2000;
@@ -83,6 +88,13 @@ function hsts(response: Response): string | null {
   if (!value) return "no strict-transport-security header";
   const maxAge = Number(value.match(/max-age=(\d+)/)?.[1] ?? 0);
   return maxAge >= 15552000 ? null : `strict-transport-security max-age is ${maxAge}, below 15552000`;
+}
+
+try {
+  const pending = await pendingProductionMigrations();
+  report("migrations", pending.length === 0, pending.length ? `learn-prod has not applied: ${pending.join(", ")}` : "learn-prod matches this checkout's migration history");
+} catch (error) {
+  report("migrations", false, error instanceof Error ? error.message : String(error));
 }
 
 await check("shell", "/", {}, (response, text) => {

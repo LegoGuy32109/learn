@@ -87,22 +87,39 @@ deno task deploy
 
 The task runs `scripts/deploy.ts`, which:
 
-1. Uploads the working tree as a production revision with
+1. Checks `learn-prod` for a pending migration (`scripts/production-migrations.ts`,
+   read-only: it runs nothing, only compares this checkout's `migrations/`
+   history against what the database's `schema_migrations` table reports) and
+   refuses to upload anything when one is pending, naming it. Ticket 51:
+   migration `003_progress_sync.sql` once merged and deployed while
+   `learn-prod` had never run it, and every progress-sync route answered 500
+   for hours before anyone noticed (ticket 50). This step makes that
+   impossible: apply the migration with `deno task db:migrate:prod` first,
+   then deploy again.
+2. Uploads the working tree as a production revision with
    `--prod --non-interactive`. The upload honors `.gitignore` and the
    `deploy.exclude` list in `deno.json`, so `.env`, `.env.dev`, `.env.prod`,
    tests and docs never leave the machine. The unit test in
    `tests/server/deploy_config_test.ts` guards the exclude list.
-2. Waits for the build and prints the revision id and the production URL.
+3. Waits for the build and prints the revision id and the production URL.
    The CLI re-serializes `deno.json` during the upload and drops the trailing
    newline. The script restores the bytes it found, so the tree stays clean.
-3. Runs `deno task smoke:prod`. A failed smoke fails the task.
+4. Runs `deno task smoke:prod`, which repeats the same migration-parity check
+   as one of its own checks (see below) — a second net for a deploy that
+   somehow bypassed step 1, or a migration merged after this deploy ran. A
+   failed smoke fails the task.
 
-Deploy only from a clean checkout of a commit you intend to serve. Apply any
-new migration to `learn-prod` with `deno task db:migrate:prod` before you
-deploy code that needs it. The serving application never runs migrations.
+**Deploy order, every time:** `deno task db:migrate:prod` (only when a new
+migration exists; a no-op otherwise) comes before `deno task deploy`. Deploy
+only from a clean checkout of a commit you intend to serve. The serving
+application never runs a migration itself, at startup or otherwise
+(`docs/turso-databases.md`); applying one is always a deliberate, separate
+step an operator runs before the code that needs it goes live.
 
 Pass `--no-smoke` to `scripts/deploy.ts` only when you deliberately deploy
 something the smoke cannot yet pass, and run the smoke by hand afterwards.
+The migration-parity check still runs regardless of `--no-smoke`; it is a
+pre-flight, not part of the smoke.
 
 ## Production smoke
 
@@ -110,8 +127,12 @@ something the smoke cannot yet pass, and run the smoke by hand afterwards.
 deno task smoke:prod
 ```
 
-`scripts/smoke-prod.ts` reads `LEARN_OWNER_TOKEN` from the `.env.prod` file
-itself and checks the default URL over HTTPS:
+`scripts/smoke-prod.ts` reads `LEARN_OWNER_TOKEN` and, for the migration
+check, `TURSO_DB_URL`/`TURSO_DB_TOKEN`, from the `.env.prod` file itself
+(never the process environment) and checks the default URL over HTTPS:
+
+- `migrations`: `learn-prod`'s `schema_migrations` table matches this
+  checkout's `migrations/` history exactly. Read-only; runs nothing.
 
 - `GET /` returns the HTML shell naming the demo lesson, with
   `Strict-Transport-Security`.
