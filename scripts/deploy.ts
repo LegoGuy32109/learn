@@ -9,12 +9,29 @@
 //
 // Usage: deno task deploy [--no-smoke]
 // Requires DENO_DEPLOY_TOKEN in the environment. Never print it.
+//
+// Ticket 51: before anything is uploaded, this refuses to deploy when learn-prod has a pending
+// migration. Migration 003 once merged and deployed while learn-prod had never run it, and the
+// serving code threw on every progress-sync route for hours (ticket 50) before anyone noticed.
+// The application itself never runs a migration (docs/turso-databases.md); apply one with
+// `deno task db:migrate:prod` first.
+
+import { pendingProductionMigrations } from "./production-migrations.ts";
 
 const ORG = "legoguy32109";
 const APP = "learn-joshhale";
 const CONFIG = new URL("../deno.json", import.meta.url);
 
 if (!Deno.env.get("DENO_DEPLOY_TOKEN")) throw new Error("DENO_DEPLOY_TOKEN must be set; load .env");
+
+const pending = await pendingProductionMigrations();
+if (pending.length) {
+  console.error(
+    `Refusing to deploy: learn-prod has not applied ${pending.length} migration(s) this checkout carries: ${pending.join(", ")}.\n` +
+      "Run `deno task db:migrate:prod` first, then deploy again.",
+  );
+  Deno.exit(1);
+}
 
 const configBefore = await Deno.readFile(CONFIG);
 
