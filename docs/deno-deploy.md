@@ -93,6 +93,8 @@ The task runs `scripts/deploy.ts`, which:
    tests and docs never leave the machine. The unit test in
    `tests/server/deploy_config_test.ts` guards the exclude list.
 2. Waits for the build and prints the revision id and the production URL.
+   The CLI re-serializes `deno.json` during the upload and drops the trailing
+   newline. The script restores the bytes it found, so the tree stays clean.
 3. Runs `deno task smoke:prod`. A failed smoke fails the task.
 
 Deploy only from a clean checkout of a commit you intend to serve. Apply any
@@ -108,8 +110,8 @@ something the smoke cannot yet pass, and run the smoke by hand afterwards.
 deno task smoke:prod
 ```
 
-`scripts/smoke-prod.ts` loads `.env.prod` for `LEARN_OWNER_TOKEN` and checks
-the default URL over HTTPS:
+`scripts/smoke-prod.ts` reads `LEARN_OWNER_TOKEN` from the `.env.prod` file
+itself and checks the default URL over HTTPS:
 
 - `GET /` returns the HTML shell naming the demo lesson.
 - `GET /api/v1/capabilities` returns the capability document.
@@ -119,10 +121,25 @@ the default URL over HTTPS:
   persisting it.
 - `GET /api/v1/lessons` with the owner token lists a published revision.
 
-It prints one `PASS` or `FAIL` line per check and never prints a token. Set
+It prints one `PASS` or `FAIL` line per check and never prints a token. A
+`FAIL` line also carries the status, the `x-learn-revision` header and the
+response body. The last line names the revision that served the checks. Set
 `LEARN_BASE_URL` to smoke another origin, such as the custom domain once it is
 attached. One retry after two seconds covers a cold isolate on the first
 request after a deploy.
+
+The smoke reads the owner token from the file, not from the process
+environment, on purpose. `--env-file` never overrides a variable the parent
+process already set. `deno task deploy` loads `.env`, which has the local
+`LEARN_OWNER_TOKEN`, so a smoke that trusted its environment inherited the
+local token and production answered `401`. Ticket 16 records the evidence.
+
+## Revision header
+
+Every response carries `x-learn-revision` with the value of
+`DENO_DEPLOY_BUILD_ID`, the id of the revision that served it. Locally the
+header says `local`. Compare it with the id `deno task deploy` printed when a
+response looks like it came from the wrong revision.
 
 ## Rollback
 

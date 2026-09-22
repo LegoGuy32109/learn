@@ -15,4 +15,6 @@ export interface Dependencies {
   passkeys: PasskeyService;
   /** Pinned WebAuthn relying party, or null to accept plain localhost only. */
   relyingParty: RelyingParty | null;
+  /** Names the serving revision in the `x-learn-revision` response header. Omitted, the header says `local`. */
+  revision?: string;
 }

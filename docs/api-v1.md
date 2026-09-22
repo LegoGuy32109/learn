@@ -223,8 +223,13 @@ Current status meanings:
 - `410`: invite already used or expired.
 - `413`: request exceeds the size limit.
 - `422`: lesson document failed resolution.
+- `500`: the server could not complete the request, including a database or
+  network failure during authentication. A failed token lookup is never `401`.
 - `501`: passkeys requested from an origin that is not the configured relying
   party.
+
+Every response, success or error, carries `x-learn-revision` naming the
+deployment revision that served it (`local` outside Deno Deploy).
 
 ## Alpha limitations
 
