@@ -22,3 +22,20 @@ Deno.test("production tasks load only the production env file", () => {
   }
   assert(tasks.deploy.includes("scripts/deploy.ts"));
 });
+
+// Ticket 25: a top-level `exclude` in deno.json also removes the named files from the
+// deploy upload, which is how production lost /sw.js. The worker stays out of the
+// dom-lib check by not being listed in it, and is checked on its own under deno.worker.json.
+Deno.test("deno.json has no top-level exclude, so the upload carries every source file", () => {
+  assertEquals(config.exclude, undefined);
+});
+
+Deno.test("the check task type-checks the worker only under the webworker config", () => {
+  const [domPass, workerPass] = (config.tasks.check as string).split(" && ");
+  assert(!domPass.includes("src/client/pwa/sw.js"), "the dom-lib pass must not name the worker");
+  assert(!domPass.includes("src/client/**"), "a client-wide glob would pull the worker into the dom-lib pass");
+  assertEquals(workerPass, "deno check --config deno.worker.json src/client/pwa/sw.js");
+  for (const file of ["register.js", "sw-routing.js", "update-policy.js"]) {
+    assert(domPass.includes(`src/client/pwa/${file}`), `${file} must stay in the dom-lib pass`);
+  }
+});

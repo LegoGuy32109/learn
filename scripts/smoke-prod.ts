@@ -1,8 +1,9 @@
 // Production smoke for the deployed application. It runs after every deploy.
 //
-// It fetches the shell, the capability document, the lesson schema and the
-// downloadable validator, resolves the demo fixture without persistence, and
-// lists lessons with the production owner token. It prints one line per check
+// It fetches the shell, the rendered service worker, the capability document,
+// the lesson schema and the downloadable validator, resolves the demo fixture
+// without persistence, and lists lessons with the production owner token. The
+// shell and the capability document must also carry Strict-Transport-Security. It prints one line per check
 // and never prints a token. On a failure it prints the status, the serving
 // revision from the `x-learn-revision` header and the response body.
 //
@@ -76,14 +77,35 @@ function status(expected: number, response: Response): string | null {
   return response.status === expected ? null : `expected ${expected}, got ${response.status}`;
 }
 
+/** Ticket 26: every HTTPS response carries HSTS with a max-age of at least 180 days. */
+function hsts(response: Response): string | null {
+  const value = response.headers.get("strict-transport-security");
+  if (!value) return "no strict-transport-security header";
+  const maxAge = Number(value.match(/max-age=(\d+)/)?.[1] ?? 0);
+  return maxAge >= 15552000 ? null : `strict-transport-security max-age is ${maxAge}, below 15552000`;
+}
+
 await check("shell", "/", {}, (response, text) => {
   if (status(200, response)) return status(200, response);
   if (!response.headers.get("content-type")?.startsWith("text/html")) return "shell is not text/html";
+  if (hsts(response)) return hsts(response);
   return text.includes(fixture.title) ? null : "shell does not name the demo lesson";
+});
+
+// Ticket 25: a deploy that drops the worker source from the upload answered 404 here, and
+// nothing installed or worked offline. The rendered worker must arrive as JavaScript with both
+// placeholders substituted.
+await check("service worker", "/sw.js", {}, (response, text) => {
+  if (status(200, response)) return status(200, response);
+  if (!response.headers.get("content-type")?.startsWith("text/javascript")) return "worker is not text/javascript";
+  if (text.includes("__BUILD_HASH__")) return "worker still carries the __BUILD_HASH__ placeholder";
+  if (text.includes("__PRECACHE__")) return "worker still carries the __PRECACHE__ placeholder";
+  return text.includes("addEventListener") ? null : "worker body does not register a listener";
 });
 
 await check("capabilities", "/api/v1/capabilities", {}, (response, text) => {
   if (status(200, response)) return status(200, response);
+  if (hsts(response)) return hsts(response);
   const body = JSON.parse(text);
   return body.apiVersion === "v1" && body.links?.validator ? null : "capability document is incomplete";
 });

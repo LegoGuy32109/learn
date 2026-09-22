@@ -595,6 +595,12 @@ async function shelf(browser: any, signedIn: SignedIn) {
       return `IndexedDB lessons has ${revisionId}; progress_streams pins epoch 0; ${await snap(page, "audit draft overview")}`;
     });
 
+    // This is a fresh browser context, so the worker that will answer an offline reload has its
+    // own install to finish here: fetching and caching the whole shell. Wait for it to take
+    // control before going offline, the way the e2e suite does, or airplane mode below races a
+    // worker that is still "installing" and every request fails outright.
+    await page.waitForFunction(() => navigator.serviceWorker.controller !== null, null, { timeout: 10000 });
+
     // Airplane mode from the learning URL. A reload needs the cached shell; completing the Concept needs only IndexedDB.
     await context.setOffline(true);
     let offlineReload = "";

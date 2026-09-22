@@ -113,8 +113,13 @@ deno task smoke:prod
 `scripts/smoke-prod.ts` reads `LEARN_OWNER_TOKEN` from the `.env.prod` file
 itself and checks the default URL over HTTPS:
 
-- `GET /` returns the HTML shell naming the demo lesson.
-- `GET /api/v1/capabilities` returns the capability document.
+- `GET /` returns the HTML shell naming the demo lesson, with
+  `Strict-Transport-Security`.
+- `GET /sw.js` returns the rendered service worker as `text/javascript` with
+  the build hash and precache list substituted. Ticket 25 records the deploy
+  that dropped it.
+- `GET /api/v1/capabilities` returns the capability document, with
+  `Strict-Transport-Security`.
 - `GET /api/v1/schemas/lesson/v1` returns the lesson schema.
 - `GET /tools/lesson-validator.js` returns the downloadable validator.
 - `POST /api/v1/lesson-resolutions` resolves the demo fixture as valid without
@@ -134,12 +139,32 @@ process already set. `deno task deploy` loads `.env`, which has the local
 `LEARN_OWNER_TOKEN`, so a smoke that trusted its environment inherited the
 local token and production answered `401`. Ticket 16 records the evidence.
 
-## Revision header
+## What the upload contains
+
+The CLI honors two lists in `deno.json`: `deploy.exclude` and the top-level
+`exclude`. The top-level list exists for the Deno tools (`check`, `lint`,
+`fmt`), but the deploy CLI reads it too and drops the named files from the
+upload. Ticket 06 excluded `src/client/pwa/sw.js` there so the dom-lib check
+skipped it, and production then answered 404 for `/sw.js` (ticket 25). Do not
+add a top-level `exclude`. The `check` task lists the files of its dom-lib pass
+explicitly and checks the worker alone under `deno.worker.json`;
+`tests/server/deploy_config_test.ts` guards both. A new directory under
+`src/client` must be added to the `check` task.
+
+## Revision and security headers
 
 Every response carries `x-learn-revision` with the value of
 `DENO_DEPLOY_BUILD_ID`, the id of the revision that served it. Locally the
 header says `local`. Compare it with the id `deno task deploy` printed when a
 response looks like it came from the wrong revision.
+
+The same wrapper in `src/app.ts` sets `x-content-type-options: nosniff` and
+`referrer-policy: same-origin` on every response, and
+`strict-transport-security: max-age=31536000; includeSubDomains` on every
+response whose request arrived over HTTPS (the request URL is `https:`, or the
+edge says so in `x-forwarded-proto`). The plain `http://localhost` development
+server never sends HSTS, so a browser does not pin it for the port-less host.
+Deno Deploy adds none of these itself (ticket 26).
 
 ## Rollback
 
