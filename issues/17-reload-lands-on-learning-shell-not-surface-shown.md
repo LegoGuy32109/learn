@@ -41,7 +41,7 @@ Code: `public/js/app.js` `boot()` and the `popstate` handler; `public/js/learn.j
 
 **Blocked by:** None.
 
-**Status:** done (see commit below)
+**Status:** done 9d309ee
 
 - [x] Reload after square Back from Card 1 shows the overview with Resume.
 - [x] Browser Back at the first learning step leaves the URL at `/` and a

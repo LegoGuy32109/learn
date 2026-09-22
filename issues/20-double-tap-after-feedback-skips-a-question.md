@@ -29,7 +29,7 @@ double-tap "Try another from this concept" and count the Questions asked.
 
 **Blocked by:** None.
 
-**Status:** done (see commit below)
+**Status:** done 9d309ee
 
 - [x] Two taps within one render cycle on any learning or drill action have
       the effect of one tap.

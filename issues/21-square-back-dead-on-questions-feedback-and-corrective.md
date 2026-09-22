@@ -32,7 +32,7 @@ signature changed. Code: `src/client/learning/flow.js` `stepBack()`,
 
 **Blocked by:** None.
 
-**Status:** done (see commit below)
+**Status:** done 9d309ee
 
 - [x] Back on the correcting Card in the learning shell returns to the
       interrupted Question.
