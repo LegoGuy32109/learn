@@ -113,6 +113,22 @@ Question and option order are stable across reload. Create a UUIDv4 attempt ID
 and random seed at the start of a Check or Wrap-up. A new attempt gets a new
 seed.
 
+## Drill
+
+From the overview, **Every question** starts a drill: every Question in every
+Pool, reserved ones included, asked once in a random order fixed by a
+persisted seed. Every answer gets the same feedback as the learning flow, with
+the belief and the clamped correcting Card on a wrong answer. Drill never
+re-asks and never awards Seen or Learned.
+
+Drill evidence is its own stream: `drill_question_answered` and
+`drill_checkpointed` events carrying a run ID. No learning or navigation event
+is written during a drill, so the shelf state and the learning checkpoint are
+identical before and after one. The drill checkpoint replays from the drill
+stream like the learning checkpoint. A null checkpoint closes the run. The
+summary lists each Concept with what happened and repeats that drill does not
+earn Learned; it shows no score and no percentage.
+
 ## Answer evaluation
 
 - **MCQ**: Store stable option IDs from the Concept's shared set. Shuffle
