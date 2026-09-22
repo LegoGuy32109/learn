@@ -87,7 +87,10 @@ bypass. `learn-prod` is created only by ticket 05.
 | 30 | Four MCQ diagnostic codes are marked schema-catchable but are not | none | defect |
 | 31 | misconception.id is mislabeled "resolver only" | none | defect |
 
-Progress on 2026-09-22: 01, 02, 03, 04, 05, 06, 07, 08, 09, 11, 12, 16 and defects
+Progress on 2026-09-22: every implementation ticket (01 to 11) and the audits
+12, 13 and 14 are merged, with defects 17 to 26 fixed. Running: 15 (cross-device
+sync audit) and defects 30, 31. Production serves the app, the plugin, the
+service worker and HSTS.
 18, 19, 22, 23, 24 are merged. Also merged: 14 and defects 17, 20, 21. Running: 10, 13 and defects 25, 26.
 
 The frontier at the start was 01, 05 and 11. After 01 lands, 02, 06 and 07
