@@ -81,7 +81,10 @@ bypass. `learn-prod` is created only by ticket 05.
 | 23 | Every MCQ in an attempt shows the Concept's options in the same order | none | defect |
 | 24 | Enter in the answer field does not submit the answer | none | defect |
 
-The frontier at the start is 01, 05 and 11. After 01 lands, 02, 06 and 07
+Progress on 2026-09-22: 01, 02, 03, 04, 05, 06, 07, 08, 09, 11, 12, 16 and defects
+18, 19, 22, 23, 24 are merged. Running: 10, 13, 14 and defects 17, 20, 21.
+
+The frontier at the start was 01, 05 and 11. After 01 lands, 02, 06 and 07
 open. After 02 lands, 03, 09 and, with 07, 08 open.
 
 ## Later
