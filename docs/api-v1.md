@@ -20,7 +20,68 @@ GET /tools/lesson-validator.d.ts
 The downloadable validator is generated from
 `src/shared/authoring/resolver.js`. Run `deno task tools:generate` after changing
 the resolver. The generated JavaScript has no dependencies and does not make
-network requests.
+network requests. A test runs it in a subprocess from a temporary directory
+and requires its result JSON to match the shared resolver byte for byte for
+every fixture.
+
+## The lesson/v1 document
+
+`lesson/v1` follows the quiz plugin's content model. The full shape is the
+demo fixture `fixtures/lessons/browser-http-cache.json`; the rules are:
+
+- A Concept owns `options`: exactly three `{ id, text }` entries shared by
+  every MCQ in that Concept. Option IDs are stable local identifiers
+  (`^[A-Za-z0-9_-]{1,64}$`), unique within the Concept.
+- A Concept owns `misconceptions`: `{ id, statement, correctingCardId }`
+  entries. The statement is written as the belief itself. The Card must be in
+  the same Concept. Every misconception must be used by some MCQ distractor.
+- A Card `body` is an array of paragraph strings. Inline HTML such as
+  `<code>` and `<em>` is allowed. Cards are 120 to 200 words after tags are
+  stripped, and should have at least two paragraphs.
+- Questions stay at the top level with `conceptId` and `poolId`. Every
+  Question carries `reserved` (default `false`) and `correctingCardId` in its
+  Concept. A Check never draws a reserved Question; the Wrap-up draws reserved
+  Questions first, so each Pool needs at least three drawable Questions and
+  one reserved Question.
+- An MCQ names its `key` (an option ID), a `map` from every distractor option
+  ID to a misconception ID, and `feedback` for every option including the key.
+- A numeric Question has `answer`, a non-zero `tolerance`, an optional `unit`
+  and `feedback`. Its answer must appear in a Card of its Concept. It is never
+  reserved.
+- A short Question has `answer`, optional `aliases` and `feedback`.
+
+Concept, Card, Pool and Question IDs are UUIDv4. Sources and provenance are
+unchanged.
+
+## Diagnostics
+
+Every diagnostic has a stable `code`, a JSON Pointer `path` and a `severity`
+of `error` or `warning`. Diagnostics are sorted by path, then code. Errors
+make the document invalid; a document with only warnings resolves with
+`valid: true` and the warnings included.
+
+Structural codes include `concept.options.count`, `concept.option.id`,
+`mcq.key`, `mcq.map.missing`, `mcq.map.unknown`, `mcq.feedback.missing`,
+`misconception.card`, `misconception.unused`, `pool.reserved.missing`,
+`numeric.reserved` and `card.body.paragraphs`.
+
+Author-quality codes ported from the plugin validator:
+
+| Code | Severity | Rule |
+| --- | --- | --- |
+| `card.words` | error | Card word count outside 120 to 200 after stripping inline HTML |
+| `concept.options.ratio` | error | Longest to shortest option length ratio above 1.35 |
+| `lesson.key.longest` | error | Key is the longest option in more than one third of MCQs, lesson-wide |
+| `question.stem.unbound` | error | Stem contains an unbound reference such as "the above" |
+| `numeric.answer.uncovered` | error | Numeric answer appears in no Card of its Concept |
+| `numeric.tolerance.missing` | error | Numeric Question has no tolerance, or a tolerance of zero |
+| `pool.drawable.minimum` | error | Fewer than three drawable Questions in a Pool |
+| `card.paragraphs.single` | warning | Single-paragraph Card |
+
+Adversarial input is rejected with `document.object`, `document.nesting`
+(deeper than 32 levels) or `document.size` (over 1,000,000 bytes) before any
+other rule runs. Every code has a fixture under `fixtures/authoring/` listed
+in `manifest.json`.
 
 ## Resolve without persistence
 

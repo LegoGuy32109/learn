@@ -1,7 +1,5 @@
 {
   "schema": "lesson/v1",
-  "lessonId": "7a1f7700-0000-4000-8000-000000000001",
-  "revisionId": "7a1f7700-0000-4000-8000-000000000002",
   "schemaVersion": 1,
   "title": "How browser HTTP caching works",
   "assumedKnowledge": "You can read HTTP request and response headers.",
@@ -281,8 +279,7 @@
       "correctingCardId": "7a1f7700-0000-4000-8000-000000000122",
       "key": "not_modified",
       "map": {
-        "full_response": "match_returns_full_body",
-        "no_request": "validator_is_permission"
+        "full_response": "match_returns_full_body"
       },
       "feedback": {
         "not_modified": "Correct. A matching validator earns a 304 with no body, and the cache keeps serving the bytes it already holds.",

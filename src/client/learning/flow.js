@@ -4,6 +4,7 @@
 import { shuffled } from "../../shared/learning/shuffle.js";
 import { evaluateAnswer } from "../../shared/learning/evaluate.js";
 import { advanceCheck, advanceWrapUp } from "../../shared/learning/transitions.js";
+import { poolQuestions } from "../../shared/lessons/lesson.js";
 
 /**
  * @typedef {object} Flow
@@ -15,12 +16,24 @@ import { advanceCheck, advanceWrapUp } from "../../shared/learning/transitions.j
  * @property {string} attemptId
  * @property {string[]} queue  Remaining Question IDs; the head is the visible Question
  * @property {number} [wrapTotal]
- * @property {any} feedback  Submitted feedback, or null while a Question is unanswered
+ * @property {Feedback|null} feedback  Submitted feedback, or null while a Question is unanswered
  * @property {any} detour  The flow to return to from a correcting Card
  * @property {string[]} [learningEventFrontier]
  */
 
 /** @typedef {{ seed: number, attemptId: string }} Attempt */
+
+/**
+ * Feedback for one submitted answer. `belief` is the misconception behind a chosen MCQ distractor.
+ * `cardId` is the Card that corrects the answer: the misconception's Card for a distractor, otherwise
+ * the Question's own correcting Card. Correct answers carry neither.
+ * @typedef {object} Feedback
+ * @property {boolean} correct
+ * @property {boolean} idk
+ * @property {string} text
+ * @property {string|null} belief
+ * @property {string|null} cardId
+ */
 
 /**
  * Card-reading position at the first Card of one Concept.
@@ -75,14 +88,16 @@ export function activeConcept(lesson, flow) {
 /**
  * @param {any} lesson
  * @param {any} concept
+ * @param {"drawable" | "reserved" | "all"} kind
  * @returns {string[]}
  */
-function questionIds(lesson, concept) {
-  return lesson.questions.filter((question) => question.conceptId === concept.id).map((question) => question.id);
+function questionIds(lesson, concept, kind) {
+  return poolQuestions(lesson, concept.id, kind).map((question) => question.id);
 }
 
 /**
  * Begin the formative Check for the Concept the learner just finished reading.
+ * A Check never draws a reserved Question; those are kept back for the Wrap-up.
  * @param {any} lesson
  * @param {Flow} flow
  * @param {Attempt} attempt
@@ -90,8 +105,21 @@ function questionIds(lesson, concept) {
  */
 export function startCheck(lesson, flow, attempt) {
   const concept = lesson.concepts[flow.conceptIndex];
-  const queue = shuffled(questionIds(lesson, concept), attempt.seed);
+  const queue = shuffled(questionIds(lesson, concept, "drawable"), attempt.seed);
   return { ...flow, screen: "question", flowKind: "check", seed: attempt.seed, attemptId: attempt.attemptId, queue, feedback: null };
+}
+
+/**
+ * The Question the Wrap-up asks for one Concept: a reserved Question first, so the learner
+ * meets one the Checks never showed. Only a Pool without a reserved Question falls back to any.
+ * @param {any} lesson
+ * @param {any} concept
+ * @param {number} seed
+ */
+export function wrapUpQuestionId(lesson, concept, seed) {
+  const reserved = questionIds(lesson, concept, "reserved");
+  const candidates = reserved.length ? reserved : questionIds(lesson, concept, "all");
+  return shuffled(candidates, seed)[0];
 }
 
 /**
@@ -101,7 +129,7 @@ export function startCheck(lesson, flow, attempt) {
  * @returns {Flow}
  */
 export function startWrapUp(lesson, attempt) {
-  const queue = lesson.concepts.map((concept, index) => shuffled(questionIds(lesson, concept), attempt.seed + index)[0]);
+  const queue = lesson.concepts.map((concept, index) => wrapUpQuestionId(lesson, concept, attempt.seed + index));
   const position = { conceptIndex: lesson.concepts.length - 1, cardIndex: 0 };
   const attemptFields = { seed: attempt.seed, attemptId: attempt.attemptId, queue, wrapTotal: queue.length };
   return { screen: "question", flowKind: "wrap_up", ...position, ...attemptFields, feedback: null, detour: null };
@@ -121,6 +149,50 @@ export function continueFromCard(lesson, flow, attempt) {
 }
 
 /**
+ * The Concept that owns a Question.
+ * @param {any} lesson
+ * @param {any} question
+ */
+function conceptOf(lesson, question) {
+  return lesson.concepts.find((/** @type {any} */ concept) => concept.id === question.conceptId);
+}
+
+/**
+ * Feedback for one submitted answer, following the plugin's pedagogy: every option has its own
+ * feedback, a chosen distractor names the belief behind it, and every wrong or unknown answer
+ * points at the Card that corrects it.
+ * @param {any} lesson
+ * @param {any} question
+ * @param {unknown} answer
+ * @param {boolean} idk
+ * @param {boolean} correct
+ * @returns {Feedback}
+ */
+export function buildFeedback(lesson, question, answer, idk, correct) {
+  const concept = conceptOf(lesson, question);
+  if (question.type !== "mcq") {
+    const text = idk ? `The answer is ${question.answer}${question.unit ? ` ${question.unit}` : ""}. ${question.feedback}` : question.feedback;
+    return { correct, idk, text, belief: null, cardId: correct ? null : question.correctingCardId };
+  }
+  const keyText = concept.options.find((/** @type {any} */ option) => option.id === question.key)?.text ?? "";
+  if (idk) {
+    return { correct: false, idk: true, text: `The answer is: ${keyText} ${question.feedback[question.key]}`, belief: null, cardId: question.correctingCardId };
+  }
+  const chosen = typeof answer === "string" && Object.hasOwn(question.feedback, answer) ? answer : question.key;
+  const text = question.feedback[chosen];
+  if (correct) return { correct: true, idk: false, text, belief: null, cardId: null };
+  const misconceptionId = Object.hasOwn(question.map, chosen) ? question.map[chosen] : null;
+  const misconception = concept.misconceptions.find((/** @type {any} */ candidate) => candidate.id === misconceptionId);
+  return {
+    correct: false,
+    idk: false,
+    text,
+    belief: misconception?.statement ?? null,
+    cardId: misconception?.correctingCardId ?? question.correctingCardId,
+  };
+}
+
+/**
  * Evaluate an answer and attach feedback. Feedback never auto-advances.
  * @param {any} lesson
  * @param {Flow} flow
@@ -130,16 +202,9 @@ export function continueFromCard(lesson, flow, attempt) {
  */
 export function submitAnswer(lesson, flow, answer, idk) {
   const question = current(lesson, flow);
-  const correct = !idk && evaluateAnswer(question, answer);
-  let text;
-  if (idk) {
-    const canonical = question.answer ?? question.options.find((option) => option.correct).text;
-    text = `The answer is ${canonical}. ${question.feedback || ""}`;
-  } else {
-    const option = question.options?.find((candidate) => candidate.id === answer);
-    text = option?.feedback || question.feedback;
-  }
-  return { question, correct, flow: { ...flow, feedback: { correct, idk, text } } };
+  const correct = !idk && evaluateAnswer(lesson, question, answer);
+  const feedback = buildFeedback(lesson, question, answer, idk, correct);
+  return { question, correct, flow: { ...flow, feedback } };
 }
 
 /**
@@ -150,7 +215,7 @@ export function submitAnswer(lesson, flow, answer, idk) {
  * @returns {Flow}
  */
 export function advance(lesson, flow, attempt) {
-  const feedback = flow.feedback;
+  const feedback = flow.feedback ?? { correct: false, idk: false };
   if (flow.flowKind === "check") {
     const next = advanceCheck({ queue: flow.queue, correct: feedback.correct, idk: feedback.idk });
     if (!next.done) return { ...flow, queue: next.queue, feedback: null };
@@ -170,7 +235,8 @@ export function advance(lesson, flow, attempt) {
  */
 export function enterCorrective(lesson, flow) {
   const question = current(lesson, flow);
-  const owns = (/** @type {any} */ card) => card.id === question.correctingCardId;
+  const cardId = flow.feedback?.cardId ?? question.correctingCardId;
+  const owns = (/** @type {any} */ card) => card.id === cardId;
   const conceptIndex = lesson.concepts.findIndex((/** @type {any} */ concept) => concept.cards.some(owns));
   const cardIndex = lesson.concepts[conceptIndex].cards.findIndex(owns);
   return { ...flow, detour: structuredClone(flow), conceptIndex, cardIndex, screen: "corrective" };

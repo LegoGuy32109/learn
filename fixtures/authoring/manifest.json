@@ -1,0 +1,243 @@
+[
+  {
+    "file": "authoring/valid/demo-without-ids.json",
+    "valid": true,
+    "codes": [],
+    "exact": true,
+    "note": "The demo lesson without the fixture-only lessonId and revisionId."
+  },
+  {
+    "file": "authoring/valid/declined-provenance.json",
+    "valid": true,
+    "codes": [],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "authoring/valid/warning-single-paragraph-card.json",
+    "valid": true,
+    "codes": [
+      "card.paragraphs.single"
+    ],
+    "exact": true,
+    "note": "Warnings return with valid: true."
+  },
+  {
+    "file": "authoring/invalid/concept-options-count.json",
+    "valid": false,
+    "codes": [
+      "concept.options.count"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "authoring/invalid/mcq-key-not-in-set.json",
+    "valid": false,
+    "codes": [
+      "mcq.key"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "authoring/invalid/mcq-distractor-without-misconception.json",
+    "valid": false,
+    "codes": [
+      "mcq.map.missing"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "authoring/invalid/mcq-misconception-unknown.json",
+    "valid": false,
+    "codes": [
+      "mcq.map.unknown"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "authoring/invalid/mcq-feedback-missing.json",
+    "valid": false,
+    "codes": [
+      "mcq.feedback.missing"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "authoring/invalid/misconception-card-outside-concept.json",
+    "valid": false,
+    "codes": [
+      "misconception.card"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "authoring/invalid/misconception-unused.json",
+    "valid": false,
+    "codes": [
+      "misconception.unused"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "authoring/invalid/pool-without-reserved.json",
+    "valid": false,
+    "codes": [
+      "pool.reserved.missing"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "authoring/invalid/numeric-reserved.json",
+    "valid": false,
+    "codes": [
+      "numeric.reserved"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "authoring/invalid/card-body-not-paragraphs.json",
+    "valid": false,
+    "codes": [
+      "card.body.paragraphs"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "authoring/invalid/card-ninety-words.json",
+    "valid": false,
+    "codes": [
+      "card.words"
+    ],
+    "exact": true,
+    "note": "90 words."
+  },
+  {
+    "file": "authoring/invalid/option-ratio.json",
+    "valid": false,
+    "codes": [
+      "concept.options.ratio"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "authoring/invalid/key-longest-lesson-wide.json",
+    "valid": false,
+    "codes": [
+      "lesson.key.longest"
+    ],
+    "exact": true,
+    "note": "3 of 6 MCQs key the longest option."
+  },
+  {
+    "file": "authoring/invalid/stem-unbound-reference.json",
+    "valid": false,
+    "codes": [
+      "question.stem.unbound"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "authoring/invalid/numeric-answer-uncovered.json",
+    "valid": false,
+    "codes": [
+      "numeric.answer.uncovered"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "authoring/invalid/numeric-tolerance-missing.json",
+    "valid": false,
+    "codes": [
+      "numeric.tolerance.missing"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "authoring/invalid/numeric-tolerance-zero.json",
+    "valid": false,
+    "codes": [
+      "numeric.tolerance.missing"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "authoring/invalid/pool-two-drawable.json",
+    "valid": false,
+    "codes": [
+      "pool.drawable.minimum"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "authoring/invalid/demo-path-two-diagnostics.json",
+    "valid": false,
+    "codes": [
+      "lesson.key.longest",
+      "card.words"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "authoring/invalid/adversarial-duplicate-question-id.json",
+    "valid": false,
+    "codes": [
+      "question.id"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "authoring/invalid/adversarial-duplicate-concept-id.json",
+    "valid": false,
+    "codes": [
+      "concept.id"
+    ],
+    "exact": false,
+    "note": ""
+  },
+  {
+    "file": "authoring/invalid/adversarial-duplicate-card-id.json",
+    "valid": false,
+    "codes": [
+      "card.id"
+    ],
+    "exact": false,
+    "note": ""
+  },
+  {
+    "file": "authoring/invalid/adversarial-prototype-keys.json",
+    "valid": false,
+    "codes": [
+      "concept.option.id",
+      "misconception.id"
+    ],
+    "exact": false,
+    "note": ""
+  },
+  {
+    "file": "authoring/invalid/adversarial-deep-nesting.json",
+    "valid": false,
+    "codes": [
+      "document.nesting"
+    ],
+    "exact": true,
+    "note": ""
+  }
+]

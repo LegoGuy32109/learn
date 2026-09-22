@@ -1,7 +1,5 @@
 {
   "schema": "lesson/v1",
-  "lessonId": "7a1f7700-0000-4000-8000-000000000001",
-  "revisionId": "7a1f7700-0000-4000-8000-000000000002",
   "schemaVersion": 1,
   "title": "How browser HTTP caching works",
   "assumedKnowledge": "You can read HTTP request and response headers.",
@@ -29,7 +27,7 @@
       "statement": "Decide whether a stored response may be reused without contacting the origin, and work out how long it stays fresh.",
       "options": [
         {
-          "id": "reuse",
+          "id": "__proto__",
           "text": "Reuse the stored response without contacting the origin at all."
         },
         {
@@ -43,7 +41,7 @@
       ],
       "misconceptions": [
         {
-          "id": "validate_every_time",
+          "id": "constructor",
           "statement": "A cache has to check with the origin before every reuse, even while the response is fresh.",
           "correctingCardId": "7a1f7700-0000-4000-8000-000000000111"
         },
@@ -213,15 +211,15 @@
       "reserved": false,
       "stem": "A browser holds a stored response with Cache-Control: max-age=60 and a current age of 20 seconds. A matching request arrives. What may the cache do?",
       "correctingCardId": "7a1f7700-0000-4000-8000-000000000111",
-      "key": "reuse",
+      "key": "__proto__",
       "map": {
-        "revalidate": "validate_every_time",
+        "revalidate": "constructor",
         "refetch": "fresh_means_newest"
       },
       "feedback": {
-        "reuse": "Correct. At 20 seconds of a 60-second lifetime the response is fresh, and freshness is permission to reuse without asking.",
         "revalidate": "Validation is for stale responses. This one is still fresh, so the origin told the cache not to ask yet.",
-        "refetch": "Nothing forbids serving the stored copy. Freshness does not claim the origin is unchanged; it grants reuse anyway."
+        "refetch": "Nothing forbids serving the stored copy. Freshness does not claim the origin is unchanged; it grants reuse anyway.",
+        "__proto__": "Correct. At 20 seconds of a 60-second lifetime the response is fresh, and freshness is permission to reuse without asking."
       }
     },
     {
@@ -262,13 +260,13 @@
       "correctingCardId": "7a1f7700-0000-4000-8000-000000000112",
       "key": "revalidate",
       "map": {
-        "reuse": "stale_still_reusable",
-        "refetch": "stale_is_discarded"
+        "refetch": "stale_is_discarded",
+        "__proto__": "stale_still_reusable"
       },
       "feedback": {
         "revalidate": "Correct. At 90 seconds the response is stale, so the cache asks the origin whether its copy is still good instead of serving it blindly.",
-        "reuse": "The response is 30 seconds past its lifetime. Stale responses are not served as if fresh; they are checked first.",
-        "refetch": "Stale is not worthless. The cache keeps the bytes and asks whether they are still valid, which is usually far cheaper than a full fetch."
+        "refetch": "Stale is not worthless. The cache keeps the bytes and asks whether they are still valid, which is usually far cheaper than a full fetch.",
+        "__proto__": "The response is 30 seconds past its lifetime. Stale responses are not served as if fresh; they are checked first."
       }
     },
     {
@@ -401,5 +399,13 @@
       ],
       "feedback": "must-revalidate. It leaves fresh reuse alone and forbids serving stale bytes without a successful check."
     }
-  ]
+  ],
+  "__proto__": {
+    "polluted": true
+  },
+  "constructor": {
+    "prototype": {
+      "polluted": true
+    }
+  }
 }

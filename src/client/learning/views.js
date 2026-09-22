@@ -1,7 +1,21 @@
 // @ts-check
 // Renders the Card, Question, feedback, corrective and summary views of the learning shell.
 import { shuffled } from "../../shared/learning/shuffle.js";
+import { card as findCard } from "../../shared/lessons/lesson.js";
 import { actionButton, backButton } from "../ui/controls.js";
+
+/** @param {string} value */
+function escape(value) {
+  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+}
+
+/**
+ * Card paragraphs. Card bodies are authored as paragraph arrays with trusted inline HTML.
+ * @param {string[]} body
+ */
+function paragraphs(body) {
+  return body.map((paragraph) => `<p>${paragraph}</p>`).join("");
+}
 
 /**
  * @param {any} concept
@@ -13,25 +27,45 @@ export function cardView(concept, card, flow) {
     ? '<div class="notice"><span><strong>Correcting card.</strong> Review this idea, then return to the question.</span></div>'
     : "";
   const position = `${concept.title} · Card ${flow.cardIndex + 1} of ${concept.cards.length}`;
-  return `${notice}<div class="cardbody"><p class="eyebrow">${position}</p><h2>${card.heading}</h2><p>${card.body}</p></div>`;
-}
-
-/** @param {any} feedback */
-export function feedbackView(feedback) {
-  const className = feedback.correct ? "feedback good" : "feedback";
-  const verdict = feedback.correct ? "Correct" : "Not quite";
-  const corrective = feedback.correct ? "" : '<button class="source" data-action="corrective">Review the correcting card</button>';
-  return `<div class="${className}"><p class="verdict">${verdict}</p><p>${feedback.text}</p></div>${corrective}`;
+  return `${notice}<div class="cardbody"><p class="eyebrow">${position}</p><h2>${card.heading}</h2>${paragraphs(card.body)}</div>`;
 }
 
 /**
+ * The correcting Card clamped to its first paragraph. The rest folds behind a disclosure so the
+ * action row above it stays reachable without scrolling.
+ * @param {any} card
+ */
+export function clampedCardView(card) {
+  const [first, ...rest] = card.body;
+  const more = rest.length
+    ? `<details class="more"><summary>Read the rest of this card</summary>${paragraphs(rest)}</details>`
+    : "";
+  return `<aside class="corrects" aria-label="Correcting card"><p class="eyebrow">Corrected by</p><h3>${card.heading}</h3><p>${first}</p>${more}</aside>`;
+}
+
+/**
+ * Verdict, option feedback and, for a chosen distractor, the belief behind it.
+ * @param {import("./flow.js").Feedback} feedback
+ */
+export function feedbackView(feedback) {
+  const className = feedback.correct ? "feedback good" : "feedback";
+  const verdict = feedback.correct ? "Correct" : feedback.idk ? "Recorded" : "Not quite";
+  const belief = feedback.belief
+    ? `<div class="belief">The belief behind that option: <b>${escape(feedback.belief)}</b></div>`
+    : "";
+  const corrective = feedback.cardId ? '<button class="source" data-action="corrective">Review the correcting card</button>' : "";
+  return `<div class="${className}"><p class="verdict">${verdict}</p><p>${feedback.text}</p></div>${belief}${corrective}`;
+}
+
+/**
+ * @param {any} concept
  * @param {any} question
  * @param {any} flow
  */
-function answerForm(question, flow) {
+function answerForm(concept, question, flow) {
   if (question.type === "mcq") {
-    const options = shuffled(question.options, flow.seed);
-    const buttons = options.map((option) => `<button class="opt" data-answer="${option.id}">${option.text}</button>`);
+    const options = shuffled(concept.options, flow.seed);
+    const buttons = options.map((/** @type {any} */ option) => `<button class="opt" data-answer="${option.id}">${escape(option.text)}</button>`);
     return `<div class="opts">${buttons.join("")}</div>`;
   }
   const hint = question.unit ? `answer in ${question.unit}` : "one word or short phrase";
@@ -47,13 +81,13 @@ function answerForm(question, flow) {
 export function questionView(concept, question, flow) {
   const kind = flow.flowKind === "check" ? "Concept check" : "Wrap-up";
   const from = `${kind} · ${concept?.title || "Review"}`;
-  return `<div class="prompt"><p class="from">${from}</p><p class="qhead">${question.stem}</p></div>${answerForm(question, flow)}`;
+  return `<div class="prompt"><p class="from">${from}</p><p class="qhead">${escape(question.stem)}</p></div>${answerForm(concept, question, flow)}`;
 }
 
 /** @param {any} lesson */
 export function summaryView(lesson) {
   const count = lesson.concepts.length;
-  const hero = `<div class="lessonhero"><p class="eyebrow">Complete</p><h1>Learned</h1><p>You completed all three concepts and their Wrap-up questions.</p></div>`;
+  const hero = `<div class="lessonhero"><p class="eyebrow">Complete</p><h1>Learned</h1><p>You completed every concept and its Wrap-up question.</p></div>`;
   const summary = `<div class="summary"><div class="line"><span>Concepts learned</span><b>${count} of ${count}</b></div></div>`;
   return hero + summary;
 }
@@ -73,6 +107,17 @@ export function regionView(lesson, flow, concept, item) {
 }
 
 /**
+ * The clamped correcting Card shown under the action row after a wrong or unknown answer.
+ * @param {any} lesson
+ * @param {any} flow
+ */
+export function afterFooterView(lesson, flow) {
+  if (flow.screen !== "question" || !flow.feedback?.cardId) return "";
+  const card = findCard(lesson, flow.feedback.cardId);
+  return card ? clampedCardView(card) : "";
+}
+
+/**
  * The mobile action row under the region.
  * @param {any} flow
  */
@@ -82,7 +127,8 @@ export function footerView(flow) {
   if (flow.screen === "card") return `<div class="actions">${back}${actionButton("Continue", "continue")}</div>`;
   if (flow.screen === "corrective") return `<div class="actions">${back}${actionButton("Return to questions", "return")}</div>`;
   if (flow.feedback) {
-    const label = flow.feedback.correct || flow.feedback.idk ? "Continue" : "Try another from this concept";
+    const retry = !flow.feedback.correct && !flow.feedback.idk && flow.flowKind === "check" && flow.queue.length > 1;
+    const label = retry ? "Try another from this concept" : "Continue";
     return `<div class="actions">${back}${actionButton(label, "advance")}</div>`;
   }
   return `<div class="actions">${back}<button class="idk" data-action="idk">I don't know</button></div>`;

@@ -1,7 +1,5 @@
 {
   "schema": "lesson/v1",
-  "lessonId": "7a1f7700-0000-4000-8000-000000000001",
-  "revisionId": "7a1f7700-0000-4000-8000-000000000002",
   "schemaVersion": 1,
   "title": "How browser HTTP caching works",
   "assumedKnowledge": "You can read HTTP request and response headers.",
@@ -85,7 +83,7 @@
       ]
     },
     {
-      "id": "7a1f7700-0000-4000-8000-000000000012",
+      "id": "7a1f7700-0000-4000-8000-000000000011",
       "title": "Validators and conditional requests",
       "poolId": "7a1f7700-0000-4000-8000-000000000212",
       "statement": "Predict what a conditional request returns when the stored validator does or does not match the origin's current representation.",

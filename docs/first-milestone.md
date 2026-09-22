@@ -71,8 +71,9 @@ blank.
 Create `fixtures/lessons/browser-http-cache.json` as a normalized fixture:
 
 - exactly three Concepts;
-- 2–4 Cards per Concept;
-- at least three Questions per Concept;
+- 2–4 Cards per Concept, each an array of paragraphs of 120 to 200 words;
+- one shared set of three options and a misconception registry per Concept;
+- at least three drawable Questions and one reserved Question per Concept;
 - MCQ, numeric, and short-answer types represented;
 - correcting Card links for wrong answers and I don't know;
 - useful misconceptions rather than joke distractors; and

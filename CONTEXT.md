@@ -16,8 +16,10 @@ Use **How browser HTTP caching works** as the demo topic. Cover three Concepts:
 2. Validators and conditional requests
 3. Cache directives and revalidation
 
-Each Concept has 2–4 Cards and at least three Questions. Across the lesson,
-include MCQ, numeric, and short-answer Questions.
+Each Concept has 2–4 Cards, one shared set of three options, and a Pool of at
+least three drawable Questions plus one reserved for the Wrap-up. Across the
+lesson, include MCQ, numeric, and short-answer Questions. The content model
+follows the quiz plugin copied at `docs/reference/quiz-plugin-0.2.0/`.
 
 ## Product principles
 

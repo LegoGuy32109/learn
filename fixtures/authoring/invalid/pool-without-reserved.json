@@ -1,7 +1,5 @@
 {
   "schema": "lesson/v1",
-  "lessonId": "7a1f7700-0000-4000-8000-000000000001",
-  "revisionId": "7a1f7700-0000-4000-8000-000000000002",
   "schemaVersion": 1,
   "title": "How browser HTTP caching works",
   "assumedKnowledge": "You can read HTTP request and response headers.",
@@ -257,7 +255,7 @@
       "conceptId": "7a1f7700-0000-4000-8000-000000000011",
       "poolId": "7a1f7700-0000-4000-8000-000000000211",
       "type": "mcq",
-      "reserved": true,
+      "reserved": false,
       "stem": "A browser holds a stored response with Cache-Control: max-age=60, a current age of 90 seconds, and an ETag. A matching request arrives. What should the cache do?",
       "correctingCardId": "7a1f7700-0000-4000-8000-000000000112",
       "key": "revalidate",
