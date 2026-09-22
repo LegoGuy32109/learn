@@ -5,10 +5,9 @@
 import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert";
 import lesson from "../../fixtures/lessons/browser-http-cache.json" with { type: "json" };
 import { createApp } from "../../src/app.ts";
-import { TokenAuthenticator } from "../../src/server/auth.ts";
-import { TursoLessonRepository } from "../../src/server/repositories/lessons.ts";
 import { TokenAdmin, TokenAdminError } from "../../src/server/identity/token-admin.ts";
 import { redactBearerTokens } from "../../src/server/identity/redaction.ts";
+import { tursoDependencies } from "./support/dependencies.ts";
 import { createAccount, createEphemeralDatabase } from "./support/ephemeral.ts";
 
 const METADATA_KEYS = ["name", "prefix", "scopes", "createdAt", "lastUsedAt", "expiresAt", "revokedAt"].sort();
@@ -35,7 +34,7 @@ Deno.test("token lifecycle in an ephemeral database", async (t) => {
     let now = Date.now();
     const clock = () => now;
     const admin = new TokenAdmin(db, clock);
-    const app = createApp({ lessons: new TursoLessonRepository(db), auth: new TokenAuthenticator(db, clock) });
+    const app = createApp(tursoDependencies(db, clock));
     const listLessons = (token: string) => app(new Request("http://local/api/v1/lessons", { headers: bearer(token) }));
     const createLesson = (token: string) => app(new Request("http://local/api/v1/lessons", { method: "POST", headers: bearer(token), body: JSON.stringify(lesson) }));
 
@@ -174,7 +173,7 @@ async function realProcessSmoke(url: string, authToken: string): Promise<void> {
   const base = `http://127.0.0.1:${port}`;
   const env = { TURSO_DB_URL: url, TURSO_DB_TOKEN: authToken, PORT: String(port) };
   const server = new Deno.Command(Deno.execPath(), {
-    args: ["run", "--allow-env=TURSO_DB_URL,TURSO_DB_TOKEN,PORT", "--allow-net", "--allow-read", "main.ts"],
+    args: ["run", "--allow-env=TURSO_DB_URL,TURSO_DB_TOKEN,PORT,LEARN_SESSION_KEY,WEBAUTHN_RP_ID,WEBAUTHN_ORIGINS", "--allow-net", "--allow-read", "main.ts"],
     env,
     stdout: "null",
     stderr: "piped",

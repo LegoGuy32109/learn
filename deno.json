@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "dev": "deno run --env-file=.env --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN,PORT --allow-net --allow-read --watch main.ts",
+    "dev": "deno run --env-file=.env --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN,PORT,LEARN_SESSION_KEY,WEBAUTHN_RP_ID,WEBAUTHN_ORIGINS --allow-net --allow-read --watch main.ts",
     "check": "deno check main.ts src/app.ts public/js/*.js src/shared/**/*.js src/client/**/*.js src/server/**/*.ts scripts/*.ts",
     "test": "deno test --allow-read tests/shared tests/client tests/server",
     "e2e": "deno test --allow-all tests/e2e",
@@ -13,11 +13,20 @@
     "token:revoke": "deno run --env-file=.env --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN --allow-net --allow-read scripts/tokens.ts revoke",
     "token:rotate": "deno run --env-file=.env --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN --allow-net --allow-read scripts/tokens.ts rotate",
     "tools:generate": "deno run --allow-read --allow-write scripts/generate-tools.ts",
-    "test:db": "deno test --env-file=.env --allow-env --allow-net --allow-read --allow-run tests/db"
+    "test:db": "deno test --env-file=.env --allow-env --allow-net --allow-read --allow-run tests/db",
+    "invite:mint": "deno run --env-file=.env --allow-env=LEARN_OWNER_TOKEN,LEARN_BASE_URL --allow-net scripts/invite.ts"
   },
   "imports": {
     "@playwright/test": "npm:@playwright/test@1.63.0",
+    "@simplewebauthn/server": "npm:@simplewebauthn/server@13.3.2",
     "@tursodatabase/serverless/compat": "npm:@tursodatabase/serverless@1.4.0/compat"
   },
-  "compilerOptions": { "lib": ["deno.ns", "dom", "dom.iterable"], "noImplicitAny": false }
+  "compilerOptions": {
+    "lib": [
+      "deno.ns",
+      "dom",
+      "dom.iterable"
+    ],
+    "noImplicitAny": false
+  }
 }

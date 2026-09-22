@@ -5,7 +5,10 @@ import { page } from "../views/page.ts";
 import { type Route, route } from "./route.ts";
 
 export function pageRoutes(dependencies: Dependencies): Route[] {
-  const shell = async () => html(page(await dependencies.lessons.featured()));
+  const shell = async (request: Request) => {
+    const session = await dependencies.sessions.read(request);
+    return html(page(await dependencies.lessons.featured(), { signedIn: session != null, displayName: session?.displayName ?? null }));
+  };
   return [
     route("GET", "/", shell),
     route("GET", "/learn/*", shell),

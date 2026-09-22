@@ -4,6 +4,8 @@ import { tokenHash } from "./tokens.ts";
 export interface Principal {
   accountId: string;
   scopes: string[];
+  /** The prefix of the bearer token that authenticated, when one did. */
+  tokenPrefix?: string;
 }
 
 /**
@@ -35,7 +37,7 @@ export class TokenAuthenticator implements Authenticator {
     if (!TOKEN_SHAPE.test(token)) return UNAUTHENTICATED;
     const hash = await tokenHash(token);
     const result = await this.db.execute({
-      sql: "SELECT id, account_id, scopes_json, expires_at FROM api_tokens WHERE token_hash = ? AND revoked_at IS NULL",
+      sql: "SELECT id, account_id, token_prefix, scopes_json, expires_at FROM api_tokens WHERE token_hash = ? AND revoked_at IS NULL",
       args: [hash],
     });
     if (!result.rows.length) return UNAUTHENTICATED;
@@ -46,7 +48,7 @@ export class TokenAuthenticator implements Authenticator {
     if (!Array.isArray(scopes)) return UNAUTHENTICATED;
     await this.db.execute({ sql: "UPDATE api_tokens SET last_used_at = ? WHERE id = ?", args: [now, String(row.id)] });
     if (!scopes.includes(requiredScope)) return FORBIDDEN;
-    return { ok: true, principal: { accountId: String(row.account_id), scopes } };
+    return { ok: true, principal: { accountId: String(row.account_id), scopes, tokenPrefix: String(row.token_prefix) } };
   }
 }
 

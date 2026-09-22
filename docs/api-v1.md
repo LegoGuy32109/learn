@@ -104,6 +104,46 @@ revision instead of duplicating it.
 
 There is no publish API and no validation bypass.
 
+## Phone sign-in: invites, passkeys and the browser session
+
+A browser signs in with a passkey instead of a token. The two credentials
+resolve to the same account: `src/server/identity/current-account.ts` reads the
+session cookie first and the bearer token second, so later shelf and sync routes
+never inspect either directly.
+
+```text
+POST   /api/v1/sign-in-invites                  bearer with account:owner -> 201 { url, path, expiresAt }
+GET    /sign-in/{invite}                        HTML: register a passkey, or a plain error page
+POST   /api/v1/passkeys/registration-options    { invite } -> { options }
+POST   /api/v1/passkeys/registrations           { invite, credential } -> session cookie
+POST   /api/v1/passkeys/authentication-options  {} -> { options }
+POST   /api/v1/passkeys/authentications         { credential } -> session cookie
+GET    /api/v1/session                          { signedIn, displayName }
+DELETE /api/v1/session                          clears the cookie
+```
+
+- An invite is minted only for the account behind an owner-scoped token
+  (`account:owner`). A token without that scope gets `403`; an invalid token
+  gets `401`. Only a SHA-256 hash of the invite is stored. It expires after ten
+  minutes and is consumed by the registration that succeeds with it. A second or
+  late visit gets a `410` page; an unknown link gets a `404` page.
+- Registration and sign-in use `@simplewebauthn/server`. Each ceremony is bound
+  to one server-issued challenge that is deleted when presented, and the
+  response must match the relying-party ID and an allowed origin. A replayed
+  challenge answers `401`; a wrong origin or relying party answers `400`.
+- `WEBAUTHN_RP_ID` and `WEBAUTHN_ORIGINS` pin the relying party per deployment.
+  Without them only plain `localhost` works and every other origin gets `501`.
+- The stored credential is the id, the public key, the sign count, the
+  transports, and the creation and last-use times. The sign count must advance
+  on every assertion.
+- The session cookie `learn_session` is HttpOnly, SameSite=Lax, Secure
+  everywhere except plain localhost, lasts thirty days, and is signed with an
+  HMAC key derived from `LEARN_SESSION_KEY`. A tampered or expired cookie is a
+  guest. Ceremony and sign-out requests with a foreign `Origin` header get `403`.
+
+Mint a link from the laptop with `deno task invite:mint` (see
+`docs/turso-databases.md`), open it on the phone, and register.
+
 ## Errors
 
 Transport, authentication, authorization, and route errors use
@@ -116,10 +156,14 @@ Current status meanings:
 - `201`: draft creation request succeeded, including an idempotent retry.
 - `400`: malformed JSON.
 - `401`: missing, invalid, expired, or revoked token.
-- `403`: valid token without the scope the route requires.
+- `403`: valid token without the scope the route requires, or a cross-site
+  browser request.
 - `404`: route or owned resource not found.
+- `410`: invite already used or expired.
 - `413`: request exceeds the size limit.
 - `422`: lesson document failed resolution.
+- `501`: passkeys requested from an origin that is not the configured relying
+  party.
 
 ## Alpha limitations
 
@@ -127,6 +171,8 @@ Current status meanings:
   complete generated contracts yet.
 - Public resolver rate limiting is not implemented.
 - Token lifecycle is operated with Deno tasks; there is no browser UI.
+- Passkeys cannot be listed or removed yet; a lost phone is handled by
+  minting a new invite, and a stale credential stays in the table.
 - Progress synchronization is not part of this API slice.
 - Publishing, verification, and Listings are not implemented.
 
