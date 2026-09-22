@@ -1,0 +1,17 @@
+{
+  "name": "learn-lesson",
+  "version": "0.3.0",
+  "description": "Turn the work an agent just did into a retrieval-practice lesson on learn.joshhale.me: author lesson.json, attack the draft, validate it with the site's own validator and create a private draft with a bearer token.",
+  "author": {
+    "name": "Josh Hale"
+  },
+  "homepage": "https://learn-joshhale.legoguy32109.deno.net/plugin",
+  "repository": "https://learn-joshhale.legoguy32109.deno.net/plugin/learn-lesson-plugin.git",
+  "license": "UNLICENSED",
+  "keywords": [
+    "learning",
+    "retrieval-practice",
+    "lesson",
+    "learn.joshhale.me"
+  ]
+}

@@ -1,0 +1,508 @@
+{
+  "schema": "lesson/v1",
+  "ordering": "Diagnostics are sorted by JSON Pointer path (numeric segments numerically), then by code.",
+  "severities": {
+    "error": "The document is invalid. The resolution API answers 422 and no draft is created.",
+    "warning": "The document is valid. The resolution API answers 200 and includes the warning."
+  },
+  "guards": "document.object, document.nesting and document.size run first and alone; when one fires it is the only diagnostic.",
+  "schemaField": "schema: true means the JSON Schema at /api/v1/schemas/lesson/v1 also rejects a document that triggers this code. schema: false means only the resolver and the downloadable validator catch it.",
+  "diagnostics": [
+    {
+      "code": "document.object",
+      "severity": "error",
+      "path": "",
+      "schema": true,
+      "meaning": "The request body is not a JSON object.",
+      "fix": "Send one lesson document as a JSON object, not an array, string, number, null or boolean."
+    },
+    {
+      "code": "document.nesting",
+      "severity": "error",
+      "path": "",
+      "schema": false,
+      "meaning": "The document nests deeper than 32 levels.",
+      "fix": "A lesson needs at most six levels. Remove the deeply nested value; it is not part of the contract."
+    },
+    {
+      "code": "document.size",
+      "severity": "error",
+      "path": "",
+      "schema": false,
+      "meaning": "The serialized document is over 1,000,000 bytes.",
+      "fix": "Shorten capturedText excerpts or split the material into more than one lesson."
+    },
+    {
+      "code": "schema.unsupported",
+      "severity": "error",
+      "path": "/schema",
+      "schema": true,
+      "meaning": "The document does not declare schema lesson/v1.",
+      "fix": "Set \"schema\": \"lesson/v1\" at the top level."
+    },
+    {
+      "code": "title.required",
+      "severity": "error",
+      "path": "/title",
+      "schema": true,
+      "meaning": "title is missing or blank.",
+      "fix": "Give the lesson a title."
+    },
+    {
+      "code": "assumedKnowledge.required",
+      "severity": "error",
+      "path": "/assumedKnowledge",
+      "schema": true,
+      "meaning": "assumedKnowledge is missing or blank.",
+      "fix": "State in one sentence what the learner already knows."
+    },
+    {
+      "code": "concepts.required",
+      "severity": "error",
+      "path": "/concepts",
+      "schema": true,
+      "meaning": "concepts is missing or empty.",
+      "fix": "Add at least one Concept."
+    },
+    {
+      "code": "sources.required",
+      "severity": "error",
+      "path": "/sources",
+      "schema": true,
+      "meaning": "sources is missing or empty.",
+      "fix": "Add at least one structured source with type, title and locator."
+    },
+    {
+      "code": "concept.id",
+      "severity": "error",
+      "path": "/concepts/<i>/id",
+      "schema": false,
+      "meaning": "The Concept ID is not a UUIDv4 or repeats another Concept's ID.",
+      "fix": "Generate a fresh UUIDv4 for each Concept."
+    },
+    {
+      "code": "concept.title",
+      "severity": "error",
+      "path": "/concepts/<i>/title",
+      "schema": true,
+      "meaning": "The Concept title is missing or blank.",
+      "fix": "Give the Concept a title."
+    },
+    {
+      "code": "concept.statement",
+      "severity": "error",
+      "path": "/concepts/<i>/statement",
+      "schema": true,
+      "meaning": "statement is present but not a non-empty string.",
+      "fix": "Write the statement as one sentence, or remove the field."
+    },
+    {
+      "code": "pool.id",
+      "severity": "error",
+      "path": "/concepts/<i>/poolId",
+      "schema": false,
+      "meaning": "The poolId is not a UUIDv4 or repeats another Concept's poolId.",
+      "fix": "Generate a fresh UUIDv4 for each Concept's Pool."
+    },
+    {
+      "code": "concept.options.count",
+      "severity": "error",
+      "path": "/concepts/<i>/options",
+      "schema": true,
+      "meaning": "The Concept does not own exactly three options.",
+      "fix": "Write exactly three options shared by every MCQ in the Concept."
+    },
+    {
+      "code": "concept.option.id",
+      "severity": "error",
+      "path": "/concepts/<i>/options/<j>/id",
+      "schema": false,
+      "meaning": "The option ID is missing, repeats another option in the Concept, does not match ^[A-Za-z0-9_-]{1,64}$, or is __proto__, constructor or prototype.",
+      "fix": "Use a short unique slug such as reuse or revalidate."
+    },
+    {
+      "code": "concept.option.text",
+      "severity": "error",
+      "path": "/concepts/<i>/options/<j>/text",
+      "schema": true,
+      "meaning": "The option text is missing or blank.",
+      "fix": "Write the option as the learner reads it."
+    },
+    {
+      "code": "concept.options.ratio",
+      "severity": "error",
+      "path": "/concepts/<i>/options",
+      "schema": false,
+      "meaning": "The longest option is more than 1.35 times the length of the shortest, so length signals the key.",
+      "fix": "Lengthen the short options or shorten the long one until the ratio is at most 1.35."
+    },
+    {
+      "code": "concept.cards.minimum",
+      "severity": "error",
+      "path": "/concepts/<i>/cards",
+      "schema": true,
+      "meaning": "The Concept has fewer than two Cards.",
+      "fix": "Split the idea into at least two Cards. Each Card teaches one idea."
+    },
+    {
+      "code": "card.id",
+      "severity": "error",
+      "path": "/concepts/<i>/cards/<j>/id",
+      "schema": false,
+      "meaning": "The Card ID is not a UUIDv4 or repeats another Card's ID anywhere in the lesson.",
+      "fix": "Generate a fresh UUIDv4 for each Card."
+    },
+    {
+      "code": "card.heading",
+      "severity": "error",
+      "path": "/concepts/<i>/cards/<j>/heading",
+      "schema": true,
+      "meaning": "The Card heading is missing or blank.",
+      "fix": "Give the Card a heading that states its one idea."
+    },
+    {
+      "code": "card.body.paragraphs",
+      "severity": "error",
+      "path": "/concepts/<i>/cards/<j>/body",
+      "schema": true,
+      "meaning": "body is not a non-empty array of paragraph strings.",
+      "fix": "Write body as an array of paragraphs, one string each."
+    },
+    {
+      "code": "card.words",
+      "severity": "error",
+      "path": "/concepts/<i>/cards/<j>/body",
+      "schema": false,
+      "meaning": "The Card is under 120 or over 200 words after inline HTML tags are stripped.",
+      "fix": "Write 120 to 200 words across the Card's paragraphs."
+    },
+    {
+      "code": "card.paragraphs.single",
+      "severity": "warning",
+      "path": "/concepts/<i>/cards/<j>/body",
+      "schema": false,
+      "meaning": "The Card has one paragraph, so the clamped corrective view has nothing to expand.",
+      "fix": "Split the Card into at least two paragraphs. The first is shown after a wrong answer."
+    },
+    {
+      "code": "misconception.id",
+      "severity": "error",
+      "path": "/concepts/<i>/misconceptions/<j>/id",
+      "schema": false,
+      "meaning": "The misconception ID is missing, repeats another in the Concept, does not match ^[A-Za-z0-9_-]{1,64}$, or is a reserved name.",
+      "fix": "Use a short unique slug that names the belief, such as fresh_means_newest."
+    },
+    {
+      "code": "misconception.statement",
+      "severity": "error",
+      "path": "/concepts/<i>/misconceptions/<j>/statement",
+      "schema": true,
+      "meaning": "The statement is missing or blank.",
+      "fix": "Write the belief itself, as the learner would hold it."
+    },
+    {
+      "code": "misconception.card",
+      "severity": "error",
+      "path": "/concepts/<i>/misconceptions/<j>/correctingCardId",
+      "schema": false,
+      "meaning": "correctingCardId is not the ID of a Card in the same Concept.",
+      "fix": "Name a Card of this Concept that corrects the belief."
+    },
+    {
+      "code": "misconception.unused",
+      "severity": "error",
+      "path": "/concepts/<i>/misconceptions/<j>",
+      "schema": false,
+      "meaning": "No MCQ distractor in the Concept maps to this misconception.",
+      "fix": "Map a distractor to it, or remove the misconception."
+    },
+    {
+      "code": "question.id",
+      "severity": "error",
+      "path": "/questions/<i>/id",
+      "schema": false,
+      "meaning": "The Question ID is not a UUIDv4 or repeats another Question's ID.",
+      "fix": "Generate a fresh UUIDv4 for each Question."
+    },
+    {
+      "code": "question.concept",
+      "severity": "error",
+      "path": "/questions/<i>/conceptId",
+      "schema": false,
+      "meaning": "conceptId is not the ID of a Concept in this lesson.",
+      "fix": "Set conceptId to the id of the Concept the Question checks."
+    },
+    {
+      "code": "question.pool",
+      "severity": "error",
+      "path": "/questions/<i>/poolId",
+      "schema": false,
+      "meaning": "poolId is not the poolId of the Question's Concept.",
+      "fix": "Copy the Concept's poolId onto the Question."
+    },
+    {
+      "code": "question.type",
+      "severity": "error",
+      "path": "/questions/<i>/type",
+      "schema": true,
+      "meaning": "type is not mcq, numeric or short.",
+      "fix": "Use one of mcq, numeric or short."
+    },
+    {
+      "code": "question.stem",
+      "severity": "error",
+      "path": "/questions/<i>/stem",
+      "schema": true,
+      "meaning": "The stem is missing or blank.",
+      "fix": "Write the question text."
+    },
+    {
+      "code": "question.stem.unbound",
+      "severity": "error",
+      "path": "/questions/<i>/stem",
+      "schema": true,
+      "meaning": "The stem contains an unbound reference such as \"the above\", \"the second\" or \"this approach\", so it does not stand alone once the Cards are gone.",
+      "fix": "Name the thing directly. The stem must make sense with the Cards removed."
+    },
+    {
+      "code": "question.reserved",
+      "severity": "error",
+      "path": "/questions/<i>/reserved",
+      "schema": true,
+      "meaning": "reserved is present but not a boolean.",
+      "fix": "Set reserved to true or false, or omit it for false."
+    },
+    {
+      "code": "question.correctingCard",
+      "severity": "error",
+      "path": "/questions/<i>/correctingCardId",
+      "schema": false,
+      "meaning": "correctingCardId is not the ID of a Card in the Question's Concept.",
+      "fix": "Name the Card of this Concept shown after I don't know or a wrong numeric or short answer."
+    },
+    {
+      "code": "question.feedback",
+      "severity": "error",
+      "path": "/questions/<i>/feedback",
+      "schema": true,
+      "meaning": "A numeric or short Question has no feedback string.",
+      "fix": "Write one or two sentences shown after any answer."
+    },
+    {
+      "code": "mcq.key",
+      "severity": "error",
+      "path": "/questions/<i>/key",
+      "schema": false,
+      "meaning": "key is not one option ID of the Concept's shared option set.",
+      "fix": "Set key to the id of the correct option in the Concept's options."
+    },
+    {
+      "code": "mcq.feedback.missing",
+      "severity": "error",
+      "path": "/questions/<i>/feedback/<optionId>",
+      "schema": true,
+      "meaning": "An option of the Concept, possibly the key, has no feedback entry.",
+      "fix": "Add feedback for every option ID in the Concept's set, including the key."
+    },
+    {
+      "code": "mcq.feedback.extra",
+      "severity": "error",
+      "path": "/questions/<i>/feedback/<optionId>",
+      "schema": true,
+      "meaning": "feedback has a key that is not an option ID of the Concept.",
+      "fix": "Remove the entry or correct the option ID."
+    },
+    {
+      "code": "mcq.map.missing",
+      "severity": "error",
+      "path": "/questions/<i>/map/<optionId>",
+      "schema": true,
+      "meaning": "A distractor option has no map entry.",
+      "fix": "Map every non-key option ID to a misconception ID in the Concept."
+    },
+    {
+      "code": "mcq.map.unknown",
+      "severity": "error",
+      "path": "/questions/<i>/map/<optionId>",
+      "schema": false,
+      "meaning": "The map entry names a misconception ID that is not in the Concept.",
+      "fix": "Use an id from the Concept's misconceptions, or add the misconception there."
+    },
+    {
+      "code": "mcq.map.extra",
+      "severity": "error",
+      "path": "/questions/<i>/map/<optionId>",
+      "schema": true,
+      "meaning": "map has an entry for the key or for an ID that is not an option of the Concept.",
+      "fix": "Keep only the distractor option IDs in map."
+    },
+    {
+      "code": "numeric.reserved",
+      "severity": "error",
+      "path": "/questions/<i>/reserved",
+      "schema": true,
+      "meaning": "A numeric Question is marked reserved.",
+      "fix": "Reserve an MCQ or short Question for the Wrap-up instead; numeric Questions are never reserved."
+    },
+    {
+      "code": "numeric.answer",
+      "severity": "error",
+      "path": "/questions/<i>/answer",
+      "schema": true,
+      "meaning": "answer is not a finite number.",
+      "fix": "Set answer to a JSON number."
+    },
+    {
+      "code": "numeric.answer.uncovered",
+      "severity": "error",
+      "path": "/questions/<i>/answer",
+      "schema": false,
+      "meaning": "The answer, written as a number, appears in no Card of the Question's Concept.",
+      "fix": "Teach the number in a Card of the Concept, or ask about a number the Cards contain."
+    },
+    {
+      "code": "numeric.tolerance.missing",
+      "severity": "error",
+      "path": "/questions/<i>/tolerance",
+      "schema": true,
+      "meaning": "tolerance is missing or zero.",
+      "fix": "Set a positive tolerance from the claim being tested, not from the decimal places."
+    },
+    {
+      "code": "numeric.tolerance",
+      "severity": "error",
+      "path": "/questions/<i>/tolerance",
+      "schema": true,
+      "meaning": "tolerance is present but not a non-negative finite number.",
+      "fix": "Set tolerance to a positive JSON number."
+    },
+    {
+      "code": "numeric.unit",
+      "severity": "error",
+      "path": "/questions/<i>/unit",
+      "schema": true,
+      "meaning": "unit is present but not a string.",
+      "fix": "Set unit to a short string such as seconds, or omit it."
+    },
+    {
+      "code": "short.answer",
+      "severity": "error",
+      "path": "/questions/<i>/answer",
+      "schema": true,
+      "meaning": "A short Question has no canonical answer string.",
+      "fix": "Set answer to the accepted text. Matching ignores case and surrounding whitespace."
+    },
+    {
+      "code": "short.aliases",
+      "severity": "error",
+      "path": "/questions/<i>/aliases",
+      "schema": true,
+      "meaning": "aliases is present but not an array of non-empty strings.",
+      "fix": "List other accepted spellings as strings, or omit aliases."
+    },
+    {
+      "code": "lesson.key.longest",
+      "severity": "error",
+      "path": "/concepts",
+      "schema": false,
+      "meaning": "The key is the longest option in more than one third of the lesson's MCQs, so length signals the answer.",
+      "fix": "Rewrite options so the key is the longest in at most one third of MCQs, counted across the whole lesson."
+    },
+    {
+      "code": "pool.reserved.missing",
+      "severity": "error",
+      "path": "/concepts/<i>/poolId",
+      "schema": false,
+      "meaning": "No Question of this Concept's Pool is reserved for the Wrap-up.",
+      "fix": "Mark at least one MCQ or short Question of the Pool reserved: true."
+    },
+    {
+      "code": "pool.drawable.minimum",
+      "severity": "error",
+      "path": "/concepts/<i>/poolId",
+      "schema": false,
+      "meaning": "The Pool has fewer than three drawable (non-reserved) Questions, so the Check cannot ask once and re-ask twice.",
+      "fix": "Add drawable Questions to the Pool until it has at least three, plus one reserved."
+    },
+    {
+      "code": "source.type",
+      "severity": "error",
+      "path": "/sources/<i>/type",
+      "schema": true,
+      "meaning": "The source type is missing or blank.",
+      "fix": "Name the kind of source, such as specification, documentation, repository, commit or conversation."
+    },
+    {
+      "code": "source.title",
+      "severity": "error",
+      "path": "/sources/<i>/title",
+      "schema": true,
+      "meaning": "The source title is missing or blank.",
+      "fix": "Give the source a title."
+    },
+    {
+      "code": "source.locator",
+      "severity": "error",
+      "path": "/sources/<i>/locator",
+      "schema": true,
+      "meaning": "The source locator is missing or blank.",
+      "fix": "Give a URL, path, commit SHA or other way to find the source again."
+    },
+    {
+      "code": "source.capturedText",
+      "severity": "error",
+      "path": "/sources/<i>/capturedText",
+      "schema": true,
+      "meaning": "capturedText is present but neither a string nor null.",
+      "fix": "Set capturedText to an excerpt string, null, or omit it."
+    },
+    {
+      "code": "provenance.required",
+      "severity": "error",
+      "path": "/provenance",
+      "schema": true,
+      "meaning": "provenance is missing, or its status is neither provided nor declined.",
+      "fix": "Send { \"status\": \"provided\", ...five fields } or { \"status\": \"declined\" }. Omission is invalid."
+    },
+    {
+      "code": "provenance.client",
+      "severity": "error",
+      "path": "/provenance/client",
+      "schema": true,
+      "meaning": "status is provided but client is missing or blank.",
+      "fix": "Name the agent product, or use unknown."
+    },
+    {
+      "code": "provenance.harness",
+      "severity": "error",
+      "path": "/provenance/harness",
+      "schema": true,
+      "meaning": "status is provided but harness is missing or blank.",
+      "fix": "Name the runtime the agent ran in, or use unknown."
+    },
+    {
+      "code": "provenance.model",
+      "severity": "error",
+      "path": "/provenance/model",
+      "schema": true,
+      "meaning": "status is provided but model is missing or blank.",
+      "fix": "Give the model identifier, or use unknown."
+    },
+    {
+      "code": "provenance.client_version",
+      "severity": "error",
+      "path": "/provenance/client_version",
+      "schema": true,
+      "meaning": "status is provided but client_version is missing or blank.",
+      "fix": "Give the client version, or use unknown."
+    },
+    {
+      "code": "provenance.session_reference",
+      "severity": "error",
+      "path": "/provenance/session_reference",
+      "schema": true,
+      "meaning": "status is provided but session_reference is missing or blank.",
+      "fix": "Give an opaque session reference, or use unknown."
+    }
+  ]
+}

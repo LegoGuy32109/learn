@@ -15,6 +15,7 @@ import { lessonRoutes } from "./server/routes/lessons.ts";
 import { identityRoutes } from "./server/routes/identity.ts";
 import { assetRoutes } from "./server/routes/assets.ts";
 import { pwaRoutes } from "./server/routes/pwa.ts";
+import { pluginRoutes } from "./server/routes/plugin.ts";
 
 export type { Dependencies };
 
@@ -23,6 +24,7 @@ export function composeRoutes(dependencies: Dependencies) {
   return [
     ...pageRoutes(dependencies),
     ...discoveryRoutes(),
+    ...pluginRoutes(),
     ...lessonRoutes(dependencies),
     ...pwaRoutes(dependencies),
     ...identityRoutes(dependencies),

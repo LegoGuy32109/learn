@@ -7,7 +7,10 @@ import { MAX_LESSON_BYTES } from "../http.ts";
 import { capabilitiesFor } from "./capabilities.ts";
 
 /** The canonical origin. Per-request documents substitute the request origin in `servers`. */
-export const CANONICAL_ORIGIN = "https://learn.joshhale.me";
+import { PUBLIC_ORIGIN } from "../plugin/links.ts";
+
+/** The origin documents default to when no request origin is known. One value, set in src/server/plugin/links.ts. */
+export const CANONICAL_ORIGIN = PUBLIC_ORIGIN;
 
 export const exampleLesson: Record<string, unknown> = JSON.parse(
   await Deno.readTextFile(new URL("../../../fixtures/authoring/valid/demo-without-ids.json", import.meta.url)),
@@ -151,6 +154,24 @@ export function openapiDocument(origin: string = CANONICAL_ORIGIN) {
       },
       "/docs/diagnostics.md": {
         get: { tags: ["discovery"], operationId: "humanDiagnostics", summary: "Human-readable diagnostics reference", responses: { 200: textResponse("Markdown generated from the same catalog as /api/v1/diagnostics.", "text/markdown") } },
+      },
+      "/plugin": {
+        get: { tags: ["discovery"], operationId: "pluginPage", summary: "Human page: what the agent plugin does and the three ways to install it", responses: { 200: textResponse("HTML.", "text/html") } },
+      },
+      "/plugin/marketplace.json": {
+        get: { tags: ["discovery"], operationId: "pluginMarketplace", summary: "Claude Code marketplace manifest naming the plugin, its archive and the archive's SHA-256", description: "Add with `claude plugin marketplace add <this URL>`, then `claude plugin install learn-lesson@learn-joshhale`. The plugin is served from this site only.", responses: { 200: { description: "The marketplace manifest.", content: { "application/json": { schema: { type: "object" } } } } } },
+      },
+      "/plugin/.claude-plugin/plugin.json": {
+        get: { tags: ["discovery"], operationId: "pluginManifest", summary: "The plugin manifest", description: "Every file under /plugin/ is the plugin directory: manifest, README, skills/lesson with its references and scripts. Generated from the resolver, the JSON Schema and the diagnostics catalog by deno task plugin:generate.", responses: { 200: { description: "The plugin manifest.", content: { "application/json": { schema: { type: "object" } } } } } },
+      },
+      "/plugin/skills/lesson/SKILL.md": {
+        get: { tags: ["discovery"], operationId: "pluginSkill", summary: "The lesson skill: steps from establishing the source to creating a draft", description: "The skill directory skills/lesson/ is self-contained: copy it into ~/.claude/skills/lesson to use it without the plugin.", responses: { 200: textResponse("Markdown with YAML front matter.", "text/markdown") } },
+      },
+      "/plugin/learn-lesson-plugin.zip": {
+        get: { tags: ["discovery"], operationId: "pluginArchive", summary: "The plugin directory as one ZIP archive", description: "Deterministic: the same sources give the same bytes, and the marketplace manifest pins its SHA-256. `claude --plugin-dir` accepts the unpacked directory.", responses: { 200: { description: "The archive.", content: { "application/zip": { schema: { type: "string", format: "binary" } } } } } },
+      },
+      "/plugin/learn-lesson-plugin.git/info/refs": {
+        get: { tags: ["discovery"], operationId: "pluginRepositoryRefs", summary: "The plugin as a bare Git repository served over the dumb HTTP protocol", description: "`git clone <origin>/plugin/learn-lesson-plugin.git` works against the static files: HEAD, info/refs, objects/info/packs and loose objects. One commit with a fixed date, so the commit hash follows the content alone.", responses: { 200: textResponse("One line per ref: the commit hash, a tab and refs/heads/main.", "application/octet-stream") } },
       },
       "/api/v1/lesson-resolutions": {
         post: {
@@ -490,7 +511,7 @@ export function openapiDocument(origin: string = CANONICAL_ORIGIN) {
         },
         Capabilities: {
           type: "object",
-          required: ["name", "apiVersion", "lessonSchema", "invokesModels", "authoringFormats", "links", "authentication", "limits"],
+          required: ["name", "apiVersion", "lessonSchema", "invokesModels", "authoringFormats", "links", "authentication", "limits", "plugin", "howToAuthor"],
           properties: {
             name: { type: "string" },
             apiVersion: { type: "string", const: "v1" },
@@ -500,6 +521,26 @@ export function openapiDocument(origin: string = CANONICAL_ORIGIN) {
             links: { type: "object", additionalProperties: { type: "string", format: "uri" }, description: "Absolute URLs of every discovery artifact and API route." },
             authentication: { type: "object" },
             limits: { type: "object" },
+            plugin: {
+              type: "object",
+              description: "The installable agent plugin served by this site: where its page, marketplace manifest, archive and repository live, and the install commands for each route.",
+              required: ["name", "version", "skill", "page", "marketplace", "manifest", "archive", "repository", "skillDocument", "install", "tokenEnvironmentVariable"],
+              properties: {
+                name: { type: "string" },
+                version: { type: "string" },
+                skill: { type: "string" },
+                page: { type: "string", format: "uri" },
+                marketplace: { type: "string", format: "uri" },
+                manifest: { type: "string", format: "uri" },
+                archive: { type: "string", format: "uri" },
+                repository: { type: "string", format: "uri" },
+                skillDocument: { type: "string", format: "uri" },
+                install: { type: "object", additionalProperties: { type: "array", items: { type: "string" } } },
+                tokenEnvironmentVariable: { type: "string", const: "LEARN_TOKEN" },
+                generatedFrom: { type: "string" },
+              },
+            },
+            howToAuthor: { type: "array", items: { type: "string" } },
           },
         },
         DiagnosticsReference: {
