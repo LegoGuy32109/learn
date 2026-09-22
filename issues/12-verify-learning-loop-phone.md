@@ -30,7 +30,7 @@ a failure.
 **Blocked by:** 02 — Lesson content follows the plugin model; 09 —
 Every-question drill mode.
 
-**Status:** done PENDING_SHA
+**Status:** done 866c790
 
 - [x] The audit script lives under the tests directory as a phone-sized
       Playwright suite that the swarm can rerun, separate from the happy path.
