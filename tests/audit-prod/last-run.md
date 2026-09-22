@@ -1,111 +1,24 @@
 ## Deployed phone experience
 
-367 passed, 12 failed, 15 observations
-
-### Failed
-
-- hsts · Strict-Transport-Security is present on the shell
-  ```
-  no strict-transport-security header
-  expect(received).toBeTruthy()
-  Received: null
-  ```
-- hsts · Strict-Transport-Security is present on an API response
-  ```
-  no strict-transport-security header
-  expect(received).toBeTruthy()
-  Received: null
-  ```
-- content types · /sw.js is served as text/javascript with the build hash substituted
-  ```
-  {"type":"about:blank","title":"Not found","status":404,"detail":"No such file or directory (os error 2): readfile '/app/src/src/client/pwa/sw.js'"}
-  expect(received).toBe(expected) // Object.is equality
-  Expected: 200
-  Received: 404
-  ```
-- worker · the service worker registers and controls the page after the first visit
-  ```
-  no registration; GET /sw.js answered 404: {"type":"about:blank","title":"Not found","status":404,"detail":"No such file or directory (os error 2): readfile '/app/src/src/client/pwa/sw.js'"}
-  expect(received).toBe(expected) // Object.is equality
-  Expected: true
-  Received: false
-  ```
-- worker · one versioned shell cache holds the shell and no /api/ path
-  ```
-  caches: []
-  expect(received).toBe(expected) // Object.is equality
-  Expected: 1
-  Received: 0
-  ```
-- offline · after one visit the start URL opens the shelf with the network off
-  ```
-  expect(received).toBe(expected) // Object.is equality
-  Expected: "shell rendered offline"
-  Received: "reload offline failed: page.reload: net::ERR_INTERNET_DISCONNECTED"
-  ```
-- offline · reloading the learning URL with the network off shows the cached overview
-  ```
-  expect(received).toBe(expected) // Object.is equality
-  Expected: "ok"
-  Received: "page.reload: net::ERR_INTERNET_DISCONNECTED"
-  ```
-- reload · overview after Back from first Card · surface comes back
-  ```
-  expect(received).toEqual(expected) // deep equality
-  - Expected  -  9
-  + Received  + 14
-    Object {
-      "belief": null,
-  -   "cardHeading": null,
-  +   "cardHeading": "A fresh response can be reused",
-      "controls": Array [
-  ```
-- first step · reload after Back-to-overview shows the overview (recovering)
-  ```
-  Reload landed on https://learn-joshhale.legoguy32109.deno.net/learn/bcfb3097-3e0d-401d-bcd0-41f06e6f7724
-  ```
-- first step · browser Back leaves the URL at the shelf path
-  ```
-  expect(received).toBe(expected) // Object.is equality
-  Expected: "/"
-  Received: "/learn/bcfb3097-3e0d-401d-bcd0-41f06e6f7724"
-  ```
-- reload · shelf after browser Back from first Card · surface comes back
-  ```
-  expect(received).toEqual(expected) // deep equality
-  - Expected  -  7
-  + Received  + 13
-    Object {
-      "belief": null,
-  -   "cardHeading": null,
-  +   "cardHeading": "A fresh response can be reused",
-      "controls": Array [
-  ```
-- listeners · the browser logged no failed service-worker script fetch
-  ```
-  38 page loads logged: error: A bad HTTP response code (404) was received when fetching the script.
-  expect(received).toBe(expected) // Object.is equality
-  Expected: 0
-  Received: 38
-  ```
+377 passed, 0 failed, 15 observations
 
 ### Observations
 
 - token source: The owner token came from the .env.prod file.
 - header · content-security-policy: absent on the shell (not required by the ticket)
-- header · x-content-type-options: absent on the shell (not required by the ticket)
-- header · referrer-policy: absent on the shell (not required by the ticket)
+- header · x-content-type-options: present: nosniff
+- header · referrer-policy: present: same-origin
 - header · x-frame-options: absent on the shell (not required by the ticket)
 - header · permissions-policy: absent on the shell (not required by the ticket)
 - content types · validator declarations: 200 text/plain; charset=utf-8 (text/plain is what the asset route gives .ts files)
 - manifest · Page.getInstallabilityErrors: [] (headless Chromium reports an empty list for every page, so this proves nothing on its own)
 - wrap-up retry: The missed Concept came back as Wrap-up Question 4 of 4, asked with the same Question.
 - Learned summary line: The Learned summary shows ["Concepts learned\n3 of 3"]; a count, never a score.
-- drill option order · Validators and conditional requests: 2 distinct option order(s) across this Concept's MCQs in one run.
+- drill option order · Validators and conditional requests: 1 distinct option order(s) across this Concept's MCQs in one run.
 - drill option order · Cache directives and revalidation: 2 distinct option order(s) across this Concept's MCQs in one run.
 - drill option order · Freshness and age: 2 distinct option order(s) across this Concept's MCQs in one run.
-- learning loop: 308 walk checks passed and 4 failed against production; the walk is the ticket 12 script with the production lesson path.
-- console: 38 messages were the failed /sw.js fetch (see the worker checks); 1 came from deliberately reopening the used invite (410).
+- learning loop: 310 walk checks passed and 0 failed against production; the walk is the ticket 12 script with the production lesson path.
+- console: 0 messages were the failed /sw.js fetch (see the worker checks); 1 came from deliberately reopening the used invite (410).
 
 ### Passed
 
@@ -115,251 +28,398 @@
 - https · the shell is served over HTTPS with the revision header
   GET / -> 200
   content-type: text/html; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
+  cache-status: deno; fwd=bypass; detail=zero-ttl
+  age: 0
+- hsts · Strict-Transport-Security is present on the shell
+  GET / -> 200
+  content-type: text/html; charset=utf-8
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
+  cache-status: deno; fwd=bypass; detail=zero-ttl
+  age: 0
+- hsts · Strict-Transport-Security is present on an API response
+  GET /api/v1/capabilities -> 200
+  content-type: application/json; charset=utf-8
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=zero-ttl
   age: 0
 - content types · capability document is application/json with the v1 contract
   GET /api/v1/capabilities -> 200
   content-type: application/json; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=zero-ttl
   age: 0
 - content types · well-known capability document is the same JSON
   GET /.well-known/learn-joshhale.json -> 200
   content-type: application/json; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=zero-ttl
   age: 0
 - content types · validator is text/javascript and exports resolveLesson
   GET /tools/lesson-validator.js -> 200
   content-type: text/javascript; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=zero-ttl
-  age: 0
+  age: 1
 - content types · lesson schema is application/json draft 2020-12
   GET /api/v1/schemas/lesson/v1 -> 200
   content-type: application/json; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=zero-ttl
-  age: 0
+  age: 1
 - content types · OpenAPI document is application/json and names this origin
   GET /openapi.json -> 200
   content-type: application/json; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=zero-ttl
-  age: 0
+  age: 1
 - content types · manifest is application/manifest+json
   GET /manifest.webmanifest -> 200
   content-type: application/manifest+json; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=zero-ttl
-  age: 0
+  age: 1
+- content types · /sw.js is served as text/javascript with the build hash substituted
+  GET /sw.js -> 200
+  content-type: text/javascript; charset=utf-8
+  cache-control: no-cache
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
+  cache-status: deno; fwd=bypass; detail=no-cache-or-private
+  age: 1
 - cors · /api/v1/capabilities with a foreign Origin gets no wildcard or reflected Access-Control-Allow-Origin
   GET /api/v1/capabilities -> 200
   content-type: application/json; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=zero-ttl
-  age: 0
+  age: 1
 - cors · /api/v1/shelf with a foreign Origin gets no wildcard or reflected Access-Control-Allow-Origin
   GET /api/v1/shelf -> 200
   content-type: application/json; charset=utf-8
   cache-control: private, no-store
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=not-cacheable
-  age: 0
+  age: 1
 - cors · /api/v1/session with a foreign Origin gets no wildcard or reflected Access-Control-Allow-Origin
   GET /api/v1/session -> 200
   content-type: application/json; charset=utf-8
   cache-control: private, no-store
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=not-cacheable
-  age: 0
+  age: 1
 - cors · /openapi.json with a foreign Origin gets no wildcard or reflected Access-Control-Allow-Origin
   GET /openapi.json -> 200
   content-type: application/json; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=zero-ttl
-  age: 0
+  age: 1
 - cors · a preflight from a foreign origin is not granted
   OPTIONS /api/v1/shelf -> 404
   content-type: application/problem+json; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=method
 - csrf · a passkey ceremony started from another site is refused with 403
   POST /api/v1/passkeys/authentication-options -> 403
   content-type: application/problem+json; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=method
 - passkeys · authentication options name this host as the relying party
   POST /api/v1/passkeys/authentication-options -> 200
   content-type: application/json; charset=utf-8
   cache-control: private, no-store
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=method
 - not served · /.env answers 404
   GET /.env -> 404
   content-type: application/problem+json; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=zero-ttl
   age: 0
 - not served · /.env.prod answers 404
   GET /.env.prod -> 404
   content-type: application/problem+json; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=zero-ttl
   age: 0
 - not served · /deno.json answers 404
   GET /deno.json -> 404
   content-type: application/problem+json; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=zero-ttl
-  age: 0
+  age: 1
 - not served · /main.ts answers 404
   GET /main.ts -> 404
   content-type: application/problem+json; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=zero-ttl
-  age: 0
+  age: 1
 - not served · /src/server/auth.ts answers 404
   GET /src/server/auth.ts -> 404
   content-type: application/problem+json; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=zero-ttl
-  age: 0
+  age: 1
 - not served · /src/server/db.ts answers 404
   GET /src/server/db.ts -> 404
   content-type: application/problem+json; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=zero-ttl
-  age: 0
+  age: 1
 - not served · /migrations/001_initial.sql answers 404
   GET /migrations/001_initial.sql -> 404
   content-type: application/problem+json; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=zero-ttl
-  age: 0
+  age: 1
 - not served · /tests/audit/last-run.md answers 404
   GET /tests/audit/last-run.md -> 404
   content-type: application/problem+json; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=zero-ttl
-  age: 0
+  age: 1
 - auth · the shelf without a credential is a 401 problem document, not a page or a trace
   GET /api/v1/shelf -> 401
   content-type: application/problem+json; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=not-cacheable
-  age: 0
+  age: 1
 - auth · an invalid personal token cannot mint an invite (401)
   POST /api/v1/sign-in-invites -> 401
   content-type: application/problem+json; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=method
 - auth · the owner token lists the shelf and the read is private, no-store
   GET /api/v1/shelf -> 200
   content-type: application/json; charset=utf-8
   cache-control: private, no-store
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=not-cacheable
-  age: 0
+  age: 1
 - errors · an unknown route is a 404 problem document without a stack trace
   GET /api/v1/nothing-here -> 404
   content-type: application/problem+json; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=zero-ttl
-  age: 0
+  age: 1
 - invite · an unknown invite link is a plain 404 page, not a trace
   GET /sign-in/not-a-real-invite-token -> 404
   content-type: text/html; charset=utf-8
   cache-control: private, no-store
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=not-cacheable
-  age: 0
+  age: 1
 - manifest · Chromium parses the manifest with no errors: name, standalone, start URL, theme colour, 192 and 512 icons
   Page.getAppManifest: {"url":"https://learn-joshhale.legoguy32109.deno.net/manifest.webmanifest","errors":[],"name":"learn","display":"kStandalone","startUrl":"https://learn-joshhale.legoguy32109.deno.net/","icons":["192x192","512x512","512x512"]}
 - manifest · /icons/icon-192.png is served as image/png
   GET /icons/icon-192.png -> 200
   content-type: image/png
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=zero-ttl
-  age: 0
+  age: 1
 - manifest · /icons/icon-512.png is served as image/png
   GET /icons/icon-512.png -> 200
   content-type: image/png
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=zero-ttl
-  age: 0
+  age: 1
 - manifest · /icons/icon-512-maskable.png is served as image/png
   GET /icons/icon-512-maskable.png -> 200
   content-type: image/png
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=zero-ttl
-  age: 0
+  age: 1
 - manifest · /icons/apple-touch-icon-180.png is served as image/png
   GET /icons/apple-touch-icon-180.png -> 200
   content-type: image/png
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=bypass; detail=zero-ttl
+  age: 1
+- worker · the service worker registers and controls the page after the first visit
+  registration: {"registered":true,"controlled":true,"scope":"https://learn-joshhale.legoguy32109.deno.net/","scriptURL":"https://learn-joshhale.legoguy32109.deno.net/sw.js"}
+  GET /sw.js -> 200
+  content-type: text/javascript; charset=utf-8
+  cache-control: no-cache
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
+  cache-status: deno; fwd=bypass; detail=no-cache-or-private
   age: 0
+- worker · one versioned shell cache holds the shell and no /api/ path
+  caches: ["learn-shell-cbf6521a1d9f"]; 36 cached paths
 - worker · an /api/ response is never stored in or served from the worker cache
-  second GET /api/v1/session: {"status":200,"age":"0","cacheStatus":"deno; fwd=bypass; detail=not-cacheable","cacheControl":"private, no-store"}; /api/ entries in caches: 0 of 0
+  second GET /api/v1/session: {"status":200,"age":"0","cacheStatus":"deno; fwd=bypass; detail=not-cacheable","cacheControl":"private, no-store"}; /api/ entries in caches: 0 of 36
+- offline · after one visit the start URL opens the shelf with the network off
+  shell rendered offline; screenshot: tests/audit-prod/screenshots/01-shelf-offline.jpg
 - invite · deno task invite:mint pointed at production returns a ten-minute link
   invite expires in 600 s (link withheld)
 - invite · the invite page opens for Josh's account with one Register a passkey button
-  GET /sign-in/c-FmdTp… -> 200; invite names "Josh Hale"; screenshot: tests/audit-prod/screenshots/01-invite-page.jpg
+  GET /sign-in/XBZFsAA… -> 200; invite names "Josh Hale"; screenshot: tests/audit-prod/screenshots/02-invite-page.jpg
 - passkey · registering with the platform authenticator lands on the shelf signed in
-  screenshot: tests/audit-prod/screenshots/02-shelf-signed-in-after-registration.jpg
+  screenshot: tests/audit-prod/screenshots/03-shelf-signed-in-after-registration.jpg
 - cookie · learn_session is HttpOnly, Secure, SameSite=Lax, Path=/, host-only and expires in about 30 days
   Set-Cookie: learn_session=[redacted]; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000; Secure
   browser sees: httpOnly=true secure=true sameSite=Lax path=/ domain=learn-joshhale.legoguy32109.deno.net lifetime=30.0 days
 - cookie · the Set-Cookie header itself carries HttpOnly, Secure and SameSite=Lax
   Set-Cookie: learn_session=[redacted]; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000; Secure
 - passkey · sign out shows Guest and clears the cookie; Sign in with a passkey signs back in
-  sign count after sign-in: 2; screenshot: tests/audit-prod/screenshots/03-shelf-signed-in-with-passkey.jpg
+  sign count after sign-in: 2; screenshot: tests/audit-prod/screenshots/04-shelf-signed-in-with-passkey.jpg
 - invite · opening the used invite again is a plain 410 page saying it was already used
-  GET /sign-in/c-FmdTp… -> 410; screenshot: tests/audit-prod/screenshots/04-invite-already-used.jpg
+  GET /sign-in/XBZFsAA… -> 410; screenshot: tests/audit-prod/screenshots/05-invite-already-used.jpg
 - invite · registration options for the used invite are refused with a 410 problem document
   POST /api/v1/passkeys/registration-options -> 410
   content-type: application/problem+json; charset=utf-8
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=method
 - session · the session survives a context restart: the reopened app is still signed in
-  GET /api/v1/session -> {"signedIn":true,"displayName":"Josh Hale"}; screenshot: tests/audit-prod/screenshots/05-shelf-after-restart.jpg
+  GET /api/v1/session -> {"signedIn":true,"displayName":"Josh Hale"}; screenshot: tests/audit-prod/screenshots/06-shelf-after-restart.jpg
 - shelf · the owner token creates a draft whose title starts with audit-
   POST /api/v1/lessons -> 201
   content-type: application/json; charset=utf-8
-  location: /api/v1/lessons/42dc71e5-4e44-4f09-8fe3-71477edd70c0/revisions/87076213-46ab-4d3e-9bd8-d65073f5d7f9
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  location: /api/v1/lessons/769dba52-b9e4-44ae-97a4-641eb17673a8/revisions/84a6bee3-9957-44f2-80c0-2a87e402d9de
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=method
-  lessonId 42dc71e5-4e44-4f09-8fe3-71477edd70c0
-  revisionId 87076213-46ab-4d3e-9bd8-d65073f5d7f9
+  lessonId 769dba52-b9e4-44ae-97a4-641eb17673a8
+  revisionId 84a6bee3-9957-44f2-80c0-2a87e402d9de
 - shelf · after a refresh the new draft is first on the shelf, Not started, not Outdated
-  screenshot: tests/audit-prod/screenshots/06-shelf-with-audit-draft.jpg
+  screenshot: tests/audit-prod/screenshots/07-shelf-with-audit-draft.jpg
 - shelf · the Refresh shelf control re-reads the server in place
   Refresh shelf tapped; the draft stayed first
 - shelf · opening the draft shows its overview at the learning URL and caches the revision in IndexedDB
-  IndexedDB lessons has 87076213-46ab-4d3e-9bd8-d65073f5d7f9; progress_streams pins epoch 0; screenshot: tests/audit-prod/screenshots/07-audit-draft-overview.jpg
+  IndexedDB lessons has 84a6bee3-9957-44f2-80c0-2a87e402d9de; progress_streams pins epoch 0; screenshot: tests/audit-prod/screenshots/08-audit-draft-overview.jpg
+- offline · reloading the learning URL with the network off shows the cached overview
+  reload offline rendered the overview from the cached shell and IndexedDB
 - offline · with the network off the first Concept completes from IndexedDB
-  4 learning events recorded offline against revision 1; screenshot: tests/audit-prod/screenshots/08-concept-2-reached-offline.jpg
+  4 learning events recorded offline against revision 1; screenshot: tests/audit-prod/screenshots/09-concept-2-reached-offline.jpg
 - shelf · the owner token creates a second revision of the audit lesson
-  POST /api/v1/lessons/42dc71e5-4e44-4f09-8fe3-71477edd70c0/revisions -> 201
+  POST /api/v1/lessons/769dba52-b9e4-44ae-97a4-641eb17673a8/revisions -> 201
   content-type: application/json; charset=utf-8
-  location: /api/v1/lessons/42dc71e5-4e44-4f09-8fe3-71477edd70c0/revisions/b049d8b1-d0dd-4bdb-86ed-1e4dd8637ebb
-  x-learn-revision: p6jad39tqqge
+  strict-transport-security: max-age=31536000; includeSubDomains
+  location: /api/v1/lessons/769dba52-b9e4-44ae-97a4-641eb17673a8/revisions/eebee77c-85f6-4c4b-a9e2-28869b590563
+  x-content-type-options: nosniff
+  referrer-policy: same-origin
+  x-learn-revision: cdmtr0y4ksaj
   cache-status: deno; fwd=method
-  revisionId b049d8b1-d0dd-4bdb-86ed-1e4dd8637ebb
+  revisionId eebee77c-85f6-4c4b-a9e2-28869b590563
 - outdated · the shelf marks the lesson In progress and Outdated once a newer revision exists
-  screenshot: tests/audit-prod/screenshots/09-shelf-outdated.jpg
+  screenshot: tests/audit-prod/screenshots/10-shelf-outdated.jpg
 - outdated · Resume this revision keeps the old revision and its checkpoint
   resumed at Card 1 of Concept 2 on revision 1; stream still pinned to revision 1, epoch 0
 - discard · Discard asks for confirmation, and Keep my progress changes nothing
-  screenshot: tests/audit-prod/screenshots/10-discard-confirmation.jpg
+  screenshot: tests/audit-prod/screenshots/11-discard-confirmation.jpg
 - discard · confirming advances the epoch and opens the new revision from Not started, keeping the old evidence
-  stream now revision 2, epoch 1; 4 old events kept; screenshot: tests/audit-prod/screenshots/11-new-revision-overview.jpg
+  stream now revision 2, epoch 1; 4 old events kept; screenshot: tests/audit-prod/screenshots/12-new-revision-overview.jpg
 - discard · back on the shelf the lesson shows the new title, Not started, without Outdated
-  screenshot: tests/audit-prod/screenshots/12-shelf-after-discard.jpg
+  screenshot: tests/audit-prod/screenshots/13-shelf-after-discard.jpg
 - guest · the learning URL of an owned lesson asks a guest to sign in and inlines only the featured demo
-  inlined lesson for the guest: "How browser HTTP caching works"; screenshot: tests/audit-prod/screenshots/13-guest-sign-in-prompt.jpg
+  inlined lesson for the guest: "How browser HTTP caching works"; screenshot: tests/audit-prod/screenshots/14-guest-sign-in-prompt.jpg
 - learning · the shell inlines the published demo lesson with the fixture's content
   demo lessonId bcfb3097-3e0d-401d-bcd0-41f06e6f7724, revisionId b6604cc4-cb43-40e6-be8f-b973250af281
 - shelf · fresh browser shows the demo lesson Not started
@@ -398,6 +458,7 @@
 - visual · overview after Back from first Card · every control is at least 44px on its shortest side
 - visual · overview after Back from first Card · no horizontal overflow at 390px
 - visual · overview after Back from first Card · bottom safe-area padding on page overview
+- reload · overview after Back from first Card · surface comes back
 - reload · overview after Back from first Card · checkpoint rebuilt from events
 - first step · Resume from the overview reopens Card 1
 - first step · close returns to the shelf showing In progress
@@ -409,12 +470,14 @@
 - visual · shelf in progress after close · bottom safe-area padding on page shelf
 - reload · shelf in progress after close · surface comes back
 - first step · browser Back returns to the shelf
+- first step · browser Back leaves the URL at the shelf path
 - forbidden · shelf after browser Back from first Card · no score, streak, difficulty, mastery or time estimate in the DOM
 - vocabulary · shelf after browser Back from first Card · says Question, not Item
 - visual · shelf after browser Back from first Card · panel is not blank
 - visual · shelf after browser Back from first Card · every control is at least 44px on its shortest side
 - visual · shelf after browser Back from first Card · no horizontal overflow at 390px
 - visual · shelf after browser Back from first Card · bottom safe-area padding on page shelf
+- reload · shelf after browser Back from first Card · surface comes back
 - first step · learner is back on Card 1 after the Back probes
 - card · Continue marks Card 1 Seen exactly once and shows Card 2
 - forbidden · card 2 of concept 1 · no score, streak, difficulty, mastery or time estimate in the DOM
@@ -442,7 +505,6 @@
 - scheme · check 1 unanswered Question · light and dark render different backgrounds
 - reload · check 1 unanswered Question · surface comes back
 - reload · check 1 unanswered Question · checkpoint rebuilt from events
-- check 1 · an unanswered short-answer draft reloads blank
 - check 1 wrong · Not quite, feedback text, belief for a distractor, clamped correcting Card under the action row, Try another from this concept
 - forbidden · check 1 wrong feedback · no score, streak, difficulty, mastery or time estimate in the DOM
 - vocabulary · check 1 wrong feedback · says Question, not Item
@@ -671,21 +733,22 @@
 - drill · shelf still says Not started and the learning stores never changed
 - drill · the drill stream holds one answer per Question and a closing null checkpoint
 - secrets · no value from .env.prod and no token-shaped string appears in any response body
-  276 bodies scanned (177 distinct requests)
+  305 bodies scanned (177 distinct requests)
 - listeners · no pageerror during the whole run
 - listeners · no console error or warning beyond the failed worker fetch and the deliberate 410
+- listeners · the browser logged no failed service-worker script fetch
 
 ### Run
 
 - Base URL: https://learn-joshhale.legoguy32109.deno.net
-- Started: 2026-09-22T05:29:35.727Z
-- Served by revision(s): p6jad39tqqge
-- Response bodies scanned for secrets: 276
+- Started: 2026-09-22T12:39:22.125Z
+- Served by revision(s): cdmtr0y4ksaj
+- Response bodies scanned for secrets: 305
 
 ### Created on production (nothing was deleted)
 
-- sign-in invite /sign-in/c-FmdTp… (consumed by this run's passkey registration)
-- passkey credential oUe6z3hHtDR7… on Josh's production account (from this run's virtual authenticator; it cannot sign in from any real device)
-- lesson 42dc71e5-4e44-4f09-8fe3-71477edd70c0 "audit-2026-09-22T05-29-51" revision 1 87076213-46ab-4d3e-9bd8-d65073f5d7f9
-- lesson 42dc71e5-4e44-4f09-8fe3-71477edd70c0 "audit-2026-09-22T05-29-51 (revision 2)" revision 2 b049d8b1-d0dd-4bdb-86ed-1e4dd8637ebb
+- sign-in invite /sign-in/XBZFsAA… (consumed by this run's passkey registration)
+- passkey credential mWvT4G7bt9J0… on Josh's production account (from this run's virtual authenticator; it cannot sign in from any real device)
+- lesson 769dba52-b9e4-44ae-97a4-641eb17673a8 "audit-2026-09-22T12-39-30" revision 1 84a6bee3-9957-44f2-80c0-2a87e402d9de
+- lesson 769dba52-b9e4-44ae-97a4-641eb17673a8 "audit-2026-09-22T12-39-30 (revision 2)" revision 2 eebee77c-85f6-4c4b-a9e2-28869b590563
 

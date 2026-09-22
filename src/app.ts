@@ -35,14 +35,42 @@ export function composeRoutes(dependencies: Dependencies) {
 /** The response header that names the revision which served a request. */
 export const REVISION_HEADER = "x-learn-revision";
 
-/** Set the revision header, copying the response when its headers are immutable. */
-function withRevision(response: Response, revision: string): Response {
+/** One year, well over the 180 days ticket 14 requires. */
+export const HSTS_VALUE = "max-age=31536000; includeSubDomains";
+
+/** Headers every response carries regardless of transport. */
+const ALWAYS_HEADERS: [string, string][] = [
+  ["x-content-type-options", "nosniff"],
+  ["referrer-policy", "same-origin"],
+];
+
+/**
+ * Whether the request reached the application over HTTPS. Deno Deploy terminates TLS at its
+ * edge; the request URL it hands the isolate is `https:`, and a proxy that rewrites the URL
+ * still says so in `x-forwarded-proto`. The plain `http://localhost` development server is
+ * never secure, so a browser never remembers HSTS for the port-less localhost host.
+ */
+export function isSecureRequest(request: Request): boolean {
+  if (new URL(request.url).protocol === "https:") return true;
+  const forwarded = request.headers.get("x-forwarded-proto") ?? "";
+  return forwarded.split(",")[0].trim().toLowerCase() === "https";
+}
+
+/** The headers the wrapper adds to a response for this request. */
+export function responseHeaders(request: Request, revision: string): [string, string][] {
+  const headers: [string, string][] = [[REVISION_HEADER, revision], ...ALWAYS_HEADERS];
+  if (isSecureRequest(request)) headers.push(["strict-transport-security", HSTS_VALUE]);
+  return headers;
+}
+
+/** Set the wrapper's headers, copying the response when its headers are immutable. */
+function withHeaders(response: Response, headers: [string, string][]): Response {
   try {
-    response.headers.set(REVISION_HEADER, revision);
+    for (const [name, value] of headers) response.headers.set(name, value);
     return response;
   } catch {
     const copy = new Response(response.body, response);
-    copy.headers.set(REVISION_HEADER, revision);
+    for (const [name, value] of headers) copy.headers.set(name, value);
     return copy;
   }
 }
@@ -63,7 +91,7 @@ export function createApp(dependencies: Dependencies) {
     }
   }
   return async function handler(request: Request): Promise<Response> {
-    return withRevision(await respond(request), revision);
+    return withHeaders(await respond(request), responseHeaders(request, revision));
   };
 }
 
