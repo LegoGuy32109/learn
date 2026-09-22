@@ -16,12 +16,48 @@ export interface StoredRevision {
   createdAt: number;
 }
 
+/** One shelf card's worth of a lesson: its identity and its newest revision. Content is not included. */
+export interface ShelfLesson {
+  lessonId: string;
+  title: string;
+  conceptCount: number;
+  questionCount: number;
+  latestRevisionId: string;
+  latestRevisionNumber: number;
+  status: StoredRevision["status"];
+  /** When the newest revision was created, in milliseconds. The shelf sorts newest first. */
+  updatedAt: number;
+}
+
 export interface LessonRepository {
   featured(): Promise<Record<string, any>>;
   createLesson(accountId: string, resolved: ResolvedLesson): Promise<StoredRevision>;
   createRevision(accountId: string, lessonId: string, resolved: ResolvedLesson): Promise<StoredRevision>;
   getRevision(accountId: string, lessonId: string, revisionId: string): Promise<StoredRevision | null>;
+  /** The newest revision of one lesson the account owns, or null when it owns no such lesson. */
+  latestRevision(accountId: string, lessonId: string): Promise<StoredRevision | null>;
   listMine(accountId: string): Promise<Array<Record<string, unknown>>>;
+  /** Every lesson the account owns, newest revision first. */
+  shelf(accountId: string): Promise<ShelfLesson[]>;
+}
+
+/** Concept and Question counts from a normalized lesson document. */
+function counts(content: Record<string, any>): { conceptCount: number; questionCount: number } {
+  const concepts = Array.isArray(content.concepts) ? content.concepts : [];
+  const questions = Array.isArray(content.questions) ? content.questions : [];
+  return { conceptCount: concepts.length, questionCount: questions.length };
+}
+
+function shelfLesson(stored: StoredRevision): ShelfLesson {
+  return {
+    lessonId: stored.lessonId,
+    title: String(stored.content.title),
+    ...counts(stored.content),
+    latestRevisionId: stored.revisionId,
+    latestRevisionNumber: stored.revisionNumber,
+    status: stored.status,
+    updatedAt: stored.createdAt,
+  };
 }
 
 function rowRevision(row: Record<string, any>, sources: Array<Record<string, unknown>> = []): StoredRevision {
@@ -69,6 +105,30 @@ export class TursoLessonRepository implements LessonRepository {
       args: [revisionId, lessonId, accountId],
     });
     return result.rows.length ? await this.hydrate(result.rows[0] as Record<string, any>) : null;
+  }
+
+  async latestRevision(accountId: string, lessonId: string): Promise<StoredRevision | null> {
+    const result = await this.db.execute({
+      sql: "SELECT r.* FROM lesson_revisions r JOIN lessons l ON l.id = r.lesson_id WHERE r.lesson_id = ? AND l.owner_account_id = ? ORDER BY r.revision_number DESC LIMIT 1",
+      args: [lessonId, accountId],
+    });
+    return result.rows.length ? await this.hydrate(result.rows[0] as Record<string, any>) : null;
+  }
+
+  async shelf(accountId: string): Promise<ShelfLesson[]> {
+    const result = await this.db.execute({
+      sql: "SELECT l.id AS lesson_id, r.id AS revision_id, r.revision_number, r.status, r.instructional_title, r.content_json, r.created_at FROM lessons l JOIN lesson_revisions r ON r.lesson_id = l.id WHERE l.owner_account_id = ? AND r.revision_number = (SELECT MAX(revision_number) FROM lesson_revisions newest WHERE newest.lesson_id = l.id) ORDER BY r.created_at DESC, l.id",
+      args: [accountId],
+    });
+    return result.rows.map((row) => ({
+      lessonId: String(row.lesson_id),
+      title: String(row.instructional_title),
+      ...counts(JSON.parse(String(row.content_json))),
+      latestRevisionId: String(row.revision_id),
+      latestRevisionNumber: Number(row.revision_number),
+      status: String(row.status) as StoredRevision["status"],
+      updatedAt: Number(row.created_at),
+    }));
   }
 
   async listMine(accountId: string): Promise<Array<Record<string, unknown>>> {
@@ -121,11 +181,95 @@ export class TursoLessonRepository implements LessonRepository {
   }
 }
 
+/** The account that owns the bundled demo lesson in the database-free application. */
+export const FIXTURE_OWNER_ID = "fixture-owner";
+
+/**
+ * In-memory lesson storage seeded with one published revision: the bundled demo fixture, owned by
+ * the fixture account. Drafts created through the API live only for the life of the process. It
+ * backs the database-free application that browser and server tests run against.
+ */
 export class FixtureLessonRepository implements LessonRepository {
-  constructor(private lesson: Record<string, any>) {}
-  async featured() { return this.lesson; }
-  async createLesson(): Promise<StoredRevision> { throw new Error("Database is unavailable"); }
-  async createRevision(): Promise<StoredRevision> { throw new Error("Database is unavailable"); }
-  async getRevision(): Promise<StoredRevision | null> { return null; }
-  async listMine(): Promise<Array<Record<string, unknown>>> { return []; }
+  private owners = new Map<string, string>();
+  private revisions: StoredRevision[] = [];
+  private clock: () => number;
+
+  constructor(lesson: Record<string, any>, ownerAccountId = FIXTURE_OWNER_ID, clock: () => number = Date.now) {
+    this.clock = clock;
+    const { lessonId, revisionId } = lesson;
+    this.owners.set(String(lessonId), ownerAccountId);
+    this.revisions.push({
+      lessonId: String(lessonId), revisionId: String(revisionId), revisionNumber: 1, status: "published",
+      fingerprint: "sha256:fixture", content: lesson, createdAt: 0,
+    });
+  }
+
+  async featured(): Promise<Record<string, any>> {
+    const published = this.revisions.filter((revision) => revision.status === "published");
+    return published.at(-1)!.content;
+  }
+
+  async createLesson(accountId: string, resolved: ResolvedLesson): Promise<StoredRevision> {
+    const duplicate = this.byFingerprint(accountId, resolved.fingerprint);
+    if (duplicate) return duplicate;
+    const lessonId = crypto.randomUUID();
+    this.owners.set(lessonId, accountId);
+    return this.insert(lessonId, 1, resolved);
+  }
+
+  async createRevision(accountId: string, lessonId: string, resolved: ResolvedLesson): Promise<StoredRevision> {
+    const duplicate = this.byFingerprint(accountId, resolved.fingerprint);
+    if (duplicate) return duplicate;
+    if (this.owners.get(lessonId) !== accountId) throw new Deno.errors.NotFound("Lesson not found");
+    const numbers = this.revisions.filter((revision) => revision.lessonId === lessonId).map((revision) => revision.revisionNumber);
+    return this.insert(lessonId, Math.max(0, ...numbers) + 1, resolved);
+  }
+
+  async getRevision(accountId: string, lessonId: string, revisionId: string): Promise<StoredRevision | null> {
+    if (this.owners.get(lessonId) !== accountId) return null;
+    return this.revisions.find((revision) => revision.lessonId === lessonId && revision.revisionId === revisionId) ?? null;
+  }
+
+  async latestRevision(accountId: string, lessonId: string): Promise<StoredRevision | null> {
+    if (this.owners.get(lessonId) !== accountId) return null;
+    return this.newest(lessonId);
+  }
+
+  async listMine(accountId: string): Promise<Array<Record<string, unknown>>> {
+    return this.owned(accountId)
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map(({ lessonId, revisionId, revisionNumber, status, content, fingerprint, createdAt }) => ({
+        lessonId, revisionId, revisionNumber, status, title: String(content.title), fingerprint, createdAt,
+      }));
+  }
+
+  async shelf(accountId: string): Promise<ShelfLesson[]> {
+    const lessonIds = [...new Set(this.owned(accountId).map((revision) => revision.lessonId))];
+    return lessonIds.map((lessonId) => shelfLesson(this.newest(lessonId)!)).sort((a, b) => b.updatedAt - a.updatedAt);
+  }
+
+  private owned(accountId: string): StoredRevision[] {
+    return this.revisions.filter((revision) => this.owners.get(revision.lessonId) === accountId);
+  }
+
+  private newest(lessonId: string): StoredRevision | null {
+    const mine = this.revisions.filter((revision) => revision.lessonId === lessonId);
+    return mine.sort((a, b) => b.revisionNumber - a.revisionNumber)[0] ?? null;
+  }
+
+  private byFingerprint(accountId: string, fingerprint: string): StoredRevision | null {
+    return this.owned(accountId).find((revision) => revision.fingerprint === fingerprint) ?? null;
+  }
+
+  private insert(lessonId: string, revisionNumber: number, resolved: ResolvedLesson): StoredRevision {
+    const revisionId = crypto.randomUUID();
+    // Strictly increasing, so two drafts created in the same millisecond still order newest first.
+    const createdAt = Math.max(this.clock(), (this.revisions.at(-1)?.createdAt ?? -1) + 1);
+    const stored: StoredRevision = {
+      lessonId, revisionId, revisionNumber, status: "draft", fingerprint: resolved.fingerprint,
+      content: { ...resolved.normalizedLesson, lessonId, revisionId }, createdAt,
+    };
+    this.revisions.push(stored);
+    return stored;
+  }
 }

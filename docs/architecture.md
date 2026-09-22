@@ -105,8 +105,10 @@ projection tables can be added if later discovery or reporting needs them.
 ## Offline and synchronization boundary
 
 IndexedDB is the browser source for cached Lesson Revisions, immutable events,
-and rebuildable projections. Opened lessons will eventually cache
-automatically. The service worker caches only the versioned shell and static
+rebuildable projections, and one progress stream per Lesson that pins the
+revision the learner is on and the current progress epoch. Opening a lesson
+from the shelf caches its revision; the pure shelf model in
+`src/client/library/shelf-model.js` merges the server's list with the cache. The service worker caches only the versioned shell and static
 assets; lesson content and progress remain in IndexedDB.
 
 The shell is one versioned unit. `src/server/build.ts` hashes every static
