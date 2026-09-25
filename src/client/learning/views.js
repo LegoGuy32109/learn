@@ -7,7 +7,10 @@ import { actionButton, backButton } from "../ui/controls.js";
 
 /** @param {string} value */
 function escape(value) {
-  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(
+    ">",
+    "&gt;",
+  ).replaceAll('"', "&quot;");
 }
 
 /**
@@ -27,8 +30,12 @@ export function cardView(concept, card, flow) {
   const notice = flow.screen === "corrective"
     ? '<div class="notice"><span><strong>Correcting card.</strong> Review this idea, then return to the question.</span></div>'
     : "";
-  const position = `${concept.title} · Card ${flow.cardIndex + 1} of ${concept.cards.length}`;
-  return `${notice}<div class="cardbody"><p class="eyebrow">${position}</p><h2>${card.heading}</h2>${paragraphs(card.body)}</div>`;
+  const position = `${concept.title} · Card ${
+    flow.cardIndex + 1
+  } of ${concept.cards.length}`;
+  return `${notice}<div class="cardbody"><p class="eyebrow">${position}</p><h2>${card.heading}</h2>${
+    paragraphs(card.body)
+  }</div>`;
 }
 
 /**
@@ -39,7 +46,9 @@ export function cardView(concept, card, flow) {
 export function clampedCardView(card) {
   const [first, ...rest] = card.body;
   const more = rest.length
-    ? `<details class="more"><summary>Read the rest of this card</summary>${paragraphs(rest)}</details>`
+    ? `<details class="more"><summary>Read the rest of this card</summary>${
+      paragraphs(rest)
+    }</details>`
     : "";
   return `<aside class="corrects" aria-label="Correcting card"><p class="eyebrow">Corrected by</p><h3>${card.heading}</h3><p>${first}</p>${more}</aside>`;
 }
@@ -50,11 +59,19 @@ export function clampedCardView(card) {
  */
 export function feedbackView(feedback) {
   const className = feedback.correct ? "feedback good" : "feedback";
-  const verdict = feedback.correct ? "Correct" : feedback.idk ? "Recorded" : "Not quite";
+  const verdict = feedback.correct
+    ? "Correct"
+    : feedback.idk
+    ? "Recorded"
+    : "Not quite";
   const belief = feedback.belief
-    ? `<div class="belief">The belief behind that option: <b>${escape(feedback.belief)}</b></div>`
+    ? `<div class="belief">The belief behind that option: <b>${
+      escape(feedback.belief)
+    }</b></div>`
     : "";
-  const corrective = feedback.cardId ? '<button class="source" data-action="corrective">Review the correcting card</button>' : "";
+  const corrective = feedback.cardId
+    ? '<button class="source" data-action="corrective">Review the correcting card</button>'
+    : "";
   return `<div class="${className}"><p class="verdict">${verdict}</p><p>${feedback.text}</p></div>${belief}${corrective}`;
 }
 
@@ -79,7 +96,10 @@ function hashString(value) {
  * @param {any} flow
  */
 export function optionOrder(concept, question, flow) {
-  return shuffled(concept.options, (flow.seed + hashString(String(question.id))) >>> 0);
+  return shuffled(
+    concept.options,
+    (flow.seed + hashString(String(question.id))) >>> 0,
+  );
 }
 
 /**
@@ -92,10 +112,16 @@ export function optionOrder(concept, question, flow) {
 function answerForm(concept, question, flow) {
   if (question.type === "mcq") {
     const options = optionOrder(concept, question, flow);
-    const buttons = options.map((/** @type {any} */ option) => `<button class="opt" data-answer="${option.id}">${escape(option.text)}</button>`);
+    const buttons = options.map((/** @type {any} */ option) =>
+      `<button class="opt" data-answer="${option.id}">${
+        escape(option.text)
+      }</button>`
+    );
     return `<div class="opts">${buttons.join("")}</div>`;
   }
-  const hint = question.unit ? `answer in ${question.unit}` : "one word or short phrase";
+  const hint = question.unit
+    ? `answer in ${question.unit}`
+    : "one word or short phrase";
   const inputMode = question.type === "numeric" ? ' inputmode="decimal"' : "";
   return `<form class="fieldwrap" data-submit="submit"><span class="hintline">${hint}</span><input class="field" id="answer"${inputMode} aria-label="Answer" autocomplete="off"><button class="go" type="submit">Answer</button></form>`;
 }
@@ -106,9 +132,15 @@ function answerForm(concept, question, flow) {
  * @param {any} flow
  */
 export function questionView(concept, question, flow) {
-  const kind = flow.flowKind === "check" ? "Concept check" : flow.flowKind === "drill" ? drillKind(flow) : "Wrap-up";
+  const kind = flow.flowKind === "check"
+    ? "Concept check"
+    : flow.flowKind === "drill"
+    ? drillKind(flow)
+    : "Wrap-up";
   const from = `${kind} · ${concept?.title || "Review"}`;
-  return `<div class="prompt"><p class="from">${from}</p><p class="qhead">${escape(question.stem)}</p></div>${answerForm(concept, question, flow)}`;
+  return `<div class="prompt"><p class="from">${from}</p><p class="qhead">${
+    escape(question.stem)
+  }</p></div>${answerForm(concept, question, flow)}`;
 }
 
 /**
@@ -116,7 +148,9 @@ export function questionView(concept, question, flow) {
  * @param {any} flow
  */
 function drillKind(flow) {
-  return `Every question · ${flow.total - flow.queue.length + 1} of ${flow.total}`;
+  return `Every question · ${
+    flow.total - flow.queue.length + 1
+  } of ${flow.total}`;
 }
 
 /**
@@ -125,16 +159,23 @@ function drillKind(flow) {
  * @param {ReturnType<typeof import("../../shared/learning/drill.js").reduceDrill>} outcomes
  */
 export function drillSummaryView(outcomes) {
-  const hero = `<div class="lessonhero"><p class="eyebrow">Every question</p><h1>Every question seen</h1><p>You went through every question in every pool, reserved ones included. Drill does not earn Learned. That comes from the Wrap-up in a normal run.</p></div>`;
-  const lines = outcomes.map((outcome) => `<div class="line"><span>${escape(outcome.title)}</span><b>${describeOutcome(outcome)}</b></div>`);
+  const hero =
+    `<div class="lessonhero"><p class="eyebrow">Every question</p><h1>Every question seen</h1><p>You went through every question in every pool, reserved ones included. Drill does not earn Learned. That comes from the Wrap-up in a normal run.</p></div>`;
+  const lines = outcomes.map((outcome) =>
+    `<div class="line"><span>${escape(outcome.title)}</span><b>${
+      describeOutcome(outcome)
+    }</b></div>`
+  );
   return `${hero}<div class="summary drill">${lines.join("")}</div>`;
 }
 
 /** @param {any} lesson */
 export function summaryView(lesson) {
   const count = lesson.concepts.length;
-  const hero = `<div class="lessonhero"><p class="eyebrow">Complete</p><h1>Learned</h1><p>You completed every concept and its Wrap-up question.</p></div>`;
-  const summary = `<div class="summary"><div class="line"><span>Concepts learned</span><b>${count} of ${count}</b></div></div>`;
+  const hero =
+    `<div class="lessonhero"><p class="eyebrow">Complete</p><h1>Learned</h1><p>You completed every concept and its Wrap-up question.</p></div>`;
+  const summary =
+    `<div class="summary"><div class="line"><span>Concepts learned</span><b>${count} of ${count}</b></div></div>`;
   return hero + summary;
 }
 
@@ -147,7 +188,9 @@ export function summaryView(lesson) {
  */
 export function regionView(lesson, flow, concept, item) {
   if (flow.screen === "summary") return summaryView(lesson);
-  if (flow.screen === "card" || flow.screen === "corrective") return cardView(concept, item, flow);
+  if (flow.screen === "card" || flow.screen === "corrective") {
+    return cardView(concept, item, flow);
+  }
   if (flow.feedback) return feedbackView(flow.feedback);
   return questionView(concept, item, flow);
 }
@@ -169,14 +212,33 @@ export function afterFooterView(lesson, flow) {
  */
 export function footerView(flow) {
   const back = backButton("back", "Back");
-  if (flow.screen === "summary" && flow.flowKind === "drill") return `<div class="actions">${actionButton("Back to overview", "overview")}</div>`;
-  if (flow.screen === "summary") return `<div class="actions">${actionButton("Back to shelf", "shelf")}</div>`;
-  if (flow.screen === "card") return `<div class="actions">${back}${actionButton("Continue", "continue")}</div>`;
-  if (flow.screen === "corrective") return `<div class="actions">${back}${actionButton("Return to questions", "return")}</div>`;
+  if (flow.screen === "summary" && flow.flowKind === "drill") {
+    return `<div class="actions">${
+      actionButton("Back to overview", "overview")
+    }</div>`;
+  }
+  if (flow.screen === "summary") {
+    return `<div class="actions">${
+      actionButton("Back to shelf", "shelf")
+    }</div>`;
+  }
+  if (flow.screen === "card") {
+    return `<div class="actions">${back}${
+      actionButton("Continue", "continue")
+    }</div>`;
+  }
+  if (flow.screen === "corrective") {
+    return `<div class="actions">${back}${
+      actionButton("Return to questions", "return")
+    }</div>`;
+  }
   if (flow.feedback) {
-    const retry = !flow.feedback.correct && !flow.feedback.idk && flow.flowKind === "check" && flow.queue.length > 1;
+    const retry = !flow.feedback.correct && !flow.feedback.idk &&
+      flow.flowKind === "check" && flow.queue.length > 1;
     const label = retry ? "Try another from this concept" : "Continue";
-    return `<div class="actions">${back}${actionButton(label, "advance")}</div>`;
+    return `<div class="actions">${back}${
+      actionButton(label, "advance")
+    }</div>`;
   }
   return `<div class="actions">${back}<button class="idk" data-action="idk">I don't know</button></div>`;
 }
@@ -190,7 +252,10 @@ const STARTED_FILL = 40;
  */
 function conceptFill(concept, progress) {
   const lastCard = concept.cards.at(-1);
-  if (progress.learnedConcepts.has(concept.id) || progress.cardsSeen.has(lastCard.id)) return 100;
+  if (
+    progress.learnedConcepts.has(concept.id) ||
+    progress.cardsSeen.has(lastCard.id)
+  ) return 100;
   if (progress.cardsSeen.has(concept.cards[0].id)) return STARTED_FILL;
   return 0;
 }
@@ -198,7 +263,8 @@ function conceptFill(concept, progress) {
 /** @param {any} flow */
 function wrapUpFill(flow) {
   const total = flow.wrapTotal || 1;
-  const answered = flow.wrapTotal - flow.queue.length + (flow.feedback?.correct ? 1 : 0);
+  const answered = flow.wrapTotal - flow.queue.length +
+    (flow.feedback?.correct ? 1 : 0);
   return Math.min(100, Math.round(100 * (answered / total)));
 }
 
@@ -211,7 +277,9 @@ function wrapUpFill(flow) {
  * @param {string} label what this segment measures
  */
 function railSegment(fill, label) {
-  return `<i role="progressbar" aria-label="${escape(label)}" aria-valuemin="0" aria-valuemax="100"` +
+  return `<i role="progressbar" aria-label="${
+    escape(label)
+  }" aria-valuemin="0" aria-valuemax="100"` +
     ` aria-valuenow="${fill}" aria-valuetext="${fill}% complete"><b style="width:${fill}%"></b></i>`;
 }
 
@@ -224,10 +292,14 @@ function railSegment(fill, label) {
 export function drillRailView(lesson, outcomes) {
   const segments = lesson.concepts.map((concept) => {
     const outcome = outcomes.find((candidate) => candidate.id === concept.id);
-    const fill = outcome && outcome.questions ? Math.round(100 * (outcome.asked / outcome.questions)) : 0;
+    const fill = outcome && outcome.questions
+      ? Math.round(100 * (outcome.asked / outcome.questions))
+      : 0;
     return railSegment(fill, concept.title);
   });
-  return `<div class="rail" role="group" aria-label="Drill progress">${segments.join("")}</div>`;
+  return `<div class="rail" role="group" aria-label="Drill progress">${
+    segments.join("")
+  }</div>`;
 }
 
 /**
@@ -237,7 +309,13 @@ export function drillRailView(lesson, outcomes) {
  * @param {any} progress
  */
 export function railView(lesson, flow, progress) {
-  const segments = lesson.concepts.map((concept) => railSegment(conceptFill(concept, progress), concept.title));
-  const wrapUp = flow?.flowKind === "wrap_up" ? railSegment(wrapUpFill(flow), "Wrap-up") : "";
-  return `<div class="rail" role="group" aria-label="Concept progress">${segments.join("")}${wrapUp}</div>`;
+  const segments = lesson.concepts.map((concept) =>
+    railSegment(conceptFill(concept, progress), concept.title)
+  );
+  const wrapUp = flow?.flowKind === "wrap_up"
+    ? railSegment(wrapUpFill(flow), "Wrap-up")
+    : "";
+  return `<div class="rail" role="group" aria-label="Concept progress">${
+    segments.join("")
+  }${wrapUp}</div>`;
 }

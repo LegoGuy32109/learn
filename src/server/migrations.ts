@@ -19,27 +19,43 @@ function splitStatements(sql: string): string[] {
 }
 
 async function sha256(text: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(text),
+  );
+  return Array.from(
+    new Uint8Array(digest),
+    (byte) => byte.toString(16).padStart(2, "0"),
+  ).join("");
 }
 
 /** Every migration file this checkout carries, in order, with its checksum. The repository's own history. */
 export async function migrationHistory(): Promise<Migration[]> {
   const names: string[] = [];
   for await (const entry of Deno.readDir(directory)) {
-    if (entry.isFile && /^\d{3}_[a-z0-9_]+\.sql$/.test(entry.name)) names.push(entry.name);
+    if (entry.isFile && /^\d{3}_[a-z0-9_]+\.sql$/.test(entry.name)) {
+      names.push(entry.name);
+    }
   }
-  return await Promise.all(names.sort().map(async (version) => {
-    const sql = await Deno.readTextFile(new URL(version, directory));
-    return { version, sql, checksum: await sha256(sql) };
-  }));
+  return await Promise.all(
+    names.sort().map(async (version) => {
+      const sql = await Deno.readTextFile(new URL(version, directory));
+      return { version, sql, checksum: await sha256(sql) };
+    }),
+  );
 }
 
 /** The ledger a database reports: version -> checksum of every migration it has recorded as applied. */
 export async function appliedLedger(db: Client): Promise<Map<string, string>> {
-  await db.execute("CREATE TABLE IF NOT EXISTS schema_migrations (version TEXT PRIMARY KEY, checksum TEXT NOT NULL, applied_at INTEGER NOT NULL)");
-  const appliedRows = await db.execute("SELECT version, checksum FROM schema_migrations");
-  return new Map(appliedRows.rows.map((row) => [String(row.version), String(row.checksum)]));
+  await db.execute(
+    "CREATE TABLE IF NOT EXISTS schema_migrations (version TEXT PRIMARY KEY, checksum TEXT NOT NULL, applied_at INTEGER NOT NULL)",
+  );
+  const appliedRows = await db.execute(
+    "SELECT version, checksum FROM schema_migrations",
+  );
+  return new Map(
+    appliedRows.rows.map((row) => [String(row.version), String(row.checksum)]),
+  );
 }
 
 /**
@@ -48,11 +64,18 @@ export async function appliedLedger(db: Client): Promise<Map<string, string>> {
  * exactly this reason). Pure: no I/O, so this is the one place both the migration runner and a
  * read-only pending check agree on what "pending" means.
  */
-export function pendingAgainst(history: Migration[], applied: Map<string, string>): Migration[] {
+export function pendingAgainst(
+  history: Migration[],
+  applied: Map<string, string>,
+): Migration[] {
   const pending: Migration[] = [];
   for (const migration of history) {
     const checksum = applied.get(migration.version);
-    if (checksum && checksum !== migration.checksum) throw new Error(`migration ${migration.version} changed after application`);
+    if (checksum && checksum !== migration.checksum) {
+      throw new Error(
+        `migration ${migration.version} changed after application`,
+      );
+    }
     if (!checksum) pending.push(migration);
   }
   return pending;
@@ -60,18 +83,27 @@ export function pendingAgainst(history: Migration[], applied: Map<string, string
 
 /** Read-only: the versions this checkout's history has that `db` has not applied. Runs nothing. */
 export async function pendingMigrations(db: Client): Promise<string[]> {
-  const pending = pendingAgainst(await migrationHistory(), await appliedLedger(db));
+  const pending = pendingAgainst(
+    await migrationHistory(),
+    await appliedLedger(db),
+  );
   return pending.map((migration) => migration.version);
 }
 
 export async function migrateDatabase(db: Client): Promise<string[]> {
-  const pending = pendingAgainst(await migrationHistory(), await appliedLedger(db));
+  const pending = pendingAgainst(
+    await migrationHistory(),
+    await appliedLedger(db),
+  );
   for (const migration of pending) {
     await db.batch([
       ...splitStatements(migration.sql),
-      { sql: "INSERT INTO schema_migrations(version, checksum, applied_at) VALUES (?, ?, ?)", args: [migration.version, migration.checksum, Date.now()] },
+      {
+        sql:
+          "INSERT INTO schema_migrations(version, checksum, applied_at) VALUES (?, ?, ?)",
+        args: [migration.version, migration.checksum, Date.now()],
+      },
     ], "immediate");
   }
   return pending.map((migration) => migration.version);
 }
-

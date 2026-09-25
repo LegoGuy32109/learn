@@ -43,5 +43,7 @@ export function cacheName(hash) {
  * @returns {string[]}
  */
 export function staleCaches(names, current) {
-  return names.filter((name) => name.startsWith(CACHE_PREFIX) && name !== current);
+  return names.filter((name) =>
+    name.startsWith(CACHE_PREFIX) && name !== current
+  );
 }

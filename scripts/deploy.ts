@@ -22,12 +22,16 @@ const ORG = "legoguy32109";
 const APP = "learn-joshhale";
 const CONFIG = new URL("../deno.json", import.meta.url);
 
-if (!Deno.env.get("DENO_DEPLOY_TOKEN")) throw new Error("DENO_DEPLOY_TOKEN must be set; load .env");
+if (!Deno.env.get("DENO_DEPLOY_TOKEN")) {
+  throw new Error("DENO_DEPLOY_TOKEN must be set; load .env");
+}
 
 const pending = await pendingProductionMigrations();
 if (pending.length) {
   console.error(
-    `Refusing to deploy: learn-prod has not applied ${pending.length} migration(s) this checkout carries: ${pending.join(", ")}.\n` +
+    `Refusing to deploy: learn-prod has not applied ${pending.length} migration(s) this checkout carries: ${
+      pending.join(", ")
+    }.\n` +
       "Run `deno task db:migrate:prod` first, then deploy again.",
   );
   Deno.exit(1);
@@ -36,7 +40,20 @@ if (pending.length) {
 const configBefore = await Deno.readFile(CONFIG);
 
 const deploy = new Deno.Command("deno", {
-  args: ["run", "-A", "--no-lock", "jsr:@deno/deploy@0.0.9904", "--json", "--non-interactive", "--org", ORG, "--app", APP, "--prod", "."],
+  args: [
+    "run",
+    "-A",
+    "--no-lock",
+    "jsr:@deno/deploy@0.0.9904",
+    "--json",
+    "--non-interactive",
+    "--org",
+    ORG,
+    "--app",
+    APP,
+    "--prod",
+    ".",
+  ],
   stdout: "piped",
   stderr: "inherit",
 });
@@ -45,7 +62,9 @@ const result = await deploy.output();
 const configAfter = await Deno.readFile(CONFIG);
 if (!bytesEqual(configBefore, configAfter)) {
   await Deno.writeFile(CONFIG, configBefore);
-  console.log(`Restored deno.json after the deploy CLI rewrote it (${configAfter.length} bytes back to ${configBefore.length}).`);
+  console.log(
+    `Restored deno.json after the deploy CLI rewrote it (${configAfter.length} bytes back to ${configBefore.length}).`,
+  );
 }
 
 const stdout = new TextDecoder().decode(result.stdout).trim();
@@ -60,13 +79,23 @@ try {
 } catch {
   console.log(stdout);
 }
-const url = typeof summary.productionUrl === "string" ? summary.productionUrl : undefined;
-console.log(`Deployed revision ${summary.revisionId ?? "(unknown)"}${url ? ` to ${url}` : ""}.`);
+const url = typeof summary.productionUrl === "string"
+  ? summary.productionUrl
+  : undefined;
+console.log(
+  `Deployed revision ${summary.revisionId ?? "(unknown)"}${
+    url ? ` to ${url}` : ""
+  }.`,
+);
 
 if (Deno.args.includes("--no-smoke")) Deno.exit(0);
 // The smoke reads the production owner token from .env.prod itself, so the
 // `.env` variables this process loaded cannot leak into it. See scripts/smoke-prod.ts.
-const smoke = new Deno.Command("deno", { args: ["task", "smoke:prod"], stdout: "inherit", stderr: "inherit" });
+const smoke = new Deno.Command("deno", {
+  args: ["task", "smoke:prod"],
+  stdout: "inherit",
+  stderr: "inherit",
+});
 const smoked = await smoke.output();
 if (!smoked.success) throw new Error("production smoke failed after deploy");
 

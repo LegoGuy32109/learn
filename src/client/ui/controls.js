@@ -25,7 +25,9 @@ export function actionButton(label, actionName, quiet = false) {
  * @param {string} label
  */
 export function backButton(actionName, label) {
-  return `<button class="back" data-action="${actionName}" aria-label="${label}">${icon(BACK)}</button>`;
+  return `<button class="back" data-action="${actionName}" aria-label="${label}">${
+    icon(BACK)
+  }</button>`;
 }
 
 const STATE_NAMES = {
@@ -51,7 +53,10 @@ export function stateName(progress) {
 export function bind(root, onAction, onAnswer) {
   for (const element of root.querySelectorAll("[data-action]")) {
     const button = /** @type {HTMLElement} */ (element);
-    button.addEventListener("click", () => onAction(button.dataset.action ?? ""));
+    button.addEventListener(
+      "click",
+      () => onAction(button.dataset.action ?? ""),
+    );
   }
   for (const element of root.querySelectorAll("form[data-submit]")) {
     const form = /** @type {HTMLFormElement} */ (element);
@@ -62,6 +67,9 @@ export function bind(root, onAction, onAnswer) {
   }
   for (const element of root.querySelectorAll("[data-answer]")) {
     const button = /** @type {HTMLElement} */ (element);
-    button.addEventListener("click", () => onAnswer(button.dataset.answer ?? ""));
+    button.addEventListener(
+      "click",
+      () => onAnswer(button.dataset.answer ?? ""),
+    );
   }
 }

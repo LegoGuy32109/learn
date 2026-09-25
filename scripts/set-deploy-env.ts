@@ -38,7 +38,9 @@ interface Assignment {
 
 function usage(): never {
   console.error("Usage: scripts/set-deploy-env.ts <Context> --from=<env file>");
-  console.error("       scripts/set-deploy-env.ts <Context> <KEY> <value> [secret]");
+  console.error(
+    "       scripts/set-deploy-env.ts <Context> <KEY> <value> [secret]",
+  );
   Deno.exit(2);
 }
 
@@ -63,10 +65,14 @@ async function assignmentsFromFile(path: string): Promise<Assignment[]> {
 
 const [contextName, second, third, fourth] = Deno.args;
 if (!contextName || !second) usage();
-const fromPath = second.startsWith("--from=") ? second.slice("--from=".length) : undefined;
+const fromPath = second.startsWith("--from=")
+  ? second.slice("--from=".length)
+  : undefined;
 const assignments: Assignment[] = fromPath
   ? await assignmentsFromFile(fromPath)
-  : third === undefined ? usage() : [{ key: second, value: third, secret: fourth === "secret" }];
+  : third === undefined
+  ? usage()
+  : [{ key: second, value: third, secret: fourth === "secret" }];
 
 const token = Deno.env.get("DENO_DEPLOY_TOKEN");
 if (!token) throw new Error("DENO_DEPLOY_TOKEN must be set");
@@ -79,16 +85,26 @@ const trpcClient = createTrpcClient({
   nonInteractive: true as const,
 });
 
-const app = await trpcClient.query("apps.get", { org: ORG, app: APP }) as { id: string };
-const contexts = await trpcClient.query("envVarsContexts.listContexts", { org: ORG }) as { id: string; name: string }[];
+const app = await trpcClient.query("apps.get", { org: ORG, app: APP }) as {
+  id: string;
+};
+const contexts = await trpcClient.query("envVarsContexts.listContexts", {
+  org: ORG,
+}) as { id: string; name: string }[];
 const target = contexts.find((context) => context.name === contextName);
 if (!target) {
-  throw new Error(`Context "${contextName}" not found. Known contexts: ${contexts.map((context) => context.name).join(", ")}`);
+  throw new Error(
+    `Context "${contextName}" not found. Known contexts: ${
+      contexts.map((context) => context.name).join(", ")
+    }`,
+  );
 }
 
 for (const assignment of assignments) {
-  const existing = await trpcClient.query("envVarsContexts.list", { org: ORG, app: APP }) as
-    { id: string; key: string; context_ids: string[] | null }[];
+  const existing = await trpcClient.query("envVarsContexts.list", {
+    org: ORG,
+    app: APP,
+  }) as { id: string; key: string; context_ids: string[] | null }[];
   const current = existing.find((variable) =>
     variable.key === assignment.key &&
     (variable.context_ids === null || variable.context_ids.includes(target.id))
@@ -105,5 +121,9 @@ for (const assignment of assignments) {
     update: current ? [{ id: current.id, ...variable }] : [],
     remove: [],
   });
-  console.log(`${current ? "Updated" : "Set"} ${assignment.key} in ${contextName}${assignment.secret ? " (secret)" : ""}.`);
+  console.log(
+    `${current ? "Updated" : "Set"} ${assignment.key} in ${contextName}${
+      assignment.secret ? " (secret)" : ""
+    }.`,
+  );
 }

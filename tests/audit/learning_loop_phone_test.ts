@@ -10,28 +10,40 @@ import { drillFromFresh, fullWalk } from "./walk.ts";
 
 const REPORT_PATH = new URL("./last-run.md", import.meta.url).pathname;
 
-Deno.test({ name: "audit: learning loop on a phone viewport", sanitizeOps: false, sanitizeResources: false, fn: async () => {
-  const server = Deno.serve({ port: 0, onListen() {} }, app);
-  const ORIGIN = `http://127.0.0.1:${server.addr.port}`;
-  const browser = await chromium.launch({ headless: true });
-  const errors: string[] = [];
-  const consoleMessages: string[] = [];
-  try {
-    await fullWalk(browser, ORIGIN, errors, consoleMessages);
-    await drillFromFresh(browser, ORIGIN, errors, consoleMessages);
-    await check("listeners · no pageerror during the whole run", () => {
-      expect(errors).toEqual([]);
-    });
-    await check("listeners · no console error or warning during the whole run", () => {
-      expect(consoleMessages).toEqual([]);
-    });
-  } finally {
-    await browser.close();
-    await server.shutdown();
-    const text = report("Learning loop walk");
-    await Deno.writeTextFile(REPORT_PATH, text + "\n");
-    console.log("\n" + text + "\n");
-  }
-  const failed = results.filter((result) => !result.ok);
-  if (failed.length) throw new Error(`${failed.length} audit checks failed; see ${REPORT_PATH}`);
-} });
+Deno.test({
+  name: "audit: learning loop on a phone viewport",
+  sanitizeOps: false,
+  sanitizeResources: false,
+  fn: async () => {
+    const server = Deno.serve({ port: 0, onListen() {} }, app);
+    const ORIGIN = `http://127.0.0.1:${server.addr.port}`;
+    const browser = await chromium.launch({ headless: true });
+    const errors: string[] = [];
+    const consoleMessages: string[] = [];
+    try {
+      await fullWalk(browser, ORIGIN, errors, consoleMessages);
+      await drillFromFresh(browser, ORIGIN, errors, consoleMessages);
+      await check("listeners · no pageerror during the whole run", () => {
+        expect(errors).toEqual([]);
+      });
+      await check(
+        "listeners · no console error or warning during the whole run",
+        () => {
+          expect(consoleMessages).toEqual([]);
+        },
+      );
+    } finally {
+      await browser.close();
+      await server.shutdown();
+      const text = report("Learning loop walk");
+      await Deno.writeTextFile(REPORT_PATH, text + "\n");
+      console.log("\n" + text + "\n");
+    }
+    const failed = results.filter((result) => !result.ok);
+    if (failed.length) {
+      throw new Error(
+        `${failed.length} audit checks failed; see ${REPORT_PATH}`,
+      );
+    }
+  },
+});

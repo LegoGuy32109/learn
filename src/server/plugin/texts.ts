@@ -3,20 +3,50 @@
 // for lesson/v1 and rendered from the shared sources, so the plugin cannot disagree with the
 // server: every number comes from the resolver's constants, every field from the JSON Schema
 // and every diagnostic from the catalog. `deno task plugin:generate` writes them.
-import { CARD_WORDS_MAX, CARD_WORDS_MIN, DRAWABLE_MIN, KEY_LONGEST_MAX, lessonSchema, MAX_DOCUMENT_BYTES, OPTION_COUNT, OPTION_RATIO_MAX } from "../../shared/authoring/resolver.js";
+import {
+  CARD_WORDS_MAX,
+  CARD_WORDS_MIN,
+  DRAWABLE_MIN,
+  KEY_LONGEST_MAX,
+  lessonSchema,
+  MAX_DOCUMENT_BYTES,
+  OPTION_COUNT,
+  OPTION_RATIO_MAX,
+} from "../../shared/authoring/resolver.js";
 import { DIAGNOSTICS } from "../../shared/authoring/diagnostics.js";
 import { capabilitiesFor } from "../api-docs/capabilities.ts";
-import { ARCHIVE_FILE, MARKETPLACE_NAME, PLUGIN_NAME, PLUGIN_VERSION, PUBLIC_ORIGIN, pluginLinks, REPOSITORY_DIR, SKILL_NAME } from "./links.ts";
+import {
+  ARCHIVE_FILE,
+  MARKETPLACE_NAME,
+  PLUGIN_NAME,
+  PLUGIN_VERSION,
+  pluginLinks,
+  PUBLIC_ORIGIN,
+  REPOSITORY_DIR,
+  SKILL_NAME,
+} from "./links.ts";
 
-export { ARCHIVE_FILE, MARKETPLACE_NAME, PLUGIN_NAME, PLUGIN_PATH, PLUGIN_VERSION, pluginLinks, REPOSITORY_DIR, SKILL_NAME } from "./links.ts";
+export {
+  ARCHIVE_FILE,
+  MARKETPLACE_NAME,
+  PLUGIN_NAME,
+  PLUGIN_PATH,
+  PLUGIN_VERSION,
+  pluginLinks,
+  REPOSITORY_DIR,
+  SKILL_NAME,
+} from "./links.ts";
 
-const ONE_THIRD = KEY_LONGEST_MAX === 1 / 3 ? "one third" : `${Math.round(KEY_LONGEST_MAX * 100)}%`;
+const ONE_THIRD = KEY_LONGEST_MAX === 1 / 3
+  ? "one third"
+  : `${Math.round(KEY_LONGEST_MAX * 100)}%`;
 
 export function pluginManifest() {
   return {
     name: PLUGIN_NAME,
     version: PLUGIN_VERSION,
-    description: "Turn the work an agent just did into a retrieval-practice lesson on learn.joshhale.me: author lesson.json, attack the draft, validate it with the site's own validator and create a private draft with a bearer token.",
+    description:
+      "Turn the work an agent just did into a retrieval-practice lesson on learn.joshhale.me: author lesson.json, attack the draft, validate it with the site's own validator and create a private draft with a bearer token.",
     author: { name: "Josh Hale" },
     homepage: pluginLinks(PUBLIC_ORIGIN).page,
     repository: pluginLinks(PUBLIC_ORIGIN).repository,
@@ -29,7 +59,8 @@ export function marketplaceManifest(origin: string, archiveSha256: string) {
   const links = pluginLinks(origin);
   return {
     name: MARKETPLACE_NAME,
-    description: "Plugins served by learn.joshhale.me. This marketplace lists only the lesson plugin, generated from the site's own authoring contract.",
+    description:
+      "Plugins served by learn.joshhale.me. This marketplace lists only the lesson plugin, generated from the site's own authoring contract.",
     owner: { name: "Josh Hale" },
     plugins: [
       {
@@ -39,7 +70,11 @@ export function marketplaceManifest(origin: string, archiveSha256: string) {
         author: { name: "Josh Hale" },
         homepage: links.page,
         category: "learning",
-        source: { source: "archive", url: links.archive, sha256: archiveSha256 },
+        source: {
+          source: "archive",
+          url: links.archive,
+          sha256: archiveSha256,
+        },
       },
     ],
   };
@@ -260,7 +295,9 @@ Question c: "std::thread::sleep with worker_threads = 2?"                    key
 
 In \`lesson/v1\` the set is the Concept's \`options\` array: ${OPTION_COUNT} entries of
 \`{ "id", "text" }\`. An MCQ's \`key\` names one option ID, its \`map\` names the
-other ${OPTION_COUNT - 1}, and its \`feedback\` has an entry for all ${OPTION_COUNT}.
+other ${
+    OPTION_COUNT - 1
+  }, and its \`feedback\` has an entry for all ${OPTION_COUNT}.
 
 This is from Little et al. via the ai-microlearning research, and it does four
 jobs at once:
@@ -476,10 +513,18 @@ function countableRules(): string {
   ];
   const rows = picked.map((code) => {
     const entry = DIAGNOSTICS.find((item) => item.code === code);
-    if (!entry) throw new Error(`authoring.md names ${code}, which is not in the diagnostics catalog`);
-    return `| \`${entry.code}\` | ${entry.severity} | ${entry.meaning.replaceAll("|", "\\|")} |`;
+    if (!entry) {
+      throw new Error(
+        `authoring.md names ${code}, which is not in the diagnostics catalog`,
+      );
+    }
+    return `| \`${entry.code}\` | ${entry.severity} | ${
+      entry.meaning.replaceAll("|", "\\|")
+    } |`;
   });
-  return ["| Code | Severity | Rule |", "| --- | --- | --- |", ...rows].join("\n");
+  return ["| Code | Severity | Rule |", "| --- | --- | --- |", ...rows].join(
+    "\n",
+  );
 }
 
 type Schema = Record<string, any>;
@@ -490,31 +535,59 @@ function refName(ref: string): string {
 
 /** A short type description for one property schema. */
 function describeType(schema: Schema): string {
-  if (schema.$ref) return `[${refName(schema.$ref)}](#${refName(schema.$ref).toLowerCase()})`;
+  if (schema.$ref) {
+    return `[${refName(schema.$ref)}](#${refName(schema.$ref).toLowerCase()})`;
+  }
   if (schema.const !== undefined) return `\`${JSON.stringify(schema.const)}\``;
-  if (schema.enum) return schema.enum.map((value: unknown) => `\`${JSON.stringify(value)}\``).join(" or ");
+  if (schema.enum) {
+    return schema.enum.map((value: unknown) => `\`${JSON.stringify(value)}\``)
+      .join(" or ");
+  }
   if (schema.type === "array") {
     const items = schema.items ? describeType(schema.items) : "any";
-    const bounds = [schema.minItems !== undefined ? `min ${schema.minItems}` : "", schema.maxItems !== undefined ? `max ${schema.maxItems}` : ""].filter(Boolean).join(", ");
+    const bounds = [
+      schema.minItems !== undefined ? `min ${schema.minItems}` : "",
+      schema.maxItems !== undefined ? `max ${schema.maxItems}` : "",
+    ].filter(Boolean).join(", ");
     return `array of ${items}${bounds ? ` (${bounds})` : ""}`;
   }
   if (schema.type === "object") {
-    const values = schema.additionalProperties && typeof schema.additionalProperties === "object" ? describeType(schema.additionalProperties) : "any";
-    const bounds = [schema.minProperties !== undefined ? `min ${schema.minProperties}` : "", schema.maxProperties !== undefined ? `max ${schema.maxProperties}` : ""].filter(Boolean).join(", ");
+    const values = schema.additionalProperties &&
+        typeof schema.additionalProperties === "object"
+      ? describeType(schema.additionalProperties)
+      : "any";
+    const bounds = [
+      schema.minProperties !== undefined ? `min ${schema.minProperties}` : "",
+      schema.maxProperties !== undefined ? `max ${schema.maxProperties}` : "",
+    ].filter(Boolean).join(", ");
     return `object of ${values}${bounds ? ` (${bounds} entries)` : ""}`;
   }
   if (Array.isArray(schema.type)) return schema.type.join(" or ");
-  const constraints = [schema.exclusiveMinimum !== undefined ? `> ${schema.exclusiveMinimum}` : "", schema.minLength ? "non-empty" : "", schema.pattern && schema.pattern !== "\\S" ? `pattern \`${schema.pattern}\`` : ""].filter(Boolean).join(", ");
+  const constraints = [
+    schema.exclusiveMinimum !== undefined ? `> ${schema.exclusiveMinimum}` : "",
+    schema.minLength ? "non-empty" : "",
+    schema.pattern && schema.pattern !== "\\S"
+      ? `pattern \`${schema.pattern}\``
+      : "",
+  ].filter(Boolean).join(", ");
   return `${schema.type ?? "any"}${constraints ? ` (${constraints})` : ""}`;
 }
 
 function propertyRows(schema: Schema, required: string[]): string {
-  const rows = Object.entries(schema.properties ?? {}).map(([name, property]) => {
-    const value = property as Schema;
-    const description = (value.description ?? "").replaceAll("|", "\\|");
-    return `| \`${name}\` | ${required.includes(name) ? "yes" : "no"} | ${describeType(value)} | ${description} |`;
-  });
-  return ["| Field | Required | Type | Meaning |", "| --- | --- | --- | --- |", ...rows].join("\n");
+  const rows = Object.entries(schema.properties ?? {}).map(
+    ([name, property]) => {
+      const value = property as Schema;
+      const description = (value.description ?? "").replaceAll("|", "\\|");
+      return `| \`${name}\` | ${required.includes(name) ? "yes" : "no"} | ${
+        describeType(value)
+      } | ${description} |`;
+    },
+  );
+  return [
+    "| Field | Required | Type | Meaning |",
+    "| --- | --- | --- | --- |",
+    ...rows,
+  ].join("\n");
 }
 
 function definitionSection(name: string, definition: Schema): string {
@@ -522,21 +595,53 @@ function definitionSection(name: string, definition: Schema): string {
   if (definition.description) lines.push(definition.description, "");
   if (definition.properties) {
     lines.push(propertyRows(definition, definition.required ?? []), "");
-    if (definition.additionalProperties === false || definition.unevaluatedProperties === false) lines.push("Unknown fields are rejected by the schema as likely typos.", "");
-  } else if (definition.oneOf && definition.oneOf.every((branch: Schema) => branch.properties)) {
+    if (
+      definition.additionalProperties === false ||
+      definition.unevaluatedProperties === false
+    ) {
+      lines.push(
+        "Unknown fields are rejected by the schema as likely typos.",
+        "",
+      );
+    }
+  } else if (
+    definition.oneOf &&
+    definition.oneOf.every((branch: Schema) => branch.properties)
+  ) {
     lines.push("One of:", "");
     definition.oneOf.forEach((branch: Schema, index: number) => {
-      lines.push(`**Form ${index + 1}**`, "", propertyRows(branch, branch.required ?? []), "");
+      lines.push(
+        `**Form ${index + 1}**`,
+        "",
+        propertyRows(branch, branch.required ?? []),
+        "",
+      );
     });
   } else if (definition.oneOf) {
-    const all = (definition.allOf ?? []).map((item: Schema) => describeType(item)).join(", ");
-    const one = definition.oneOf.map((item: Schema) => describeType(item)).join(", ");
+    const all = (definition.allOf ?? []).map((item: Schema) =>
+      describeType(item)
+    ).join(", ");
+    const one = definition.oneOf.map((item: Schema) => describeType(item)).join(
+      ", ",
+    );
     if (all) lines.push(`Every Question has the fields of ${all}.`, "");
-    lines.push(`The \`type\` selects exactly one variant: ${one}. A field that belongs to no variant is rejected.`, "");
+    lines.push(
+      `The \`type\` selects exactly one variant: ${one}. A field that belongs to no variant is rejected.`,
+      "",
+    );
   } else {
     lines.push(`Type: ${describeType(definition)}.`, "");
-    if (definition.not?.enum) lines.push(`Never one of ${definition.not.enum.map((value: string) => `\`${value}\``).join(", ")}.`, "");
-    if (definition.not?.pattern) lines.push(`Rejected when it matches \`${definition.not.pattern}\`.`, "");
+    if (definition.not?.enum) {
+      lines.push(
+        `Never one of ${
+          definition.not.enum.map((value: string) => `\`${value}\``).join(", ")
+        }.`,
+        "",
+      );
+    }
+    if (definition.not?.pattern) {
+      lines.push(`Rejected when it matches \`${definition.not.pattern}\`.`, "");
+    }
   }
   return lines.join("\n");
 }
@@ -551,20 +656,52 @@ export function exampleLesson() {
       {
         id: "c0a8e6f2-1b7d-4c3e-9f21-6a5b4d3c2e10",
         title: "Sleeping on one worker",
-        statement: "Say what each kind of sleep does to the worker, and predict the ordering of two tasks on one worker.",
+        statement:
+          "Say what each kind of sleep does to the worker, and predict the ordering of two tasks on one worker.",
         poolId: "d1b9f7a3-2c8e-4d4f-8a32-7b6c5e4d3f21",
         options: [
-          { id: "block", text: "It blocks the worker thread. No other task on that worker can run." },
-          { id: "yield", text: "It yields the task. The worker is free to run another task." },
-          { id: "own", text: "Each task gets its own worker, so both make progress at the same time." },
+          {
+            id: "block",
+            text:
+              "It blocks the worker thread. No other task on that worker can run.",
+          },
+          {
+            id: "yield",
+            text: "It yields the task. The worker is free to run another task.",
+          },
+          {
+            id: "own",
+            text:
+              "Each task gets its own worker, so both make progress at the same time.",
+          },
         ],
         misconceptions: [
-          { id: "block_yields", statement: "std::thread::sleep lets other tasks run while it waits.", correctingCardId: "e2c0a8b4-3d9f-4e5a-9b43-8c7d6f5e4a32" },
-          { id: "await_blocks", statement: "Awaiting a sleep parks the whole worker thread.", correctingCardId: "f3d1b9c5-4e0a-4f6b-8c54-9d8e7a6f5b43" },
+          {
+            id: "block_yields",
+            statement:
+              "std::thread::sleep lets other tasks run while it waits.",
+            correctingCardId: "e2c0a8b4-3d9f-4e5a-9b43-8c7d6f5e4a32",
+          },
+          {
+            id: "await_blocks",
+            statement: "Awaiting a sleep parks the whole worker thread.",
+            correctingCardId: "f3d1b9c5-4e0a-4f6b-8c54-9d8e7a6f5b43",
+          },
         ],
         cards: [
-          { id: "e2c0a8b4-3d9f-4e5a-9b43-8c7d6f5e4a32", heading: "A blocking sleep costs you the whole worker", body: ["First paragraph. The claim, then the mechanism.", `Second paragraph. A concrete instance: six blocking sleeps of 300ms on one worker print at about 1800ms. Then the consequence. ${CARD_WORDS_MIN} to ${CARD_WORDS_MAX} words across the whole Card.`] },
-          { id: "f3d1b9c5-4e0a-4f6b-8c54-9d8e7a6f5b43", heading: "An awaited sleep hands the worker back", body: ["First paragraph.", "Second paragraph."] },
+          {
+            id: "e2c0a8b4-3d9f-4e5a-9b43-8c7d6f5e4a32",
+            heading: "A blocking sleep costs you the whole worker",
+            body: [
+              "First paragraph. The claim, then the mechanism.",
+              `Second paragraph. A concrete instance: six blocking sleeps of 300ms on one worker print at about 1800ms. Then the consequence. ${CARD_WORDS_MIN} to ${CARD_WORDS_MAX} words across the whole Card.`,
+            ],
+          },
+          {
+            id: "f3d1b9c5-4e0a-4f6b-8c54-9d8e7a6f5b43",
+            heading: "An awaited sleep hands the worker back",
+            body: ["First paragraph.", "Second paragraph."],
+          },
         ],
       },
     ],
@@ -575,11 +712,16 @@ export function exampleLesson() {
         poolId: "d1b9f7a3-2c8e-4d4f-8a32-7b6c5e4d3f21",
         type: "mcq",
         reserved: false,
-        stem: "On a single-worker runtime, one of two spawned tasks calls std::thread::sleep(300ms). What does that call do?",
+        stem:
+          "On a single-worker runtime, one of two spawned tasks calls std::thread::sleep(300ms). What does that call do?",
         correctingCardId: "e2c0a8b4-3d9f-4e5a-9b43-8c7d6f5e4a32",
         key: "block",
         map: { yield: "block_yields", own: "await_blocks" },
-        feedback: { block: "Right. The kernel parks the thread.", yield: "That is the awaited version.", own: "There is only one worker here." },
+        feedback: {
+          block: "Right. The kernel parks the thread.",
+          yield: "That is the awaited version.",
+          own: "There is only one worker here.",
+        },
       },
       {
         id: "b5f3d1e7-6a2c-4b8d-8e76-1f0a9c8b7d65",
@@ -587,7 +729,8 @@ export function exampleLesson() {
         poolId: "d1b9f7a3-2c8e-4d4f-8a32-7b6c5e4d3f21",
         type: "numeric",
         reserved: false,
-        stem: "Two tasks, three ticks each, 300ms blocking sleep per tick, one worker. Roughly what does main done print, in ms?",
+        stem:
+          "Two tasks, three ticks each, 300ms blocking sleep per tick, one worker. Roughly what does main done print, in ms?",
         correctingCardId: "e2c0a8b4-3d9f-4e5a-9b43-8c7d6f5e4a32",
         answer: 1800,
         tolerance: 150,
@@ -604,7 +747,8 @@ export function exampleLesson() {
         correctingCardId: "f3d1b9c5-4e0a-4f6b-8c54-9d8e7a6f5b43",
         answer: "tokio::time::sleep",
         aliases: ["time::sleep", "tokio sleep"],
-        feedback: "tokio::time::sleep. It returns a future; awaiting it yields the task.",
+        feedback:
+          "tokio::time::sleep. It returns a future; awaiting it yields the task.",
       },
       {
         id: "d7b5f3a9-8c4e-4d0f-8a98-3b2c1e0d9f87",
@@ -612,22 +756,40 @@ export function exampleLesson() {
         poolId: "d1b9f7a3-2c8e-4d4f-8a32-7b6c5e4d3f21",
         type: "mcq",
         reserved: true,
-        stem: "A task calls tokio::time::sleep(d).await on a single-worker runtime. What happens to the worker?",
+        stem:
+          "A task calls tokio::time::sleep(d).await on a single-worker runtime. What happens to the worker?",
         correctingCardId: "f3d1b9c5-4e0a-4f6b-8c54-9d8e7a6f5b43",
         key: "yield",
         map: { block: "await_blocks", own: "block_yields" },
-        feedback: { block: "Awaiting hands the worker back.", yield: "Right. The runtime polls another task.", own: "One worker, shared." },
+        feedback: {
+          block: "Awaiting hands the worker back.",
+          yield: "Right. The runtime polls another task.",
+          own: "One worker, shared.",
+        },
       },
     ],
-    sources: [{ type: "repository", title: "sleep-demo", locator: "https://example.com/sleep-demo/commit/abc123", capturedText: null }],
-    provenance: { status: "provided", client: "Claude Code", harness: "Claude Code CLI", model: "claude-fable-5-1", client_version: "unknown", session_reference: "unknown" },
+    sources: [{
+      type: "repository",
+      title: "sleep-demo",
+      locator: "https://example.com/sleep-demo/commit/abc123",
+      capturedText: null,
+    }],
+    provenance: {
+      status: "provided",
+      client: "Claude Code",
+      harness: "Claude Code CLI",
+      model: "claude-fable-5-1",
+      client_version: "unknown",
+      session_reference: "unknown",
+    },
   };
 }
 
 export function lessonSchemaMarkdown(origin: string): string {
   const links = capabilitiesFor(origin).links;
   const schema = lessonSchema as Schema;
-  const definitions = Object.entries(schema.$defs as Record<string, Schema>).map(([name, definition]) => definitionSection(name, definition));
+  const definitions = Object.entries(schema.$defs as Record<string, Schema>)
+    .map(([name, definition]) => definitionSection(name, definition));
   return `# lesson.json reference (lesson/v1)
 
 One file. The site validates and stores it; nothing else is authored. This

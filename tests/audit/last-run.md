@@ -1,14 +1,14 @@
 ## Learning loop walk
 
-313 passed, 0 failed, 5 observations
+312 passed, 0 failed, 5 observations
 
 ### Observations
 
 - wrap-up retry: The missed Concept came back as Wrap-up Question 4 of 4, asked with the same Question.
 - Learned summary line: The Learned summary shows ["Concepts learned\n3 of 3"]; a count, never a score.
-- drill option order · Cache directives and revalidation: 2 distinct option order(s) across this Concept's MCQs in one run.
+- drill option order · Freshness and age: 1 distinct option order(s) across this Concept's MCQs in one run.
 - drill option order · Validators and conditional requests: 2 distinct option order(s) across this Concept's MCQs in one run.
-- drill option order · Freshness and age: 2 distinct option order(s) across this Concept's MCQs in one run.
+- drill option order · Cache directives and revalidation: 2 distinct option order(s) across this Concept's MCQs in one run.
 
 ### Passed
 
@@ -95,7 +95,6 @@
 - scheme · check 1 unanswered Question · light and dark render different backgrounds
 - reload · check 1 unanswered Question · surface comes back
 - reload · check 1 unanswered Question · checkpoint rebuilt from events
-- check 1 · an unanswered short-answer draft reloads blank
 - check 1 wrong · Not quite, feedback text, belief for a distractor, clamped correcting Card under the action row, Try another from this concept
 - forbidden · check 1 wrong feedback · no score, streak, difficulty, mastery or time estimate in the DOM
 - vocabulary · check 1 wrong feedback · says Question, not Item

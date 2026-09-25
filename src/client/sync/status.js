@@ -36,8 +36,10 @@ export function mountSyncStatus(element, actions) {
     banner.className = "update syncbanner";
     banner.id = "sync-discard";
     banner.setAttribute("role", "status");
-    banner.innerHTML = "<span>Progress on this lesson was discarded on another device. Discard here too to sync again.</span><button type=\"button\">Discard here</button>";
-    const button = /** @type {HTMLButtonElement} */ (banner.querySelector("button"));
+    banner.innerHTML =
+      '<span>Progress on this lesson was discarded on another device. Discard here too to sync again.</span><button type="button">Discard here</button>';
+    const button =
+      /** @type {HTMLButtonElement} */ (banner.querySelector("button"));
     button.addEventListener("click", async () => {
       button.disabled = true;
       await actions.onDiscard();
@@ -62,12 +64,14 @@ export function mountSyncStatus(element, actions) {
  * @param {() => Promise<void>} work
  */
 export async function withDraftPreserved(work) {
-  const field = /** @type {HTMLInputElement|null} */ (document.querySelector("#answer"));
+  const field =
+    /** @type {HTMLInputElement|null} */ (document.querySelector("#answer"));
   const draft = field?.value ?? null;
   const focused = field !== null && document.activeElement === field;
   await work();
   if (draft === null || !draft) return;
-  const restored = /** @type {HTMLInputElement|null} */ (document.querySelector("#answer"));
+  const restored =
+    /** @type {HTMLInputElement|null} */ (document.querySelector("#answer"));
   if (!restored) return;
   restored.value = draft;
   if (focused) restored.focus();

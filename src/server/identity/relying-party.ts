@@ -19,9 +19,13 @@ export interface RelyingPartyEnvironment {
 }
 
 /** Read the pinned configuration. Returns null when either variable is unset or empty. */
-export function configuredRelyingParty(environment: RelyingPartyEnvironment): RelyingParty | null {
+export function configuredRelyingParty(
+  environment: RelyingPartyEnvironment,
+): RelyingParty | null {
   const rpId = environment.rpId?.trim();
-  const origins = (environment.origins ?? "").split(",").map((origin) => origin.trim()).filter(Boolean);
+  const origins = (environment.origins ?? "").split(",").map((origin) =>
+    origin.trim()
+  ).filter(Boolean);
   if (!rpId || !origins.length) return null;
   return { rpId, rpName: RP_NAME, expectedOrigins: origins };
 }
@@ -32,11 +36,22 @@ export function configuredRelyingParty(environment: RelyingPartyEnvironment): Re
  * Returns null when the request origin is not allowed, and callers answer with a
  * clear problem instead of running a ceremony that could never verify.
  */
-export function relyingPartyFor(request: Request, configured: RelyingParty | null): RelyingParty | null {
+export function relyingPartyFor(
+  request: Request,
+  configured: RelyingParty | null,
+): RelyingParty | null {
   const url = new URL(request.url);
   const requestOrigin = request.headers.get("origin") ?? url.origin;
-  if (configured) return configured.expectedOrigins.includes(requestOrigin) ? configured : null;
+  if (configured) {
+    return configured.expectedOrigins.includes(requestOrigin)
+      ? configured
+      : null;
+  }
   if (url.hostname !== "localhost") return null;
   if (new URL(requestOrigin).hostname !== "localhost") return null;
-  return { rpId: "localhost", rpName: RP_NAME, expectedOrigins: [requestOrigin] };
+  return {
+    rpId: "localhost",
+    rpName: RP_NAME,
+    expectedOrigins: [requestOrigin],
+  };
 }

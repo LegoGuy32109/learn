@@ -2,11 +2,17 @@
 // Bootstrap (main.ts) chooses the adapters; this file only composes.
 import type { Dependencies } from "./server/dependencies.ts";
 import { RejectingAuthenticator } from "./server/auth.ts";
-import { FIXTURE_OWNER_ID, FixtureLessonRepository } from "./server/repositories/lessons.ts";
+import {
+  FIXTURE_OWNER_ID,
+  FixtureLessonRepository,
+} from "./server/repositories/lessons.ts";
 import { MemoryIdentityRepository } from "./server/repositories/identity.ts";
 import { MemoryProgressRepository } from "./server/repositories/progress.ts";
 import { PasskeyService } from "./server/identity/passkeys.ts";
-import { HmacSessionCookies, randomSessionKey } from "./server/identity/sessions.ts";
+import {
+  HmacSessionCookies,
+  randomSessionKey,
+} from "./server/identity/sessions.ts";
 import { redactedErrorText } from "./server/identity/redaction.ts";
 import { problem } from "./server/http.ts";
 import { dispatch } from "./server/routes/route.ts";
@@ -60,14 +66,25 @@ export function isSecureRequest(request: Request): boolean {
 }
 
 /** The headers the wrapper adds to a response for this request. */
-export function responseHeaders(request: Request, revision: string): [string, string][] {
-  const headers: [string, string][] = [[REVISION_HEADER, revision], ...ALWAYS_HEADERS];
-  if (isSecureRequest(request)) headers.push(["strict-transport-security", HSTS_VALUE]);
+export function responseHeaders(
+  request: Request,
+  revision: string,
+): [string, string][] {
+  const headers: [string, string][] = [
+    [REVISION_HEADER, revision],
+    ...ALWAYS_HEADERS,
+  ];
+  if (isSecureRequest(request)) {
+    headers.push(["strict-transport-security", HSTS_VALUE]);
+  }
   return headers;
 }
 
 /** Set the wrapper's headers, copying the response when its headers are immutable. */
-function withHeaders(response: Response, headers: [string, string][]): Response {
+function withHeaders(
+  response: Response,
+  headers: [string, string][],
+): Response {
   try {
     for (const [name, value] of headers) response.headers.set(name, value);
     return response;
@@ -84,17 +101,27 @@ export function createApp(dependencies: Dependencies) {
   async function respond(request: Request): Promise<Response> {
     try {
       const response = await dispatch(routes, request);
-      return response ?? problem(404, "Not found", "No route matches this request.");
+      return response ??
+        problem(404, "Not found", "No route matches this request.");
     } catch (error) {
-      if (error instanceof Deno.errors.NotFound) return problem(404, "Not found", error.message);
+      if (error instanceof Deno.errors.NotFound) {
+        return problem(404, "Not found", error.message);
+      }
       // A database or network failure anywhere in a handler, including inside
       // authentication, ends here as a 500 problem document. It is never a 401.
       console.error(redactedErrorText(error));
-      return problem(500, "Internal server error", "The request could not be completed.");
+      return problem(
+        500,
+        "Internal server error",
+        "The request could not be completed.",
+      );
     }
   }
   return async function handler(request: Request): Promise<Response> {
-    return withHeaders(await respond(request), responseHeaders(request, revision));
+    return withHeaders(
+      await respond(request),
+      responseHeaders(request, revision),
+    );
   };
 }
 
@@ -106,13 +133,19 @@ export const FIXTURE_ACCOUNT = { id: FIXTURE_OWNER_ID, displayName: "Josh" };
  * storage. Tests override members, for example `auth`, to exercise one route group.
  */
 export async function fixtureDependencies(): Promise<Dependencies> {
-  const fixture = JSON.parse(await Deno.readTextFile(new URL("../fixtures/lessons/browser-http-cache.json", import.meta.url)));
+  const fixture = JSON.parse(
+    await Deno.readTextFile(
+      new URL("../fixtures/lessons/browser-http-cache.json", import.meta.url),
+    ),
+  );
   return {
     lessons: new FixtureLessonRepository(fixture),
     progress: new MemoryProgressRepository(),
     auth: new RejectingAuthenticator(),
     sessions: new HmacSessionCookies(randomSessionKey()),
-    passkeys: new PasskeyService(new MemoryIdentityRepository([FIXTURE_ACCOUNT])),
+    passkeys: new PasskeyService(
+      new MemoryIdentityRepository([FIXTURE_ACCOUNT]),
+    ),
     relyingParty: null,
   };
 }

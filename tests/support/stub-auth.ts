@@ -9,14 +9,30 @@ export interface StubToken {
   prefix?: string;
 }
 
-export function stubAuthenticator(tokens: Record<string, StubToken>): Authenticator {
+export function stubAuthenticator(
+  tokens: Record<string, StubToken>,
+): Authenticator {
   return {
-    async authenticate(request: Request, requiredScope: string): Promise<AuthResult> {
+    async authenticate(
+      request: Request,
+      requiredScope: string,
+    ): Promise<AuthResult> {
       const header = request.headers.get("authorization") ?? "";
-      const token = header.startsWith("Bearer ") ? tokens[header.slice(7).trim()] : undefined;
+      const token = header.startsWith("Bearer ")
+        ? tokens[header.slice(7).trim()]
+        : undefined;
       if (!token) return { ok: false, reason: "unauthenticated" };
-      if (!token.scopes.includes(requiredScope)) return { ok: false, reason: "forbidden" };
-      return { ok: true, principal: { accountId: token.accountId, scopes: token.scopes, tokenPrefix: token.prefix } };
+      if (!token.scopes.includes(requiredScope)) {
+        return { ok: false, reason: "forbidden" };
+      }
+      return {
+        ok: true,
+        principal: {
+          accountId: token.accountId,
+          scopes: token.scopes,
+          tokenPrefix: token.prefix,
+        },
+      };
     },
   };
 }

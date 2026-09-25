@@ -13,7 +13,16 @@ const DB = "learn-local-v1";
 // `progress_streams` (the revision and epoch each Lesson is pinned to).
 // Version 3 added `outbox` (events awaiting upload) and `sync_cursors` (where each pull left off).
 const VERSION = 3;
-const STORES = ["lessons", "learning_events", "navigation_events", "drill_events", "projections", "progress_streams", "outbox", "sync_cursors"];
+const STORES = [
+  "lessons",
+  "learning_events",
+  "navigation_events",
+  "drill_events",
+  "projections",
+  "progress_streams",
+  "outbox",
+  "sync_cursors",
+];
 
 /**
  * @typedef {object} ProgressStream
@@ -53,7 +62,9 @@ function open() {
     request.onupgradeneeded = () => {
       const db = request.result;
       for (const name of STORES) {
-        if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: "id" });
+        if (!db.objectStoreNames.contains(name)) {
+          db.createObjectStore(name, { keyPath: "id" });
+        }
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -82,32 +93,51 @@ export const localRepository = {
   /** Store a Lesson Revision once; an existing copy is never replaced. @param {any} lesson */
   async seed(lesson) {
     const db = await open();
-    const found = await done(objectStore(db, "lessons", "readonly").get(lesson.revisionId));
+    const found = await done(
+      objectStore(db, "lessons", "readonly").get(lesson.revisionId),
+    );
     if (found) return;
-    await done(objectStore(db, "lessons", "readwrite").put({ id: lesson.revisionId, lesson, cachedAt: new Date().toISOString() }));
+    await done(
+      objectStore(db, "lessons", "readwrite").put({
+        id: lesson.revisionId,
+        lesson,
+        cachedAt: new Date().toISOString(),
+      }),
+    );
   },
   /** Every cached Lesson Revision, for a launch with no network and no inlined lesson. */
   async lessons() {
     const db = await open();
-    const records = /** @type {any[]} */ (await done(objectStore(db, "lessons", "readonly").getAll()));
+    const records = /** @type {any[]} */ (await done(
+      objectStore(db, "lessons", "readonly").getAll(),
+    ));
     return records.map((record) => record.lesson);
   },
   /** Every cached Lesson Revision with when this device stored it. @returns {Promise<CachedRevision[]>} */
   async revisions() {
     const db = await open();
-    const records = /** @type {any[]} */ (await done(objectStore(db, "lessons", "readonly").getAll()));
-    return records.map((record) => ({ lesson: record.lesson, cachedAt: record.cachedAt ?? "" }));
+    const records = /** @type {any[]} */ (await done(
+      objectStore(db, "lessons", "readonly").getAll(),
+    ));
+    return records.map((record) => ({
+      lesson: record.lesson,
+      cachedAt: record.cachedAt ?? "",
+    }));
   },
   /** @param {string} id */
   async lesson(id) {
     const db = await open();
-    const record = /** @type {any} */ (await done(objectStore(db, "lessons", "readonly").get(id)));
+    const record = /** @type {any} */ (await done(
+      objectStore(db, "lessons", "readonly").get(id),
+    ));
     return record?.lesson;
   },
   /** @param {string} store */
   async events(store) {
     const db = await open();
-    return /** @type {any[]} */ (await done(objectStore(db, store, "readonly").getAll()));
+    return /** @type {any[]} */ (await done(
+      objectStore(db, store, "readonly").getAll(),
+    ));
   },
   /** @param {string} store @param {any} event */
   async append(store, event) {
@@ -122,7 +152,12 @@ export const localRepository = {
     const db = await open();
     const transaction = db.transaction([store, "outbox"], "readwrite");
     transaction.objectStore(store).put(event);
-    transaction.objectStore("outbox").put({ id: event.id, store, event, queuedAt: new Date().toISOString() });
+    transaction.objectStore("outbox").put({
+      id: event.id,
+      store,
+      event,
+      queuedAt: new Date().toISOString(),
+    });
     await committed(transaction);
   },
   /**
@@ -134,13 +169,17 @@ export const localRepository = {
     const db = await open();
     const transaction = db.transaction(store, "readwrite");
     const target = transaction.objectStore(store);
-    for (const event of events) target.add(event).onerror = (error) => error.preventDefault();
+    for (const event of events) {
+      target.add(event).onerror = (error) => error.preventDefault();
+    }
     await committed(transaction);
   },
   /** Every event awaiting upload, oldest first. @returns {Promise<OutboxEntry[]>} */
   async outbox() {
     const db = await open();
-    const entries = /** @type {OutboxEntry[]} */ (await done(objectStore(db, "outbox", "readonly").getAll()));
+    const entries = /** @type {OutboxEntry[]} */ (await done(
+      objectStore(db, "outbox", "readonly").getAll(),
+    ));
     return entries.sort((a, b) => a.queuedAt.localeCompare(b.queuedAt));
   },
   /** Leave the outbox once the server acknowledged the events. @param {string[]} ids */
@@ -155,19 +194,25 @@ export const localRepository = {
   /** The server cursor a pull left off at, or an empty string for the first page. @param {string} key */
   async cursor(key) {
     const db = await open();
-    const record = /** @type {any} */ (await done(objectStore(db, "sync_cursors", "readonly").get(key)));
+    const record = /** @type {any} */ (await done(
+      objectStore(db, "sync_cursors", "readonly").get(key),
+    ));
     return typeof record?.cursor === "string" ? record.cursor : "";
   },
   /** @param {string} key @param {string} cursor */
   async saveCursor(key, cursor) {
     const db = await open();
-    await done(objectStore(db, "sync_cursors", "readwrite").put({ id: key, cursor }));
+    await done(
+      objectStore(db, "sync_cursors", "readwrite").put({ id: key, cursor }),
+    );
   },
   /** Read a projection when `value` is omitted; otherwise write it. @param {string} id @param {any} [value] */
   async projection(id, value) {
     const db = await open();
     if (value === undefined) {
-      const record = /** @type {any} */ (await done(objectStore(db, "projections", "readonly").get(id)));
+      const record = /** @type {any} */ (await done(
+        objectStore(db, "projections", "readonly").get(id),
+      ));
       return record?.value;
     }
     await done(objectStore(db, "projections", "readwrite").put({ id, value }));
@@ -179,7 +224,9 @@ export const localRepository = {
   /** Every Lesson's pinned revision and epoch. @returns {Promise<ProgressStream[]>} */
   async streams() {
     const db = await open();
-    return /** @type {ProgressStream[]} */ (await done(objectStore(db, "progress_streams", "readonly").getAll()));
+    return /** @type {ProgressStream[]} */ (await done(
+      objectStore(db, "progress_streams", "readonly").getAll(),
+    ));
   },
   /** Pin a Lesson to a revision and epoch. Discarding progress writes a higher epoch here. @param {ProgressStream} stream */
   async saveStream(stream) {

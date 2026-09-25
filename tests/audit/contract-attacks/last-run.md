@@ -1,106 +1,40 @@
 ## Contract attacks
 
-447 passed, 21 failed, 2 observations
+463 passed, 8 failed, 2 observations
 
 ### Failed
 
-- duplicate-ids · duplicate-misconception-id-in-concept.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-mcq-feedback-missing.json · the independent draft 2020-12 validator agrees with the resolver
   ```
-  the downloaded validator differs from the resolver
-    validator: {"valid":false,"schemaVersion":1,"fingerprint":null,"diagnostics":[{"severity":"error","code":"misconception.id","path":"/concepts/2/misconceptions/1/id","message":"Misconception ID must be unique in the Concept and match ^[A-Za-z0-9_-]{1,64}$."},{"severity":"error","code":"mcq.map.unknown","path":"/questions/9/map/revoke","message":"The named misconception is not in this Concept."},{"severity":"e
-    resolver:  {"valid":false,"schemaVersion":1,"fingerprint":null,"diagnostics":[{"severity":"error","code":"misconception.id","path":"/concepts/2/misconceptions/1/id","message":"Misconception ID must be unique in the Concept."},{"severity":"error","code":"mcq.map.unknown","path":"/questions/9/map/revoke","message":"The named misconception is not in this Concept."},{"severity":"error","code":"mcq.map.unknown","
+  the JSON Schema rejected a document no schema-caught code applies to (["mcq.feedback.missing"]): [{"instancePath":"/questions/0/feedback","schemaPath":"#/properties/feedback/minProperties","keyword":"minProperties","params":{"limit":3},"message":"must NOT have fewer than 3 properties"},{"instancePath":"/questions/0","schemaPath":"#/required","keyword":"required","params":{"missingProperty":"answer"},"message":"must have required property 'answer'"},{"instancePath":"/questions/0","schemaPath":"#/required","keyword":"required","params":{"missingProperty":"tolerance"},"message":"must have required property 'tolerance'"},{"instancePath":"/questions/0/type","schemaPath":"#/properties/type/const","keyword":"const","params":{"allowedValue":"numeric"},"message":"must be equal to constant"}]
   ```
-- reference-validator · ref-duplicate-concept-id.json · the independent draft 2020-12 validator agrees with the resolver
-  ```
-  the JSON Schema accepted a document the catalog says it catches (["concept.id","misconception.unused","misconception.unused","misconception.unused","pool.drawable.minimum","pool.reserved.missing","question.concept","mcq.feedback.extra","mcq.feedback.extra","mcq.feedback.extra","mcq.key","mcq.map.extra","mcq.map.extra","question.pool","question.concept","mcq.feedback.extra","mcq.feedback.extra","mcq.feedback.extra","mcq.key","mcq.map.extra","mcq.map.extra","question.pool","question.concept","question.pool","question.concept","mcq.feedback.extra","mcq.feedback.extra","mcq.feedback.extra","mcq.key","mcq.map.extra","mcq.map.extra","question.pool"], unknownProperties=false)
-  ```
-- reference-validator · ref-mcq-key-not-in-set.json · the independent draft 2020-12 validator agrees with the resolver
-  ```
-  the JSON Schema accepted a document the catalog says it catches (["mcq.key","mcq.map.missing"], unknownProperties=false)
-  ```
-- reserved-names · reserved-name-misconception-__proto__.json · the API, the validator and the resolver return byte-identical JSON
-  ```
-  the downloaded validator differs from the resolver
-    validator: {"valid":false,"schemaVersion":1,"fingerprint":null,"diagnostics":[{"severity":"error","code":"misconception.id","path":"/concepts/2/misconceptions/0/id","message":"Misconception ID must be unique in the Concept and match ^[A-Za-z0-9_-]{1,64}$."},{"severity":"error","code":"mcq.map.unknown","path":"/questions/10/map/drain","message":"The named misconception is not in this Concept."},{"severity":"e
-    resolver:  {"valid":false,"schemaVersion":1,"fingerprint":null,"diagnostics":[{"severity":"error","code":"misconception.id.invalid","path":"/concepts/2/misconceptions/0/id","message":"Misconception ID must match ^[A-Za-z0-9_-]{1,64}$ and not be a reserved name."},{"severity":"error","code":"mcq.map.unknown","path":"/questions/10/map/drain","message":"The named misconception is not in this Concept."},{"severi
-  ```
-- reserved-names · reserved-name-misconception-__proto__.json · diagnostics match the committed expectation
-  ```
-  misconception.id.invalid is emitted but absent from the served diagnostics catalog
-  ```
-- reserved-names · reserved-name-misconception-__proto__.json · the independent draft 2020-12 validator agrees with the resolver
-  ```
-  the JSON Schema rejected a document no schema-caught code applies to (["mcq.map.unknown","mcq.map.unknown"]): [{"instancePath":"/concepts/2/misconceptions/0/id","schemaPath":"#/$defs/localId/not","keyword":"not","params":{},"message":"must NOT be valid"},{"instancePath":"/questions/10/map/drain","schemaPath":"#/$defs/localId/not","keyword":"not","params":{},"message":"must NOT be valid"},{"instancePath":"/questions/10","schemaPath":"#/required","keyword":"required","params":{"missingProperty":"answer"},"message":"must have required property 'answer'"},{"instancePath":"/questions/10","schemaPath":"#/required","keyword":"required","params":{"missingProperty":"tolerance"},"message":"must have required property 'tolerance'"}]
-  ```
-- reserved-names · reserved-name-misconception-__proto__.json · schema-passing but resolver-rejected, as the contract claims
+- reference-validator · ref-mcq-feedback-missing.json · schema-passing but resolver-rejected, as the contract claims
   ```
   the fixture must pass the schema and fail the resolver
   ```
-- reserved-names · reserved-name-misconception-constructor.json · the API, the validator and the resolver return byte-identical JSON
+- reference-validator · ref-mcq-map-missing.json · the independent draft 2020-12 validator agrees with the resolver
   ```
-  the downloaded validator differs from the resolver
-    validator: {"valid":false,"schemaVersion":1,"fingerprint":null,"diagnostics":[{"severity":"error","code":"misconception.id","path":"/concepts/2/misconceptions/0/id","message":"Misconception ID must be unique in the Concept and match ^[A-Za-z0-9_-]{1,64}$."},{"severity":"error","code":"mcq.map.unknown","path":"/questions/10/map/drain","message":"The named misconception is not in this Concept."},{"severity":"e
-    resolver:  {"valid":false,"schemaVersion":1,"fingerprint":null,"diagnostics":[{"severity":"error","code":"misconception.id.invalid","path":"/concepts/2/misconceptions/0/id","message":"Misconception ID must match ^[A-Za-z0-9_-]{1,64}$ and not be a reserved name."},{"severity":"error","code":"mcq.map.unknown","path":"/questions/10/map/drain","message":"The named misconception is not in this Concept."},{"severi
+  the JSON Schema rejected a document no schema-caught code applies to (["mcq.map.missing"]): [{"instancePath":"/questions/0/map","schemaPath":"#/properties/map/minProperties","keyword":"minProperties","params":{"limit":2},"message":"must NOT have fewer than 2 properties"},{"instancePath":"/questions/0","schemaPath":"#/required","keyword":"required","params":{"missingProperty":"answer"},"message":"must have required property 'answer'"},{"instancePath":"/questions/0","schemaPath":"#/required","keyword":"required","params":{"missingProperty":"tolerance"},"message":"must have required property 'tolerance'"},{"instancePath":"/questions/0/type","schemaPath":"#/properties/type/const","keyword":"const","params":{"allowedValue":"numeric"},"message":"must be equal to constant"}]
   ```
-- reserved-names · reserved-name-misconception-constructor.json · diagnostics match the committed expectation
-  ```
-  misconception.id.invalid is emitted but absent from the served diagnostics catalog
-  ```
-- reserved-names · reserved-name-misconception-constructor.json · the independent draft 2020-12 validator agrees with the resolver
-  ```
-  the JSON Schema rejected a document no schema-caught code applies to (["mcq.map.unknown","mcq.map.unknown"]): [{"instancePath":"/concepts/2/misconceptions/0/id","schemaPath":"#/$defs/localId/not","keyword":"not","params":{},"message":"must NOT be valid"},{"instancePath":"/questions/10/map/drain","schemaPath":"#/$defs/localId/not","keyword":"not","params":{},"message":"must NOT be valid"},{"instancePath":"/questions/10","schemaPath":"#/required","keyword":"required","params":{"missingProperty":"answer"},"message":"must have required property 'answer'"},{"instancePath":"/questions/10","schemaPath":"#/required","keyword":"required","params":{"missingProperty":"tolerance"},"message":"must have required property 'tolerance'"}]
-  ```
-- reserved-names · reserved-name-misconception-constructor.json · schema-passing but resolver-rejected, as the contract claims
+- reference-validator · ref-mcq-map-missing.json · schema-passing but resolver-rejected, as the contract claims
   ```
   the fixture must pass the schema and fail the resolver
   ```
-- reserved-names · reserved-name-misconception-prototype.json · the API, the validator and the resolver return byte-identical JSON
+- reserved-names · reserved-name-feedback-key.json · the independent draft 2020-12 validator agrees with the resolver
   ```
-  the downloaded validator differs from the resolver
-    validator: {"valid":false,"schemaVersion":1,"fingerprint":null,"diagnostics":[{"severity":"error","code":"misconception.id","path":"/concepts/2/misconceptions/0/id","message":"Misconception ID must be unique in the Concept and match ^[A-Za-z0-9_-]{1,64}$."},{"severity":"error","code":"mcq.map.unknown","path":"/questions/10/map/drain","message":"The named misconception is not in this Concept."},{"severity":"e
-    resolver:  {"valid":false,"schemaVersion":1,"fingerprint":null,"diagnostics":[{"severity":"error","code":"misconception.id.invalid","path":"/concepts/2/misconceptions/0/id","message":"Misconception ID must match ^[A-Za-z0-9_-]{1,64}$ and not be a reserved name."},{"severity":"error","code":"mcq.map.unknown","path":"/questions/10/map/drain","message":"The named misconception is not in this Concept."},{"severi
+  the JSON Schema rejected a document no schema-caught code applies to (["mcq.feedback.extra"]): [{"instancePath":"/questions/0/feedback","schemaPath":"#/properties/feedback/maxProperties","keyword":"maxProperties","params":{"limit":3},"message":"must NOT have more than 3 properties"},{"instancePath":"/questions/0/feedback","schemaPath":"#/$defs/localId/not","keyword":"not","params":{},"message":"must NOT be valid","propertyName":"__proto__"},{"instancePath":"/questions/0/feedback","schemaPath":"#/properties/feedback/propertyNames","keyword":"propertyNames","params":{"propertyName":"__proto__"},"message":"property name must be valid"},{"instancePath":"/questions/0","schemaPath":"#/required","keyword":"required","params":{"missingProperty":"answer"},"message":"must have required property 'answer'"}]
   ```
-- reserved-names · reserved-name-misconception-prototype.json · diagnostics match the committed expectation
-  ```
-  misconception.id.invalid is emitted but absent from the served diagnostics catalog
-  ```
-- reserved-names · reserved-name-misconception-prototype.json · the independent draft 2020-12 validator agrees with the resolver
-  ```
-  the JSON Schema rejected a document no schema-caught code applies to (["mcq.map.unknown","mcq.map.unknown"]): [{"instancePath":"/concepts/2/misconceptions/0/id","schemaPath":"#/$defs/localId/not","keyword":"not","params":{},"message":"must NOT be valid"},{"instancePath":"/questions/10/map/drain","schemaPath":"#/$defs/localId/not","keyword":"not","params":{},"message":"must NOT be valid"},{"instancePath":"/questions/10","schemaPath":"#/required","keyword":"required","params":{"missingProperty":"answer"},"message":"must have required property 'answer'"},{"instancePath":"/questions/10","schemaPath":"#/required","keyword":"required","params":{"missingProperty":"tolerance"},"message":"must have required property 'tolerance'"}]
-  ```
-- reserved-names · reserved-name-misconception-prototype.json · schema-passing but resolver-rejected, as the contract claims
+- reserved-names · reserved-name-feedback-key.json · schema-passing but resolver-rejected, as the contract claims
   ```
   the fixture must pass the schema and fail the resolver
   ```
-- reserved-names · reserved-name-option-__proto__.json · the API, the validator and the resolver return byte-identical JSON
+- reserved-names · reserved-name-map-key.json · the independent draft 2020-12 validator agrees with the resolver
   ```
-  the downloaded validator differs from the resolver
-    validator: {"valid":false,"schemaVersion":1,"fingerprint":null,"diagnostics":[{"severity":"error","code":"misconception.unused","path":"/concepts/2/misconceptions/0","message":"No option in this Concept maps to this misconception."},{"severity":"error","code":"concept.option.id","path":"/concepts/2/options/0/id","message":"Option ID must be unique in the Concept and match ^[A-Za-z0-9_-]{1,64}$."},{"severity"
-    resolver:  {"valid":false,"schemaVersion":1,"fingerprint":null,"diagnostics":[{"severity":"error","code":"misconception.unused","path":"/concepts/2/misconceptions/0","message":"No option in this Concept maps to this misconception."},{"severity":"error","code":"concept.option.id.invalid","path":"/concepts/2/options/0/id","message":"Option ID must match ^[A-Za-z0-9_-]{1,64}$ and not be a reserved name."},{"sev
+  the JSON Schema rejected a document no schema-caught code applies to (["mcq.map.extra"]): [{"instancePath":"/questions/0/map","schemaPath":"#/properties/map/maxProperties","keyword":"maxProperties","params":{"limit":2},"message":"must NOT have more than 2 properties"},{"instancePath":"/questions/0/map","schemaPath":"#/$defs/localId/not","keyword":"not","params":{},"message":"must NOT be valid","propertyName":"constructor"},{"instancePath":"/questions/0/map","schemaPath":"#/properties/map/propertyNames","keyword":"propertyNames","params":{"propertyName":"constructor"},"message":"property name must be valid"},{"instancePath":"/questions/0","schemaPath":"#/required","keyword":"required","params":{"missingProperty":"answer"},"message":"must have required property 'answer'"}]
   ```
-- reserved-names · reserved-name-option-__proto__.json · diagnostics match the committed expectation
+- reserved-names · reserved-name-map-key.json · schema-passing but resolver-rejected, as the contract claims
   ```
-  concept.option.id.invalid is emitted but absent from the served diagnostics catalog
-  ```
-- reserved-names · reserved-name-option-constructor.json · the API, the validator and the resolver return byte-identical JSON
-  ```
-  the downloaded validator differs from the resolver
-    validator: {"valid":false,"schemaVersion":1,"fingerprint":null,"diagnostics":[{"severity":"error","code":"misconception.unused","path":"/concepts/2/misconceptions/0","message":"No option in this Concept maps to this misconception."},{"severity":"error","code":"concept.option.id","path":"/concepts/2/options/0/id","message":"Option ID must be unique in the Concept and match ^[A-Za-z0-9_-]{1,64}$."},{"severity"
-    resolver:  {"valid":false,"schemaVersion":1,"fingerprint":null,"diagnostics":[{"severity":"error","code":"misconception.unused","path":"/concepts/2/misconceptions/0","message":"No option in this Concept maps to this misconception."},{"severity":"error","code":"concept.option.id.invalid","path":"/concepts/2/options/0/id","message":"Option ID must match ^[A-Za-z0-9_-]{1,64}$ and not be a reserved name."},{"sev
-  ```
-- reserved-names · reserved-name-option-constructor.json · diagnostics match the committed expectation
-  ```
-  concept.option.id.invalid is emitted but absent from the served diagnostics catalog
-  ```
-- reserved-names · reserved-name-option-prototype.json · the API, the validator and the resolver return byte-identical JSON
-  ```
-  the downloaded validator differs from the resolver
-    validator: {"valid":false,"schemaVersion":1,"fingerprint":null,"diagnostics":[{"severity":"error","code":"misconception.unused","path":"/concepts/2/misconceptions/0","message":"No option in this Concept maps to this misconception."},{"severity":"error","code":"concept.option.id","path":"/concepts/2/options/0/id","message":"Option ID must be unique in the Concept and match ^[A-Za-z0-9_-]{1,64}$."},{"severity"
-    resolver:  {"valid":false,"schemaVersion":1,"fingerprint":null,"diagnostics":[{"severity":"error","code":"misconception.unused","path":"/concepts/2/misconceptions/0","message":"No option in this Concept maps to this misconception."},{"severity":"error","code":"concept.option.id.invalid","path":"/concepts/2/options/0/id","message":"Option ID must match ^[A-Za-z0-9_-]{1,64}$ and not be a reserved name."},{"sev
-  ```
-- reserved-names · reserved-name-option-prototype.json · diagnostics match the committed expectation
-  ```
-  concept.option.id.invalid is emitted but absent from the served diagnostics catalog
+  the fixture must pass the schema and fail the resolver
   ```
 
 ### Observations
@@ -199,6 +133,7 @@
 - duplicate-ids · duplicate-card-id-across-concepts.json · diagnostics match the committed expectation
 - duplicate-ids · duplicate-card-id-across-concepts.json · the independent draft 2020-12 validator agrees with the resolver
 - duplicate-ids · duplicate-card-id-across-concepts.json · schema-passing but resolver-rejected, as the contract claims
+- duplicate-ids · duplicate-misconception-id-in-concept.json · the API, the validator and the resolver return byte-identical JSON
 - duplicate-ids · duplicate-misconception-id-in-concept.json · the API answers 422
 - duplicate-ids · duplicate-misconception-id-in-concept.json · diagnostics match the committed expectation
 - duplicate-ids · duplicate-misconception-id-in-concept.json · the independent draft 2020-12 validator agrees with the resolver
@@ -280,6 +215,8 @@
 - reference-validator · ref-duplicate-concept-id.json · the API, the validator and the resolver return byte-identical JSON
 - reference-validator · ref-duplicate-concept-id.json · the API answers 422
 - reference-validator · ref-duplicate-concept-id.json · diagnostics match the committed expectation
+- reference-validator · ref-duplicate-concept-id.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-duplicate-concept-id.json · schema-passing but resolver-rejected, as the contract claims
 - reference-validator · ref-duplicate-question-id.json · the API, the validator and the resolver return byte-identical JSON
 - reference-validator · ref-duplicate-question-id.json · the API answers 422
 - reference-validator · ref-duplicate-question-id.json · diagnostics match the committed expectation
@@ -293,14 +230,14 @@
 - reference-validator · ref-mcq-feedback-missing.json · the API, the validator and the resolver return byte-identical JSON
 - reference-validator · ref-mcq-feedback-missing.json · the API answers 422
 - reference-validator · ref-mcq-feedback-missing.json · diagnostics match the committed expectation
-- reference-validator · ref-mcq-feedback-missing.json · the independent draft 2020-12 validator agrees with the resolver
 - reference-validator · ref-mcq-key-not-in-set.json · the API, the validator and the resolver return byte-identical JSON
 - reference-validator · ref-mcq-key-not-in-set.json · the API answers 422
 - reference-validator · ref-mcq-key-not-in-set.json · diagnostics match the committed expectation
+- reference-validator · ref-mcq-key-not-in-set.json · the independent draft 2020-12 validator agrees with the resolver
+- reference-validator · ref-mcq-key-not-in-set.json · schema-passing but resolver-rejected, as the contract claims
 - reference-validator · ref-mcq-map-missing.json · the API, the validator and the resolver return byte-identical JSON
 - reference-validator · ref-mcq-map-missing.json · the API answers 422
 - reference-validator · ref-mcq-map-missing.json · diagnostics match the committed expectation
-- reference-validator · ref-mcq-map-missing.json · the independent draft 2020-12 validator agrees with the resolver
 - reference-validator · ref-mcq-map-unknown.json · the API, the validator and the resolver return byte-identical JSON
 - reference-validator · ref-mcq-map-unknown.json · the API answers 422
 - reference-validator · ref-mcq-map-unknown.json · diagnostics match the committed expectation
@@ -382,19 +319,32 @@
 - reserved-names · reserved-name-feedback-key.json · the API, the validator and the resolver return byte-identical JSON
 - reserved-names · reserved-name-feedback-key.json · the API answers 422
 - reserved-names · reserved-name-feedback-key.json · diagnostics match the committed expectation
-- reserved-names · reserved-name-feedback-key.json · the independent draft 2020-12 validator agrees with the resolver
 - reserved-names · reserved-name-map-key.json · the API, the validator and the resolver return byte-identical JSON
 - reserved-names · reserved-name-map-key.json · the API answers 422
 - reserved-names · reserved-name-map-key.json · diagnostics match the committed expectation
-- reserved-names · reserved-name-map-key.json · the independent draft 2020-12 validator agrees with the resolver
+- reserved-names · reserved-name-misconception-__proto__.json · the API, the validator and the resolver return byte-identical JSON
 - reserved-names · reserved-name-misconception-__proto__.json · the API answers 422
+- reserved-names · reserved-name-misconception-__proto__.json · diagnostics match the committed expectation
+- reserved-names · reserved-name-misconception-__proto__.json · the independent draft 2020-12 validator agrees with the resolver
+- reserved-names · reserved-name-misconception-constructor.json · the API, the validator and the resolver return byte-identical JSON
 - reserved-names · reserved-name-misconception-constructor.json · the API answers 422
+- reserved-names · reserved-name-misconception-constructor.json · diagnostics match the committed expectation
+- reserved-names · reserved-name-misconception-constructor.json · the independent draft 2020-12 validator agrees with the resolver
+- reserved-names · reserved-name-misconception-prototype.json · the API, the validator and the resolver return byte-identical JSON
 - reserved-names · reserved-name-misconception-prototype.json · the API answers 422
+- reserved-names · reserved-name-misconception-prototype.json · diagnostics match the committed expectation
+- reserved-names · reserved-name-misconception-prototype.json · the independent draft 2020-12 validator agrees with the resolver
+- reserved-names · reserved-name-option-__proto__.json · the API, the validator and the resolver return byte-identical JSON
 - reserved-names · reserved-name-option-__proto__.json · the API answers 422
+- reserved-names · reserved-name-option-__proto__.json · diagnostics match the committed expectation
 - reserved-names · reserved-name-option-__proto__.json · the independent draft 2020-12 validator agrees with the resolver
+- reserved-names · reserved-name-option-constructor.json · the API, the validator and the resolver return byte-identical JSON
 - reserved-names · reserved-name-option-constructor.json · the API answers 422
+- reserved-names · reserved-name-option-constructor.json · diagnostics match the committed expectation
 - reserved-names · reserved-name-option-constructor.json · the independent draft 2020-12 validator agrees with the resolver
+- reserved-names · reserved-name-option-prototype.json · the API, the validator and the resolver return byte-identical JSON
 - reserved-names · reserved-name-option-prototype.json · the API answers 422
+- reserved-names · reserved-name-option-prototype.json · diagnostics match the committed expectation
 - reserved-names · reserved-name-option-prototype.json · the independent draft 2020-12 validator agrees with the resolver
 - reserved-names · reserved-name-top-level-__proto__.json · the API, the validator and the resolver return byte-identical JSON
 - reserved-names · reserved-name-top-level-__proto__.json · the API answers 200

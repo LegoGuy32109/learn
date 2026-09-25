@@ -28,7 +28,10 @@ export function zlibStored(bytes: Uint8Array): Uint8Array {
   const blockSize = 65535;
   const blocks = Math.max(1, Math.ceil(bytes.length / blockSize));
   for (let index = 0; index < blocks; index++) {
-    const chunk = bytes.subarray(index * blockSize, Math.min(bytes.length, (index + 1) * blockSize));
+    const chunk = bytes.subarray(
+      index * blockSize,
+      Math.min(bytes.length, (index + 1) * blockSize),
+    );
     const header = new Uint8Array(5);
     header[0] = index === blocks - 1 ? 1 : 0;
     header[1] = chunk.length & 0xff;
@@ -45,7 +48,9 @@ export function zlibStored(bytes: Uint8Array): Uint8Array {
 
 async function sha1Hex(bytes: Uint8Array): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-1", bytes as BufferSource);
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return [...new Uint8Array(digest)].map((byte) =>
+    byte.toString(16).padStart(2, "0")
+  ).join("");
 }
 
 function hexToBytes(hex: string): Uint8Array {
@@ -58,7 +63,10 @@ interface StoredObject {
 }
 
 /** Hash and frame one Git object of the given type. */
-async function object(type: "blob" | "tree" | "commit", body: Uint8Array): Promise<StoredObject> {
+async function object(
+  type: "blob" | "tree" | "commit",
+  body: Uint8Array,
+): Promise<StoredObject> {
   const framed = concat([encoder.encode(`${type} ${body.length}\0`), body]);
   return { hash: await sha1Hex(framed), loose: zlibStored(framed) };
 }
@@ -74,7 +82,12 @@ function tree(paths: Record<string, Uint8Array>): TreeNode {
     const segments = path.split("/");
     let node = root;
     for (const segment of segments.slice(0, -1)) {
-      if (!node.directories.has(segment)) node.directories.set(segment, { files: new Map(), directories: new Map() });
+      if (!node.directories.has(segment)) {
+        node.directories.set(segment, {
+          files: new Map(),
+          directories: new Map(),
+        });
+      }
       node = node.directories.get(segment)!;
     }
     node.files.set(segments.at(-1)!, bytes);
@@ -89,9 +102,17 @@ function compareEntries(a: [string, boolean], b: [string, boolean]): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
-async function writeTree(node: TreeNode, out: Map<string, Uint8Array>): Promise<string> {
+async function writeTree(
+  node: TreeNode,
+  out: Map<string, Uint8Array>,
+): Promise<string> {
   const entries: Uint8Array[] = [];
-  const names: [string, boolean][] = [...[...node.files.keys()].map((name) => [name, false] as [string, boolean]), ...[...node.directories.keys()].map((name) => [name, true] as [string, boolean])];
+  const names: [string, boolean][] = [
+    ...[...node.files.keys()].map((name) => [name, false] as [string, boolean]),
+    ...[...node.directories.keys()].map((name) =>
+      [name, true] as [string, boolean]
+    ),
+  ];
   names.sort(compareEntries);
   for (const [name, isDirectory] of names) {
     let hash: string;
@@ -119,20 +140,34 @@ export interface BareRepository {
 }
 
 /** Build a bare repository holding one commit of the given files. */
-export async function bareRepository(paths: Record<string, Uint8Array>, message: string): Promise<BareRepository> {
+export async function bareRepository(
+  paths: Record<string, Uint8Array>,
+  message: string,
+): Promise<BareRepository> {
   const objects = new Map<string, Uint8Array>();
   const root = await writeTree(tree(paths), objects);
-  const commitBody = encoder.encode(`tree ${root}\nauthor ${AUTHOR} ${COMMIT_TIME} +0000\ncommitter ${AUTHOR} ${COMMIT_TIME} +0000\n\n${message}\n`);
+  const commitBody = encoder.encode(
+    `tree ${root}\nauthor ${AUTHOR} ${COMMIT_TIME} +0000\ncommitter ${AUTHOR} ${COMMIT_TIME} +0000\n\n${message}\n`,
+  );
   const commit = await object("commit", commitBody);
   objects.set(commit.hash, commit.loose);
   const files: Record<string, Uint8Array> = {
     HEAD: encoder.encode(`ref: refs/heads/${BRANCH}\n`),
-    config: encoder.encode("[core]\n\trepositoryformatversion = 0\n\tfilemode = true\n\tbare = true\n"),
-    description: encoder.encode("The learn.joshhale.me agent plugin, served by the site for git clone.\n"),
+    config: encoder.encode(
+      "[core]\n\trepositoryformatversion = 0\n\tfilemode = true\n\tbare = true\n",
+    ),
+    description: encoder.encode(
+      "The learn.joshhale.me agent plugin, served by the site for git clone.\n",
+    ),
     "info/refs": encoder.encode(`${commit.hash}\trefs/heads/${BRANCH}\n`),
     [`refs/heads/${BRANCH}`]: encoder.encode(`${commit.hash}\n`),
     "objects/info/packs": encoder.encode("\n"),
   };
-  for (const [hash, loose] of [...objects.entries()].sort(([a], [b]) => (a < b ? -1 : 1))) files[`objects/${hash.slice(0, 2)}/${hash.slice(2)}`] = loose;
+  for (
+    const [hash, loose] of [...objects.entries()].sort((
+      [a],
+      [b],
+    ) => (a < b ? -1 : 1))
+  ) files[`objects/${hash.slice(0, 2)}/${hash.slice(2)}`] = loose;
   return { files, commit: commit.hash };
 }

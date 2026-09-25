@@ -5,7 +5,8 @@ import { diagnosticsMarkdown } from "./diagnostics-reference.ts";
 
 const repo = new URL("../../../", import.meta.url);
 
-const banner = "// Generated from src/shared/authoring/resolver.js by deno task tools:generate.\n// Inspectable, dependency-free lesson/v1 resolver for agents and local scripts.\n";
+const banner =
+  "// Generated from src/shared/authoring/resolver.js by deno task tools:generate.\n// Inspectable, dependency-free lesson/v1 resolver for agents and local scripts.\n";
 
 function declarations(): string {
   const union = DIAGNOSTIC_CODES.map((code) => `  | "${code}"`).join("\n");
@@ -29,7 +30,9 @@ export declare const DRAWABLE_MIN: number;
 }
 
 export async function generatedFiles(): Promise<Record<string, string>> {
-  const source = await Deno.readTextFile(new URL("src/shared/authoring/resolver.js", repo));
+  const source = await Deno.readTextFile(
+    new URL("src/shared/authoring/resolver.js", repo),
+  );
   const humanDocs = await Deno.readTextFile(new URL("docs/api-v1.md", repo));
   const diagnostics = diagnosticsMarkdown();
   return {

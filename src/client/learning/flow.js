@@ -3,7 +3,10 @@
 // Randomness (seeds, attempt IDs) is passed in so every function is deterministic and testable.
 import { shuffled } from "../../shared/learning/shuffle.js";
 import { evaluateAnswer } from "../../shared/learning/evaluate.js";
-import { advanceCheck, advanceWrapUp } from "../../shared/learning/transitions.js";
+import {
+  advanceCheck,
+  advanceWrapUp,
+} from "../../shared/learning/transitions.js";
 import { poolQuestions } from "../../shared/lessons/lesson.js";
 
 /**
@@ -41,7 +44,17 @@ import { poolQuestions } from "../../shared/lessons/lesson.js";
  * @returns {Flow}
  */
 export function cardsFlow(conceptIndex) {
-  return { screen: "card", conceptIndex, cardIndex: 0, flowKind: "cards", seed: 0, attemptId: "", queue: [], feedback: null, detour: null };
+  return {
+    screen: "card",
+    conceptIndex,
+    cardIndex: 0,
+    flowKind: "cards",
+    seed: 0,
+    attemptId: "",
+    queue: [],
+    feedback: null,
+    detour: null,
+  };
 }
 
 /** @returns {Flow} */
@@ -56,7 +69,8 @@ export function isCardScreen(flow) {
 
 /** @param {Flow} flow */
 export function atFirstCard(flow) {
-  return flow.screen === "card" && flow.conceptIndex === 0 && flow.cardIndex === 0;
+  return flow.screen === "card" && flow.conceptIndex === 0 &&
+    flow.cardIndex === 0;
 }
 
 /**
@@ -65,7 +79,9 @@ export function atFirstCard(flow) {
  * @param {Flow} flow
  */
 export function current(lesson, flow) {
-  if (isCardScreen(flow)) return lesson.concepts[flow.conceptIndex].cards[flow.cardIndex];
+  if (isCardScreen(flow)) {
+    return lesson.concepts[flow.conceptIndex].cards[flow.cardIndex];
+  }
   return lesson.questions.find((question) => question.id === flow.queue[0]);
 }
 
@@ -78,7 +94,9 @@ export function activeConcept(lesson, flow) {
   const item = current(lesson, flow);
   let concept;
   if (!isCardScreen(flow) && item?.conceptId) {
-    concept = lesson.concepts.find((candidate) => candidate.id === item.conceptId);
+    concept = lesson.concepts.find((candidate) =>
+      candidate.id === item.conceptId
+    );
   } else {
     concept = lesson.concepts[flow.conceptIndex];
   }
@@ -105,8 +123,19 @@ function questionIds(lesson, concept, kind) {
  */
 export function startCheck(lesson, flow, attempt) {
   const concept = lesson.concepts[flow.conceptIndex];
-  const queue = shuffled(questionIds(lesson, concept, "drawable"), attempt.seed);
-  return { ...flow, screen: "question", flowKind: "check", seed: attempt.seed, attemptId: attempt.attemptId, queue, feedback: null };
+  const queue = shuffled(
+    questionIds(lesson, concept, "drawable"),
+    attempt.seed,
+  );
+  return {
+    ...flow,
+    screen: "question",
+    flowKind: "check",
+    seed: attempt.seed,
+    attemptId: attempt.attemptId,
+    queue,
+    feedback: null,
+  };
 }
 
 /**
@@ -118,7 +147,9 @@ export function startCheck(lesson, flow, attempt) {
  */
 export function wrapUpQuestionId(lesson, concept, seed) {
   const reserved = questionIds(lesson, concept, "reserved");
-  const candidates = reserved.length ? reserved : questionIds(lesson, concept, "all");
+  const candidates = reserved.length
+    ? reserved
+    : questionIds(lesson, concept, "all");
   return shuffled(candidates, seed)[0];
 }
 
@@ -129,10 +160,24 @@ export function wrapUpQuestionId(lesson, concept, seed) {
  * @returns {Flow}
  */
 export function startWrapUp(lesson, attempt) {
-  const queue = lesson.concepts.map((concept, index) => wrapUpQuestionId(lesson, concept, attempt.seed + index));
+  const queue = lesson.concepts.map((concept, index) =>
+    wrapUpQuestionId(lesson, concept, attempt.seed + index)
+  );
   const position = { conceptIndex: lesson.concepts.length - 1, cardIndex: 0 };
-  const attemptFields = { seed: attempt.seed, attemptId: attempt.attemptId, queue, wrapTotal: queue.length };
-  return { screen: "question", flowKind: "wrap_up", ...position, ...attemptFields, feedback: null, detour: null };
+  const attemptFields = {
+    seed: attempt.seed,
+    attemptId: attempt.attemptId,
+    queue,
+    wrapTotal: queue.length,
+  };
+  return {
+    screen: "question",
+    flowKind: "wrap_up",
+    ...position,
+    ...attemptFields,
+    feedback: null,
+    detour: null,
+  };
 }
 
 /**
@@ -146,7 +191,9 @@ export function startWrapUp(lesson, attempt) {
  */
 export function continueFromCard(lesson, flow, attempt) {
   const concept = lesson.concepts[flow.conceptIndex];
-  if (flow.cardIndex < concept.cards.length - 1) return { ...flow, cardIndex: flow.cardIndex + 1 };
+  if (flow.cardIndex < concept.cards.length - 1) {
+    return { ...flow, cardIndex: flow.cardIndex + 1 };
+  }
   if (flow.detour) return leaveCorrective(flow);
   return startCheck(lesson, flow, attempt);
 }
@@ -157,7 +204,9 @@ export function continueFromCard(lesson, flow, attempt) {
  * @param {any} question
  */
 function conceptOf(lesson, question) {
-  return lesson.concepts.find((/** @type {any} */ concept) => concept.id === question.conceptId);
+  return lesson.concepts.find((/** @type {any} */ concept) =>
+    concept.id === question.conceptId
+  );
 }
 
 /**
@@ -174,18 +223,46 @@ function conceptOf(lesson, question) {
 export function buildFeedback(lesson, question, answer, idk, correct) {
   const concept = conceptOf(lesson, question);
   if (question.type !== "mcq") {
-    const text = idk ? `The answer is ${question.answer}${question.unit ? ` ${question.unit}` : ""}. ${question.feedback}` : question.feedback;
-    return { correct, idk, text, belief: null, cardId: correct ? null : question.correctingCardId };
+    const text = idk
+      ? `The answer is ${question.answer}${
+        question.unit ? ` ${question.unit}` : ""
+      }. ${question.feedback}`
+      : question.feedback;
+    return {
+      correct,
+      idk,
+      text,
+      belief: null,
+      cardId: correct ? null : question.correctingCardId,
+    };
   }
-  const keyText = concept.options.find((/** @type {any} */ option) => option.id === question.key)?.text ?? "";
+  const keyText =
+    concept.options.find((/** @type {any} */ option) =>
+      option.id === question.key
+    )?.text ?? "";
   if (idk) {
-    return { correct: false, idk: true, text: `The answer is: ${keyText} ${question.feedback[question.key]}`, belief: null, cardId: question.correctingCardId };
+    return {
+      correct: false,
+      idk: true,
+      text: `The answer is: ${keyText} ${question.feedback[question.key]}`,
+      belief: null,
+      cardId: question.correctingCardId,
+    };
   }
-  const chosen = typeof answer === "string" && Object.hasOwn(question.feedback, answer) ? answer : question.key;
+  const chosen =
+    typeof answer === "string" && Object.hasOwn(question.feedback, answer)
+      ? answer
+      : question.key;
   const text = question.feedback[chosen];
-  if (correct) return { correct: true, idk: false, text, belief: null, cardId: null };
-  const misconceptionId = Object.hasOwn(question.map, chosen) ? question.map[chosen] : null;
-  const misconception = concept.misconceptions.find((/** @type {any} */ candidate) => candidate.id === misconceptionId);
+  if (correct) {
+    return { correct: true, idk: false, text, belief: null, cardId: null };
+  }
+  const misconceptionId = Object.hasOwn(question.map, chosen)
+    ? question.map[chosen]
+    : null;
+  const misconception = concept.misconceptions.find((
+    /** @type {any} */ candidate,
+  ) => candidate.id === misconceptionId);
   return {
     correct: false,
     idk: false,
@@ -220,12 +297,22 @@ export function submitAnswer(lesson, flow, answer, idk) {
 export function advance(lesson, flow, attempt) {
   const feedback = flow.feedback ?? { correct: false, idk: false };
   if (flow.flowKind === "check") {
-    const next = advanceCheck({ queue: flow.queue, correct: feedback.correct, idk: feedback.idk });
+    const next = advanceCheck({
+      queue: flow.queue,
+      correct: feedback.correct,
+      idk: feedback.idk,
+    });
     if (!next.done) return { ...flow, queue: next.queue, feedback: null };
-    if (flow.conceptIndex === lesson.concepts.length - 1) return startWrapUp(lesson, attempt);
+    if (flow.conceptIndex === lesson.concepts.length - 1) {
+      return startWrapUp(lesson, attempt);
+    }
     return cardsFlow(flow.conceptIndex + 1);
   }
-  const next = advanceWrapUp({ queue: flow.queue, correct: feedback.correct, seed: flow.seed });
+  const next = advanceWrapUp({
+    queue: flow.queue,
+    correct: feedback.correct,
+    seed: flow.seed,
+  });
   const screen = next.done ? "summary" : "question";
   return { ...flow, screen, queue: next.queue, feedback: null };
 }
@@ -240,9 +327,17 @@ export function enterCorrective(lesson, flow) {
   const question = current(lesson, flow);
   const cardId = flow.feedback?.cardId ?? question.correctingCardId;
   const owns = (/** @type {any} */ card) => card.id === cardId;
-  const conceptIndex = lesson.concepts.findIndex((/** @type {any} */ concept) => concept.cards.some(owns));
+  const conceptIndex = lesson.concepts.findIndex((/** @type {any} */ concept) =>
+    concept.cards.some(owns)
+  );
   const cardIndex = lesson.concepts[conceptIndex].cards.findIndex(owns);
-  return { ...flow, detour: structuredClone(flow), conceptIndex, cardIndex, screen: "corrective" };
+  return {
+    ...flow,
+    detour: structuredClone(flow),
+    conceptIndex,
+    cardIndex,
+    screen: "corrective",
+  };
 }
 
 /**
@@ -287,8 +382,12 @@ export function stepBack(lesson, flow) {
     const concept = activeConcept(lesson, flow);
     return lookBack(lesson, flow, lesson.concepts.indexOf(concept));
   }
-  if (flow.screen === "card" && flow.cardIndex > 0) return { ...flow, cardIndex: flow.cardIndex - 1 };
-  if (flow.screen === "card" && flow.conceptIndex > 0) return lookBack(lesson, flow, flow.conceptIndex - 1);
+  if (flow.screen === "card" && flow.cardIndex > 0) {
+    return { ...flow, cardIndex: flow.cardIndex - 1 };
+  }
+  if (flow.screen === "card" && flow.conceptIndex > 0) {
+    return lookBack(lesson, flow, flow.conceptIndex - 1);
+  }
   return flow;
 }
 

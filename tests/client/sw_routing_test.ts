@@ -1,9 +1,20 @@
 import { assert, assertEquals } from "jsr:@std/assert";
-import { cacheName, classifyRequest, staleCaches } from "../../src/client/pwa/sw-routing.js";
+import {
+  cacheName,
+  classifyRequest,
+  staleCaches,
+} from "../../src/client/pwa/sw-routing.js";
 import { canInterrupt } from "../../src/client/pwa/update-policy.js";
 import { initialFlow } from "../../src/client/learning/flow.js";
 
-const precache = new Set(["/shell", "/css/app.css", "/js/app.js", "/src/client/learning/flow.js", "/icons/icon-192.png", "/manifest.webmanifest"]);
+const precache = new Set([
+  "/shell",
+  "/css/app.css",
+  "/js/app.js",
+  "/src/client/learning/flow.js",
+  "/icons/icon-192.png",
+  "/manifest.webmanifest",
+]);
 
 /** @param {string} pathname */
 function get(pathname: string, mode = "no-cors") {
@@ -19,14 +30,29 @@ Deno.test("every /api/ path bypasses the cache, even when it is a GET", () => {
 
 Deno.test("every mutation bypasses the cache regardless of path", () => {
   for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
-    assertEquals(classifyRequest({ pathname: "/css/app.css", method, mode: "cors" }, precache), "network-only");
-    assertEquals(classifyRequest({ pathname: "/api/v1/lessons", method, mode: "cors" }, precache), "network-only");
+    assertEquals(
+      classifyRequest(
+        { pathname: "/css/app.css", method, mode: "cors" },
+        precache,
+      ),
+      "network-only",
+    );
+    assertEquals(
+      classifyRequest(
+        { pathname: "/api/v1/lessons", method, mode: "cors" },
+        precache,
+      ),
+      "network-only",
+    );
   }
 });
 
 Deno.test("page loads are navigations, whatever the path", () => {
   assertEquals(get("/", "navigate"), "navigate");
-  assertEquals(get("/learn/7a1f7700-0000-4000-8000-000000000001", "navigate"), "navigate");
+  assertEquals(
+    get("/learn/7a1f7700-0000-4000-8000-000000000001", "navigate"),
+    "navigate",
+  );
   assertEquals(get("/shell", "navigate"), "navigate");
 });
 
@@ -51,8 +77,16 @@ Deno.test("the worker scripts, discovery documents and unknown paths pass throug
 Deno.test("the cache is named by the build hash and only stale shell caches are swept", () => {
   assertEquals(cacheName("abc123"), "learn-shell-abc123");
   assert(cacheName("abc123") !== cacheName("abc124"));
-  const names = ["learn-shell-old1", "learn-shell-abc123", "learn-shell-old2", "other-app-cache"];
-  assertEquals(staleCaches(names, "learn-shell-abc123"), ["learn-shell-old1", "learn-shell-old2"]);
+  const names = [
+    "learn-shell-old1",
+    "learn-shell-abc123",
+    "learn-shell-old2",
+    "other-app-cache",
+  ];
+  assertEquals(staleCaches(names, "learn-shell-abc123"), [
+    "learn-shell-old1",
+    "learn-shell-old2",
+  ]);
   assertEquals(staleCaches(["learn-shell-abc123"], "learn-shell-abc123"), []);
 });
 
@@ -63,10 +97,23 @@ Deno.test("an update may not interrupt an unanswered Question", () => {
   assert(canInterrupt("learn", flow));
   const question = { ...flow, screen: "question", feedback: null };
   assertEquals(canInterrupt("learn", question), false);
-  assert(canInterrupt("learn", { ...question, feedback: { correct: true, text: "" } }));
+  assert(
+    canInterrupt("learn", {
+      ...question,
+      feedback: { correct: true, text: "" },
+    }),
+  );
   assert(canInterrupt("learn", { ...flow, screen: "corrective" }));
   assert(canInterrupt("learn", { ...flow, screen: "summary" }));
-  assertEquals(canInterrupt("drill", { screen: "question", feedback: null }), false);
-  assert(canInterrupt("drill", { screen: "question", feedback: { correct: false, text: "" } }));
+  assertEquals(
+    canInterrupt("drill", { screen: "question", feedback: null }),
+    false,
+  );
+  assert(
+    canInterrupt("drill", {
+      screen: "question",
+      feedback: { correct: false, text: "" },
+    }),
+  );
   assert(canInterrupt("drill", { screen: "summary", feedback: null }));
 });

@@ -14,7 +14,9 @@ export const DRILL_CHECKPOINTED = "drill_checkpointed";
  * @returns {string[]}
  */
 export function drillQueue(lesson, seed) {
-  const ids = lesson.questions.map((/** @type {any} */ question) => question.id);
+  const ids = lesson.questions.map((/** @type {any} */ question) =>
+    question.id
+  );
   return shuffled(ids, seed);
 }
 
@@ -35,11 +37,17 @@ export function reduceDrillCheckpoint(events) {
  * @returns {{ id: string, title: string, questions: number, asked: number, retrieved: number, missed: number, unknown: number }[]}
  */
 export function reduceDrill(lesson, events, runId) {
-  const answers = events.filter((event) => event.type === DRILL_ANSWERED && event.runId === runId);
+  const answers = events.filter((event) =>
+    event.type === DRILL_ANSWERED && event.runId === runId
+  );
   return lesson.concepts.map((/** @type {any} */ concept) => {
     const own = answers.filter((event) => event.conceptId === concept.id);
-    const questions = lesson.questions.filter((/** @type {any} */ question) => question.conceptId === concept.id).length;
-    const retrieved = own.filter((event) => event.correct).length;
+    const questions = lesson.questions.filter((/** @type {any} */ question) =>
+      question.conceptId === concept.id
+    ).length;
+    const retrieved = own.filter((event) =>
+      event.correct
+    ).length;
     const unknown = own.filter((event) => event.idk).length;
     return {
       id: concept.id,

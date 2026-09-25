@@ -38,11 +38,11 @@
   --a-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --a-dw: 600;
 
-  --a-r: 10px;    /* corner radius */
-  --a-rail-h: 6px;   /* rail height; tall enough to carry a 1px edge */
+  --a-r: 10px; /* corner radius */
+  --a-rail-h: 6px; /* rail height; tall enough to carry a 1px edge */
   --a-rail-gap: 3px; /* space between rail segments */
-  --a-pad: 18px;  /* density */
-  --a-fs: 17px;   /* base size; 16px is the iOS input-zoom floor */
+  --a-pad: 18px; /* density */
+  --a-fs: 17px; /* base size; 16px is the iOS input-zoom floor */
 
   color-scheme: light dark;
 }
@@ -64,8 +64,8 @@
     --a-codebg: #272118;
     --a-codeink: #e4bd75;
     --a-award: #f5705a;
-  --a-track: #332c22;
-  --a-track-edge: #786b56;  /* 3.53:1 on --a-bg, 3.25:1 on --a-surface */
+    --a-track: #332c22;
+    --a-track-edge: #786b56; /* 3.53:1 on --a-bg, 3.25:1 on --a-surface */
   }
 }
 
@@ -86,7 +86,7 @@
   --a-codeink: #e4bd75;
   --a-award: #f5705a;
   --a-track: #332c22;
-  --a-track-edge: #786b56;  /* 3.53:1 on --a-bg, 3.25:1 on --a-surface */
+  --a-track-edge: #786b56; /* 3.53:1 on --a-bg, 3.25:1 on --a-surface */
 }
 
 /* ---------------------------------------------------------------- accents

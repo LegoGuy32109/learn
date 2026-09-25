@@ -23,13 +23,19 @@ export const SHELL_PATH = "/shell";
 const roots = [
   { prefix: "/css/", directory: new URL("../../public/css/", import.meta.url) },
   { prefix: "/js/", directory: new URL("../../public/js/", import.meta.url) },
-  { prefix: "/icons/", directory: new URL("../../public/icons/", import.meta.url) },
+  {
+    prefix: "/icons/",
+    directory: new URL("../../public/icons/", import.meta.url),
+  },
   { prefix: "/src/client/", directory: new URL("../client/", import.meta.url) },
   { prefix: "/src/shared/", directory: new URL("../shared/", import.meta.url) },
 ];
 
 /** The worker's own scripts update through the browser's worker lifecycle, never through the cache. */
-const WORKER_SCRIPTS = new Set(["/src/client/pwa/sw.js", "/src/client/pwa/sw-routing.js"]);
+const WORKER_SCRIPTS = new Set([
+  "/src/client/pwa/sw.js",
+  "/src/client/pwa/sw-routing.js",
+]);
 
 /** Files that the browser fetches: stylesheets, modules, icons and the manifest. Declarations are not served. */
 function servedToBrowser(path: string): boolean {
@@ -37,11 +43,17 @@ function servedToBrowser(path: string): boolean {
   return /\.(css|js|png|svg|webmanifest)$/.test(path);
 }
 
-async function* walk(directory: URL, prefix: string): AsyncGenerator<{ path: string; file: URL }> {
+async function* walk(
+  directory: URL,
+  prefix: string,
+): AsyncGenerator<{ path: string; file: URL }> {
   for await (const entry of Deno.readDir(directory)) {
     const file = new URL(entry.name, directory);
     if (entry.isDirectory) {
-      yield* walk(new URL(`${entry.name}/`, directory), `${prefix}${entry.name}/`);
+      yield* walk(
+        new URL(`${entry.name}/`, directory),
+        `${prefix}${entry.name}/`,
+      );
     } else if (entry.isFile) {
       yield { path: `${prefix}${entry.name}`, file };
     }
@@ -57,13 +69,22 @@ export async function readShellFiles(): Promise<ShellFile[]> {
       files.push({ path: found.path, bytes: await Deno.readFile(found.file) });
     }
   }
-  const manifest = new URL("../../public/manifest.webmanifest", import.meta.url);
-  files.push({ path: "/manifest.webmanifest", bytes: await Deno.readFile(manifest) });
+  const manifest = new URL(
+    "../../public/manifest.webmanifest",
+    import.meta.url,
+  );
+  files.push({
+    path: "/manifest.webmanifest",
+    bytes: await Deno.readFile(manifest),
+  });
   return files;
 }
 
 /** Hash the shell files and derive the precache list. Pure over its input, so a changed byte is testable. */
-export async function computeBuild(files: ShellFile[], shellHtml: string): Promise<Build> {
+export async function computeBuild(
+  files: ShellFile[],
+  shellHtml: string,
+): Promise<Build> {
   const sorted = [...files].sort((a, b) => a.path.localeCompare(b.path));
   const encoder = new TextEncoder();
   const parts: Uint8Array[] = [encoder.encode(shellHtml)];
@@ -79,8 +100,16 @@ export async function computeBuild(files: ShellFile[], shellHtml: string): Promi
     offset += part.byteLength;
   }
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", joined));
-  const hash = Array.from(digest.slice(0, 6), (byte) => byte.toString(16).padStart(2, "0")).join("");
-  const precache = [SHELL_PATH, ...sorted.map((file) => file.path).filter((path) => !WORKER_SCRIPTS.has(path))];
+  const hash = Array.from(
+    digest.slice(0, 6),
+    (byte) => byte.toString(16).padStart(2, "0"),
+  ).join("");
+  const precache = [
+    SHELL_PATH,
+    ...sorted.map((file) => file.path).filter((path) =>
+      !WORKER_SCRIPTS.has(path)
+    ),
+  ];
   return { hash, precache };
 }
 

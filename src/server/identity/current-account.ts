@@ -21,10 +21,24 @@ export async function currentAccount(
   requiredScope: string,
 ): Promise<CurrentAccount | { forbidden: true } | null> {
   const session = await dependencies.sessions.read(request);
-  if (session) return { accountId: session.accountId, via: "cookie", displayName: session.displayName, scopes: [] };
+  if (session) {
+    return {
+      accountId: session.accountId,
+      via: "cookie",
+      displayName: session.displayName,
+      scopes: [],
+    };
+  }
   if (!request.headers.get("authorization")) return null;
   const result = await dependencies.auth.authenticate(request, requiredScope);
-  if (result.ok) return { accountId: result.principal.accountId, via: "bearer", displayName: null, scopes: result.principal.scopes };
+  if (result.ok) {
+    return {
+      accountId: result.principal.accountId,
+      via: "bearer",
+      displayName: null,
+      scopes: result.principal.scopes,
+    };
+  }
   if (result.reason === "forbidden") return { forbidden: true };
   return null;
 }

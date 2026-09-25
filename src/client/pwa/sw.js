@@ -17,7 +17,8 @@ const BUILD_HASH = "__BUILD_HASH__";
 const PRECACHE = ["__PRECACHE__"];
 const SHELL_PATH = "/shell";
 
-const worker = /** @type {ServiceWorkerGlobalScope} */ (/** @type {unknown} */ (self));
+const worker =
+  /** @type {ServiceWorkerGlobalScope} */ (/** @type {unknown} */ (self));
 const CACHE = cacheName(BUILD_HASH);
 const precached = new Set(PRECACHE);
 
@@ -33,7 +34,9 @@ worker.addEventListener("install", (event) => {
 worker.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
     const names = await worker.caches.keys();
-    await Promise.all(staleCaches(names, CACHE).map((name) => worker.caches.delete(name)));
+    await Promise.all(
+      staleCaches(names, CACHE).map((name) => worker.caches.delete(name)),
+    );
     await worker.clients.claim();
   })());
 });
@@ -77,7 +80,11 @@ worker.addEventListener("fetch", (event) => {
   const request = event.request;
   const url = new URL(request.url);
   if (url.origin !== worker.location.origin) return;
-  const kind = classifyRequest({ pathname: url.pathname, method: request.method, mode: request.mode }, precached);
+  const kind = classifyRequest({
+    pathname: url.pathname,
+    method: request.method,
+    mode: request.mode,
+  }, precached);
   if (kind === "network-only") return;
   if (kind === "pass-through") return;
   if (kind === "navigate") {

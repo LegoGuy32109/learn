@@ -58,7 +58,18 @@ const STORES = ["learning_events", "navigation_events"];
  * @param {Timers} [options.timers]
  * @param {() => number} [options.random]
  */
-export function createSyncClient({ repository, transport, onStatus, timers = { set: (work, delay) => setTimeout(work, delay), clear: (handle) => clearTimeout(/** @type {number} */ (handle)) }, random = Math.random }) {
+export function createSyncClient(
+  {
+    repository,
+    transport,
+    onStatus,
+    timers = {
+      set: (work, delay) => setTimeout(work, delay),
+      clear: (handle) => clearTimeout(/** @type {number} */ (handle)),
+    },
+    random = Math.random,
+  },
+) {
   let enabled = false;
   /** @type {Scope|null} */
   let scope = null;
@@ -99,7 +110,8 @@ export function createSyncClient({ repository, transport, onStatus, timers = { s
   }
 
   /** @param {string} store */
-  const cursorKey = (store) => `${store}:${scope?.lessonRevisionId}:${scope?.epoch}`;
+  const cursorKey = (store) =>
+    `${store}:${scope?.lessonRevisionId}:${scope?.epoch}`;
 
   /**
    * Upload every outbox entry, grouped by stream, revision and epoch, in bounded batches. `failure`
@@ -113,7 +125,9 @@ export function createSyncClient({ repository, transport, onStatus, timers = { s
     /** @type {Map<string, typeof entries>} */
     const groups = new Map();
     for (const entry of entries) {
-      const key = `${entry.store}|${entry.event.lessonRevisionId}|${entry.event.epoch ?? 0}`;
+      const key = `${entry.store}|${entry.event.lessonRevisionId}|${
+        entry.event.epoch ?? 0
+      }`;
       const group = groups.get(key) ?? [];
       group.push(entry);
       groups.set(key, group);
@@ -123,17 +137,26 @@ export function createSyncClient({ repository, transport, onStatus, timers = { s
     let stale = false;
     for (const group of groups.values()) {
       const { store, event } = group[0];
-      const groupScope = { lessonRevisionId: String(event.lessonRevisionId), epoch: Number(event.epoch ?? 0) };
+      const groupScope = {
+        lessonRevisionId: String(event.lessonRevisionId),
+        epoch: Number(event.epoch ?? 0),
+      };
       for (let start = 0; start < group.length; start += BATCH_SIZE) {
         const batch = group.slice(start, start + BATCH_SIZE);
-        const result = await transport.push(store, groupScope, batch.map((entry) => entry.event));
+        const result = await transport.push(
+          store,
+          groupScope,
+          batch.map((entry) => entry.event),
+        );
         if (result.ok) {
           // Acknowledged: the server holds these. A response lost before this line leaves them in the
           // outbox, and the next cycle re-sends them; the server counts them as duplicates.
           await repository.acknowledge(batch.map((entry) => entry.id));
           continue;
         }
-        if (result.status === 0 || result.status >= 500) return { failure: result, refused, stale };
+        if (result.status === 0 || result.status >= 500) {
+          return { failure: result, refused, stale };
+        }
         if (result.status === 401) {
           setEnabled(false);
           return { failure: null, refused, stale };
@@ -164,7 +187,9 @@ export function createSyncClient({ repository, transport, onStatus, timers = { s
     const current = scope;
     let merged = 0;
     for (const store of STORES) {
-      const known = new Set((await repository.events(store)).map((event) => event.id));
+      const known = new Set(
+        (await repository.events(store)).map((event) => event.id),
+      );
       let cursor = await repository.cursor(cursorKey(store));
       for (let pages = 0; pages < 1000; pages += 1) {
         const page = await transport.pull(store, current, cursor);
@@ -179,7 +204,9 @@ export function createSyncClient({ repository, transport, onStatus, timers = { s
           }
           return { failure: page, stale: false, merged };
         }
-        const fresh = page.events.filter((event) => typeof event?.id === "string" && !known.has(event.id));
+        const fresh = page.events.filter((event) =>
+          typeof event?.id === "string" && !known.has(event.id)
+        );
         for (const event of fresh) known.add(event.id);
         await repository.appendRemote(store, fresh);
         merged += fresh.length;
@@ -218,16 +245,33 @@ export function createSyncClient({ repository, transport, onStatus, timers = { s
         const remaining = (await repository.outbox()).length;
         // Only no network and a server error are worth a retry; any other refusal is permanent.
         if (failure && (failure.status === 0 || failure.status >= 500)) {
-          setState({ status: failure.status === 0 ? "local" : "failed", message: failure.message, outbox: remaining });
+          setState({
+            status: failure.status === 0 ? "local" : "failed",
+            message: failure.message,
+            outbox: remaining,
+          });
           scheduleRetry();
         } else if (stale) {
-          setState({ status: "failed", message: "Progress on this lesson was discarded on another device.", outbox: remaining });
+          setState({
+            status: "failed",
+            message: "Progress on this lesson was discarded on another device.",
+            outbox: remaining,
+          });
         } else if (failure || pushed.refused) {
           attempt = 0;
-          setState({ status: "failed", message: (failure ?? pushed.refused)?.message ?? null, outbox: remaining });
+          setState({
+            status: "failed",
+            message: (failure ?? pushed.refused)?.message ?? null,
+            outbox: remaining,
+          });
         } else {
           attempt = 0;
-          setState({ status: remaining ? "local" : "synced", message: null, remote: null, outbox: remaining });
+          setState({
+            status: remaining ? "local" : "synced",
+            message: null,
+            remote: null,
+            outbox: remaining,
+          });
         }
         if (merged && onMerged) await onMerged();
       } while (pending && enabled);
@@ -257,7 +301,13 @@ export function createSyncClient({ repository, transport, onStatus, timers = { s
     attach(next, merged = null) {
       scope = next;
       onMerged = merged;
-      if (enabled) setState({ status: state.status === "hidden" ? "local" : state.status, remote: null, message: null });
+      if (enabled) {
+        setState({
+          status: state.status === "hidden" ? "local" : state.status,
+          remote: null,
+          message: null,
+        });
+      }
     },
     /**
      * Request a cycle shortly. Called after every render, so an event is in the outbox and on screen
@@ -289,7 +339,9 @@ export function createSyncClient({ repository, transport, onStatus, timers = { s
     async announce(announced) {
       if (!enabled) return;
       const result = await transport.push("learning_events", announced, []);
-      if (!result.ok && (result.status === 0 || result.status >= 500)) scheduleRetry();
+      if (!result.ok && (result.status === 0 || result.status >= 500)) {
+        scheduleRetry();
+      }
     },
     /**
      * The learner chose to discard local progress and follow the newer epoch the server reported.
@@ -299,7 +351,11 @@ export function createSyncClient({ repository, transport, onStatus, timers = { s
     async adoptRemoteEpoch() {
       const remote = state.remote;
       if (!remote || !scope || remote.lessonId !== scope.lessonId) return null;
-      const stream = { id: remote.lessonId, revisionId: remote.lessonRevisionId, epoch: remote.epoch };
+      const stream = {
+        id: remote.lessonId,
+        revisionId: remote.lessonRevisionId,
+        epoch: remote.epoch,
+      };
       await repository.saveStream(stream);
       setState({ remote: null, message: null, status: "local" });
       return stream;

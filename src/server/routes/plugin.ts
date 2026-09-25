@@ -7,6 +7,10 @@ import { type Route, route } from "./route.ts";
 
 export function pluginRoutes(): Route[] {
   return [
-    route("GET", PLUGIN_PATH, async (request) => html(pluginPage(new URL(request.url).origin))),
+    route(
+      "GET",
+      PLUGIN_PATH,
+      async (request) => html(pluginPage(new URL(request.url).origin)),
+    ),
   ];
 }

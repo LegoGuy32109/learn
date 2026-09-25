@@ -10,13 +10,20 @@
 // on screen never disagree.
 import { createSession } from "../../src/client/learning/session.js";
 import { localRepository } from "../../src/client/storage/repository.js";
-import { buildShelf, discardTo, pinOnOpen } from "../../src/client/library/shelf-model.js";
+import {
+  buildShelf,
+  discardTo,
+  pinOnOpen,
+} from "../../src/client/library/shelf-model.js";
 import { fetchRevision, fetchShelf } from "../../src/client/library/remote.js";
 import { installPwa } from "../../src/client/pwa/register.js";
 import { canInterrupt } from "../../src/client/pwa/update-policy.js";
 import { createSyncClient } from "../../src/client/sync/client.js";
 import { createTransport } from "../../src/client/sync/transport.js";
-import { mountSyncStatus, withDraftPreserved } from "../../src/client/sync/status.js";
+import {
+  mountSyncStatus,
+  withDraftPreserved,
+} from "../../src/client/sync/status.js";
 import { renderLessonPrompt, renderShelf } from "./shelf.js";
 import { renderOverview } from "./overview.js";
 import { renderLearning } from "./learn.js";
@@ -26,7 +33,8 @@ import { renderDrill } from "./drill.js";
 /** @typedef {import("../../src/client/library/shelf-model.js").RemoteLesson} RemoteLesson */
 
 /** @type {{ signedIn: boolean, displayName: string | null, message?: string }} */
-let account = (/** @type {any} */ (window)).__SESSION__ ?? { signedIn: false, displayName: null };
+let account = (/** @type {any} */ (window)).__SESSION__ ??
+  { signedIn: false, displayName: null };
 const root = /** @type {HTMLElement} */ (document.querySelector("#app"));
 
 /**
@@ -37,7 +45,9 @@ const root = /** @type {HTMLElement} */ (document.querySelector("#app"));
 const sync = createSyncClient({
   repository: localRepository,
   transport: createTransport(),
-  onStatus: mountSyncStatus(document.querySelector("#sync-status"), { onDiscard: adoptRemoteEpoch }),
+  onStatus: mountSyncStatus(document.querySelector("#sync-status"), {
+    onDiscard: adoptRemoteEpoch,
+  }),
 });
 sync.setEnabled(account.signedIn);
 window.addEventListener("online", () => sync.wake());
@@ -73,8 +83,17 @@ async function rebuildShelf() {
     localRepository.streams(),
     localRepository.events("learning_events"),
   ]);
-  state.shelf = buildShelf({ cached, remote: state.remote, streams, learningEvents });
-  if (state.entry) state.entry = state.shelf.find((entry) => entry.lessonId === state.entry?.lessonId) ?? state.entry;
+  state.shelf = buildShelf({
+    cached,
+    remote: state.remote,
+    streams,
+    learningEvents,
+  });
+  if (state.entry) {
+    state.entry = state.shelf.find((entry) =>
+      entry.lessonId === state.entry?.lessonId
+    ) ?? state.entry;
+  }
 }
 
 /** Ask the server for the account's lessons, then rebuild. A guest or an unreachable server keeps this device's view. */
@@ -111,7 +130,11 @@ async function ensureCached(entry) {
     return null;
   }
   const fetched = await fetchRevision(entry.lessonId, entry.revisionId);
-  if (!fetched.ok) return fetched.status === 0 ? "This lesson is not on this device yet. Connect to load it." : `Could not load this lesson. ${fetched.message}`;
+  if (!fetched.ok) {
+    return fetched.status === 0
+      ? "This lesson is not on this device yet. Connect to load it."
+      : `Could not load this lesson. ${fetched.message}`;
+  }
   await localRepository.seed(fetched.value);
   entry.lesson = fetched.value;
   return null;
@@ -126,14 +149,23 @@ async function openEntry(entry) {
   const failure = await ensureCached(entry);
   if (failure) return failure;
   const streams = await localRepository.streams();
-  const stream = pinOnOpen(streams.find((candidate) => candidate.id === entry.lessonId), entry);
+  const stream = pinOnOpen(
+    streams.find((candidate) => candidate.id === entry.lessonId),
+    entry,
+  );
   await localRepository.saveStream(stream);
-  const session = createSession(entry.lesson, stream, { onEvidence: () => sync.kick() });
+  const session = createSession(entry.lesson, stream, {
+    onEvidence: () => sync.kick(),
+  });
   await session.load();
   state.entry = entry;
   state.session = session;
   state.confirmingDiscard = false;
-  sync.attach({ lessonId: entry.lessonId, lessonRevisionId: entry.revisionId, epoch: stream.epoch }, mergeRemoteEvidence);
+  sync.attach({
+    lessonId: entry.lessonId,
+    lessonRevisionId: entry.revisionId,
+    epoch: stream.epoch,
+  }, mergeRemoteEvidence);
   return null;
 }
 
@@ -203,13 +235,16 @@ const nav = {
    */
   async show(surface, path, { replace = false } = {}) {
     state.surface = surface;
-    if (state.session) state.session.surface = surface === "prompt" ? "shelf" : surface;
+    if (state.session) {
+      state.session.surface = surface === "prompt" ? "shelf" : surface;
+    }
     if (surface === "shelf") {
       state.session = null;
       sync.attach(null);
     }
-    if (path !== undefined && !replace) history.pushState({ surface }, "", path);
-    else history.replaceState({ surface }, "", path ?? location.pathname);
+    if (path !== undefined && !replace) {
+      history.pushState({ surface }, "", path);
+    } else history.replaceState({ surface }, "", path ?? location.pathname);
     await render();
   },
   async refresh() {
@@ -226,10 +261,14 @@ const nav = {
    * @param {string} lessonId
    */
   async open(lessonId) {
-    const entry = state.shelf.find((candidate) => candidate.lessonId === lessonId);
+    const entry = state.shelf.find((candidate) =>
+      candidate.lessonId === lessonId
+    );
     if (!entry) {
       if (state.surface !== "prompt") return;
-      state.promptReason = nav.account.signedIn ? "This lesson is not on your shelf." : "This lesson is not on this device yet.";
+      state.promptReason = nav.account.signedIn
+        ? "This lesson is not on your shelf."
+        : "This lesson is not on this device yet.";
       return render();
     }
     const failure = await openEntry(entry);
@@ -245,7 +284,9 @@ const nav = {
    */
   async discardAndStart() {
     const entry = state.entry;
-    if (!entry?.latestRevisionId || entry.latestRevisionId === entry.revisionId) return;
+    if (
+      !entry?.latestRevisionId || entry.latestRevisionId === entry.revisionId
+    ) return;
     /** @type {ShelfEntry} */
     const next = { ...entry, revisionId: entry.latestRevisionId, lesson: null };
     const failure = await ensureCached(next);
@@ -254,24 +295,38 @@ const nav = {
       return render();
     }
     const streams = await localRepository.streams();
-    const current = streams.find((candidate) => candidate.id === entry.lessonId) ?? { id: entry.lessonId, revisionId: entry.revisionId, epoch: entry.epoch };
+    const current =
+      streams.find((candidate) => candidate.id === entry.lessonId) ??
+        {
+          id: entry.lessonId,
+          revisionId: entry.revisionId,
+          epoch: entry.epoch,
+        };
     const discarded = discardTo(current, next.revisionId);
     await localRepository.saveStream(discarded);
     await rebuildShelf();
-    const reopened = state.shelf.find((candidate) => candidate.lessonId === entry.lessonId);
+    const reopened = state.shelf.find((candidate) =>
+      candidate.lessonId === entry.lessonId
+    );
     if (reopened) await openEntry(reopened);
     state.notice = null;
     await render();
     // Tell the server about the new epoch now, so a device that was offline is refused instead of
     // restoring the discarded progress.
-    await sync.announce({ lessonId: discarded.id, lessonRevisionId: discarded.revisionId, epoch: discarded.epoch });
+    await sync.announce({
+      lessonId: discarded.id,
+      lessonRevisionId: discarded.revisionId,
+      epoch: discarded.epoch,
+    });
   },
 };
 
 const pwa = installPwa({
   canInterrupt: () => {
     const surface = state.surface === "prompt" ? "shelf" : state.surface;
-    const flow = state.surface === "drill" ? state.session?.drillFlow : state.session?.flow;
+    const flow = state.surface === "drill"
+      ? state.session?.drillFlow
+      : state.session?.flow;
     return canInterrupt(surface, flow ?? null);
   },
 });
@@ -284,8 +339,9 @@ async function render() {
     renderLessonPrompt(root, nav);
   } else if (state.session) {
     const progress = await state.session.rebuildProgress();
-    if (state.surface === "overview") renderOverview(root, state.session, progress, nav);
-    else if (state.surface === "drill") renderDrill(root, state.session, nav);
+    if (state.surface === "overview") {
+      renderOverview(root, state.session, progress, nav);
+    } else if (state.surface === "drill") renderDrill(root, state.session, nav);
     else renderLearning(root, state.session, progress, nav);
   }
   pwa.notifyRender();
@@ -324,9 +380,13 @@ async function restoreFromLocation(recorded) {
  * @param {string|undefined} recorded  The surface the history entry recorded, if any
  */
 async function openFromUrl(lessonId, recorded) {
-  const entry = state.shelf.find((candidate) => candidate.lessonId === lessonId);
+  const entry = state.shelf.find((candidate) =>
+    candidate.lessonId === lessonId
+  );
   if (!entry) {
-    state.promptReason = nav.account.signedIn ? "This lesson is not on your shelf." : "This lesson is not on this device yet.";
+    state.promptReason = nav.account.signedIn
+      ? "This lesson is not on your shelf."
+      : "This lesson is not on this device yet.";
     state.surface = "prompt";
     return;
   }
@@ -339,7 +399,9 @@ async function openFromUrl(lessonId, recorded) {
       return;
     }
   }
-  const session = /** @type {import("../../src/client/learning/session.js").Session} */ (state.session);
+  const session =
+    /** @type {import("../../src/client/learning/session.js").Session} */ (state
+      .session);
   state.confirmingDiscard = false;
   session.flow = null;
   session.drillFlow = null;
@@ -353,7 +415,11 @@ async function openFromUrl(lessonId, recorded) {
     state.surface = "overview";
   }
   session.surface = state.surface;
-  history.replaceState({ surface: state.surface }, "", state.surface === "drill" ? nav.drillPath : nav.lessonPath);
+  history.replaceState(
+    { surface: state.surface },
+    "",
+    state.surface === "drill" ? nav.drillPath : nav.lessonPath,
+  );
 }
 
 async function main() {

@@ -24,7 +24,10 @@ function bufferToBase64Url(value) {
   const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(
+    /=+$/,
+    "",
+  );
 }
 
 /**
@@ -40,7 +43,9 @@ function parseCreationOptions(optionsJson) {
     ...optionsJson,
     challenge: base64UrlToBuffer(optionsJson.challenge),
     user: { ...optionsJson.user, id: base64UrlToBuffer(optionsJson.user.id) },
-    excludeCredentials: (optionsJson.excludeCredentials ?? []).map((/** @type {any} */ credential) => ({
+    excludeCredentials: (optionsJson.excludeCredentials ?? []).map((
+      /** @type {any} */ credential,
+    ) => ({
       id: base64UrlToBuffer(credential.id),
       type: "public-key",
       transports: credential.transports,
@@ -59,7 +64,9 @@ function parseRequestOptions(optionsJson) {
   return /** @type {PublicKeyCredentialRequestOptions} */ (/** @type {unknown} */ ({
     ...optionsJson,
     challenge: base64UrlToBuffer(optionsJson.challenge),
-    allowCredentials: (optionsJson.allowCredentials ?? []).map((/** @type {any} */ credential) => ({
+    allowCredentials: (optionsJson.allowCredentials ?? []).map((
+      /** @type {any} */ credential,
+    ) => ({
       id: base64UrlToBuffer(credential.id),
       type: "public-key",
       transports: credential.transports,
@@ -73,17 +80,36 @@ function parseRequestOptions(optionsJson) {
  * @returns {any}
  */
 function encodeCredential(credential) {
-  const native = /** @type {{ toJSON?: () => unknown }} */ (/** @type {unknown} */ (credential));
+  const native =
+    /** @type {{ toJSON?: () => unknown }} */ (/** @type {unknown} */ (credential));
   if (typeof native.toJSON === "function") return native.toJSON();
   const response = /** @type {any} */ (credential.response);
   /** @type {Record<string, unknown>} */
-  const encoded = { clientDataJSON: bufferToBase64Url(response.clientDataJSON) };
-  if (response.attestationObject) encoded.attestationObject = bufferToBase64Url(response.attestationObject);
-  if (response.authenticatorData) encoded.authenticatorData = bufferToBase64Url(response.authenticatorData);
-  if (response.signature) encoded.signature = bufferToBase64Url(response.signature);
-  if (response.userHandle) encoded.userHandle = bufferToBase64Url(response.userHandle);
-  if (typeof response.getTransports === "function") encoded.transports = response.getTransports();
-  return { id: credential.id, rawId: bufferToBase64Url(credential.rawId), type: "public-key", clientExtensionResults: {}, response: encoded };
+  const encoded = {
+    clientDataJSON: bufferToBase64Url(response.clientDataJSON),
+  };
+  if (response.attestationObject) {
+    encoded.attestationObject = bufferToBase64Url(response.attestationObject);
+  }
+  if (response.authenticatorData) {
+    encoded.authenticatorData = bufferToBase64Url(response.authenticatorData);
+  }
+  if (response.signature) {
+    encoded.signature = bufferToBase64Url(response.signature);
+  }
+  if (response.userHandle) {
+    encoded.userHandle = bufferToBase64Url(response.userHandle);
+  }
+  if (typeof response.getTransports === "function") {
+    encoded.transports = response.getTransports();
+  }
+  return {
+    id: credential.id,
+    rawId: bufferToBase64Url(credential.rawId),
+    type: "public-key",
+    clientExtensionResults: {},
+    response: encoded,
+  };
 }
 
 /**
@@ -95,7 +121,9 @@ function friendlyError(error, verb) {
   const name = error instanceof DOMException ? error.name : "";
   if (name === "NotAllowedError") return `Passkey ${verb} was cancelled.`;
   if (name === "AbortError") return `Passkey ${verb} timed out. Try again.`;
-  if (name === "InvalidStateError") return "This passkey is already registered on this device.";
+  if (name === "InvalidStateError") {
+    return "This passkey is already registered on this device.";
+  }
   return `Could not ${verb} the passkey. Try again.`;
 }
 
@@ -105,14 +133,20 @@ function friendlyError(error, verb) {
  * @returns {Promise<{ ok: boolean, status: number, body: any }>}
  */
 async function post(path, payload) {
-  const response = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+  const response = await fetch(path, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload),
+  });
   const body = await response.json().catch(() => ({}));
   return { ok: response.ok, status: response.status, body };
 }
 
 /** @param {{ status: number, body: any }} failed @param {string} fallback */
 function problemMessage(failed, fallback) {
-  return typeof failed.body?.detail === "string" ? failed.body.detail : fallback;
+  return typeof failed.body?.detail === "string"
+    ? failed.body.detail
+    : fallback;
 }
 
 /**
@@ -121,18 +155,42 @@ function problemMessage(failed, fallback) {
  * @returns {Promise<Outcome>}
  */
 export async function registerWithInvite(invite) {
-  if (!isPasskeySupported()) return { ok: false, message: "Passkeys are not supported in this browser." };
-  const options = await post("/api/v1/passkeys/registration-options", { invite });
-  if (!options.ok) return { ok: false, message: problemMessage(options, "Could not start passkey registration.") };
+  if (!isPasskeySupported()) {
+    return {
+      ok: false,
+      message: "Passkeys are not supported in this browser.",
+    };
+  }
+  const options = await post("/api/v1/passkeys/registration-options", {
+    invite,
+  });
+  if (!options.ok) {
+    return {
+      ok: false,
+      message: problemMessage(options, "Could not start passkey registration."),
+    };
+  }
   let credential;
   try {
-    credential = await navigator.credentials.create({ publicKey: parseCreationOptions(options.body.options) });
+    credential = await navigator.credentials.create({
+      publicKey: parseCreationOptions(options.body.options),
+    });
   } catch (error) {
     return { ok: false, message: friendlyError(error, "registration") };
   }
-  if (!(credential instanceof PublicKeyCredential)) return { ok: false, message: "Could not register the passkey. Try again." };
-  const verified = await post("/api/v1/passkeys/registrations", { invite, credential: encodeCredential(credential) });
-  if (!verified.ok) return { ok: false, message: problemMessage(verified, "Could not verify the new passkey.") };
+  if (!(credential instanceof PublicKeyCredential)) {
+    return { ok: false, message: "Could not register the passkey. Try again." };
+  }
+  const verified = await post("/api/v1/passkeys/registrations", {
+    invite,
+    credential: encodeCredential(credential),
+  });
+  if (!verified.ok) {
+    return {
+      ok: false,
+      message: problemMessage(verified, "Could not verify the new passkey."),
+    };
+  }
   return { ok: true, displayName: String(verified.body.displayName) };
 }
 
@@ -141,18 +199,42 @@ export async function registerWithInvite(invite) {
  * @returns {Promise<Outcome>}
  */
 export async function signInWithPasskey() {
-  if (!isPasskeySupported()) return { ok: false, message: "Passkeys are not supported in this browser." };
+  if (!isPasskeySupported()) {
+    return {
+      ok: false,
+      message: "Passkeys are not supported in this browser.",
+    };
+  }
   const options = await post("/api/v1/passkeys/authentication-options", {});
-  if (!options.ok) return { ok: false, message: problemMessage(options, "Could not start passkey sign-in.") };
+  if (!options.ok) {
+    return {
+      ok: false,
+      message: problemMessage(options, "Could not start passkey sign-in."),
+    };
+  }
   let credential;
   try {
-    credential = await navigator.credentials.get({ publicKey: parseRequestOptions(options.body.options) });
+    credential = await navigator.credentials.get({
+      publicKey: parseRequestOptions(options.body.options),
+    });
   } catch (error) {
     return { ok: false, message: friendlyError(error, "sign-in") };
   }
-  if (!(credential instanceof PublicKeyCredential)) return { ok: false, message: "Could not sign in with the passkey. Try again." };
-  const verified = await post("/api/v1/passkeys/authentications", { credential: encodeCredential(credential) });
-  if (!verified.ok) return { ok: false, message: problemMessage(verified, "Could not verify the passkey.") };
+  if (!(credential instanceof PublicKeyCredential)) {
+    return {
+      ok: false,
+      message: "Could not sign in with the passkey. Try again.",
+    };
+  }
+  const verified = await post("/api/v1/passkeys/authentications", {
+    credential: encodeCredential(credential),
+  });
+  if (!verified.ok) {
+    return {
+      ok: false,
+      message: problemMessage(verified, "Could not verify the passkey."),
+    };
+  }
   return { ok: true, displayName: String(verified.body.displayName) };
 }
 

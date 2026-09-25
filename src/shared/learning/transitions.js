@@ -22,7 +22,10 @@ export function advanceWrapUp(state) {
     const queue = state.queue.slice(1);
     return { ...state, queue, done: queue.length === 0 };
   }
-  const remaining = shuffled(state.queue.slice(1), state.seed + state.queue.length);
+  const remaining = shuffled(
+    state.queue.slice(1),
+    state.seed + state.queue.length,
+  );
   const queue = [...remaining, state.queue[0]];
   return { ...state, queue, done: false };
 }

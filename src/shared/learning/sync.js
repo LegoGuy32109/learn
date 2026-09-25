@@ -55,7 +55,9 @@ export function frontierCount(checkpointEvent, accepted) {
 export function compareCheckpointEvents(a, b, accepted) {
   const byEvidence = frontierCount(a, accepted) - frontierCount(b, accepted);
   if (byEvidence !== 0) return byEvidence;
-  const byClock = String(a.occurredAt ?? "").localeCompare(String(b.occurredAt ?? ""));
+  const byClock = String(a.occurredAt ?? "").localeCompare(
+    String(b.occurredAt ?? ""),
+  );
   if (byClock !== 0) return byClock;
   return String(a.id).localeCompare(String(b.id));
 }
@@ -67,12 +69,18 @@ export function compareCheckpointEvents(a, b, accepted) {
  * @param {any[]} learningEvents  The learning events in the union; only their IDs matter
  * @param {string} [type]
  */
-export function selectCheckpoint(navigationEvents, learningEvents, type = "navigation_checkpointed") {
+export function selectCheckpoint(
+  navigationEvents,
+  learningEvents,
+  type = "navigation_checkpointed",
+) {
   const accepted = new Set(learningEvents.map((event) => event.id));
   let best = null;
   for (const event of navigationEvents) {
     if (event.type !== type) continue;
-    if (best === null || compareCheckpointEvents(event, best, accepted) > 0) best = event;
+    if (best === null || compareCheckpointEvents(event, best, accepted) > 0) {
+      best = event;
+    }
   }
   return best?.checkpoint ?? null;
 }

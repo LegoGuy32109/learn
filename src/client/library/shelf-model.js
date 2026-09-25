@@ -30,7 +30,12 @@ import { evidenceFor } from "../learning/session.js";
  * @property {number} updatedAt        Sort key, newest first
  */
 
-const NOT_STARTED = Object.freeze({ state: "not_started", cardsSeen: new Set(), learnedConcepts: new Set(), conceptStates: [] });
+const NOT_STARTED = Object.freeze({
+  state: "not_started",
+  cardsSeen: new Set(),
+  learnedConcepts: new Set(),
+  conceptStates: [],
+});
 
 /**
  * Build the shelf, newest first, one entry per Lesson.
@@ -50,7 +55,9 @@ export function buildShelf({ cached, remote, streams, learningEvents }) {
     byLesson.set(revision.lesson.lessonId, list);
   }
   const streamByLesson = new Map(streams.map((stream) => [stream.id, stream]));
-  const remoteByLesson = new Map((remote ?? []).map((lesson) => [lesson.lessonId, lesson]));
+  const remoteByLesson = new Map(
+    (remote ?? []).map((lesson) => [lesson.lessonId, lesson]),
+  );
   const lessonIds = new Set([...remoteByLesson.keys(), ...byLesson.keys()]);
 
   /** @type {ShelfEntry[]} */
@@ -61,26 +68,39 @@ export function buildShelf({ cached, remote, streams, learningEvents }) {
     const server = remoteByLesson.get(lessonId) ?? null;
     const pinned = pinnedRevision(revisions, stream, server, learningEvents);
     const epoch = stream?.epoch ?? 0;
-    const cachedPinned = revisions.find((revision) => revision.lesson.revisionId === pinned)?.lesson ?? null;
-    const progress = cachedPinned ? reduceProgress(cachedPinned, evidenceFor(learningEvents, pinned, epoch)) : NOT_STARTED;
+    const cachedPinned = revisions.find((revision) =>
+      revision.lesson.revisionId === pinned
+    )?.lesson ?? null;
+    const progress = cachedPinned
+      ? reduceProgress(cachedPinned, evidenceFor(learningEvents, pinned, epoch))
+      : NOT_STARTED;
     const latestRevisionId = server?.latestRevisionId ?? null;
-    const outdated = latestRevisionId !== null && latestRevisionId !== pinned && progress.state !== "not_started";
+    const outdated = latestRevisionId !== null && latestRevisionId !== pinned &&
+      progress.state !== "not_started";
     const source = cachedPinned ?? revisions.at(-1)?.lesson ?? null;
     entries.push({
       lessonId,
       title: source?.title ?? server?.title ?? "Untitled lesson",
       conceptCount: source ? source.concepts.length : server?.conceptCount ?? 0,
-      questionCount: source ? source.questions.length : server?.questionCount ?? 0,
+      questionCount: source
+        ? source.questions.length
+        : server?.questionCount ?? 0,
       revisionId: pinned,
       lesson: cachedPinned,
       epoch,
       progress,
       latestRevisionId,
       outdated,
-      updatedAt: server?.updatedAt ?? Math.max(0, ...revisions.map((revision) => Date.parse(revision.cachedAt) || 0)),
+      updatedAt: server?.updatedAt ??
+        Math.max(
+          0,
+          ...revisions.map((revision) => Date.parse(revision.cachedAt) || 0),
+        ),
     });
   }
-  return entries.sort((a, b) => b.updatedAt - a.updatedAt || a.title.localeCompare(b.title));
+  return entries.sort((a, b) =>
+    b.updatedAt - a.updatedAt || a.title.localeCompare(b.title)
+  );
 }
 
 /**
@@ -95,15 +115,29 @@ export function buildShelf({ cached, remote, streams, learningEvents }) {
  */
 function pinnedRevision(revisions, stream, server, learningEvents) {
   if (stream) {
-    const cached = revisions.find((revision) => revision.lesson.revisionId === stream.revisionId)?.lesson;
-    const started = cached ? reduceProgress(cached, evidenceFor(learningEvents, stream.revisionId, stream.epoch)).state !== "not_started" : false;
-    if (started || !server || server.latestRevisionId === stream.revisionId) return stream.revisionId;
+    const cached = revisions.find((revision) =>
+      revision.lesson.revisionId === stream.revisionId
+    )?.lesson;
+    const started = cached
+      ? reduceProgress(
+        cached,
+        evidenceFor(learningEvents, stream.revisionId, stream.epoch),
+      ).state !== "not_started"
+      : false;
+    if (started || !server || server.latestRevisionId === stream.revisionId) {
+      return stream.revisionId;
+    }
     return server.latestRevisionId;
   }
-  const withEvidence = revisions.find((revision) => evidenceFor(learningEvents, revision.lesson.revisionId, 0).length > 0);
+  const withEvidence = revisions.find((revision) =>
+    evidenceFor(learningEvents, revision.lesson.revisionId, 0).length > 0
+  );
   if (withEvidence) return withEvidence.lesson.revisionId;
   if (server) return server.latestRevisionId;
-  const newest = [...revisions].sort((a, b) => (Date.parse(b.cachedAt) || 0) - (Date.parse(a.cachedAt) || 0))[0];
+  const newest =
+    [...revisions].sort((a, b) =>
+      (Date.parse(b.cachedAt) || 0) - (Date.parse(a.cachedAt) || 0)
+    )[0];
   return newest.lesson.revisionId;
 }
 
@@ -127,5 +161,9 @@ export function discardTo(stream, newRevisionId) {
  */
 export function pinOnOpen(existing, entry) {
   if (existing && existing.revisionId === entry.revisionId) return existing;
-  return { id: entry.lessonId, revisionId: entry.revisionId, epoch: existing?.epoch ?? entry.epoch };
+  return {
+    id: entry.lessonId,
+    revisionId: entry.revisionId,
+    epoch: existing?.epoch ?? entry.epoch,
+  };
 }

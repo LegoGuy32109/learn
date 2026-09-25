@@ -6,7 +6,9 @@ const encoder = new TextEncoder();
 
 const CRC_TABLE = new Uint32Array(256).map((_, index) => {
   let crc = index;
-  for (let bit = 0; bit < 8; bit++) crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1;
+  for (let bit = 0; bit < 8; bit++) {
+    crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1;
+  }
   return crc >>> 0;
 });
 
@@ -82,7 +84,10 @@ export function zip(entries: ZipEntry[]): Uint8Array {
     centrals.push(central);
     offset += local.length;
   }
-  const directorySize = centrals.reduce((sum, central) => sum + central.length, 0);
+  const directorySize = centrals.reduce(
+    (sum, central) => sum + central.length,
+    0,
+  );
   const end = new Uint8Array(22);
   const endView = new DataView(end.buffer);
   u32(endView, 0, 0x06054b50);

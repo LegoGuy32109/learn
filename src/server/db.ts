@@ -1,7 +1,4 @@
-import {
-  createClient,
-  type Client,
-} from "@tursodatabase/serverless/compat";
+import { type Client, createClient } from "@tursodatabase/serverless/compat";
 
 export type { Client };
 
@@ -16,7 +13,8 @@ export function createDb(): Client {
 
 export function integer(value: unknown): number {
   const parsed = Number(value);
-  if (!Number.isSafeInteger(parsed)) throw new Error("database integer is outside the safe range");
+  if (!Number.isSafeInteger(parsed)) {
+    throw new Error("database integer is outside the safe range");
+  }
   return parsed;
 }
-

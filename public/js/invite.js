@@ -3,8 +3,11 @@
 import { registerWithInvite } from "../../src/client/identity/passkey.js";
 
 const invite = (/** @type {any} */ (window)).__INVITE__;
-const button = /** @type {HTMLButtonElement} */ (document.querySelector("#register-passkey"));
-const status = /** @type {HTMLElement} */ (document.querySelector("#invite-status"));
+const button = /** @type {HTMLButtonElement} */ (document.querySelector(
+  "#register-passkey",
+));
+const status =
+  /** @type {HTMLElement} */ (document.querySelector("#invite-status"));
 
 button.addEventListener("click", async () => {
   button.disabled = true;
@@ -15,6 +18,7 @@ button.addEventListener("click", async () => {
     button.disabled = false;
     return;
   }
-  status.textContent = `Signed in as ${outcome.displayName}. Opening your shelf…`;
+  status.textContent =
+    `Signed in as ${outcome.displayName}. Opening your shelf…`;
   location.replace("/");
 });

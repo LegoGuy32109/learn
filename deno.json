@@ -1,5 +1,11 @@
 {
+  "fmt": {
+    "include": ["main.ts", "src/", "scripts/", "tests/", "public/css/", "public/js/"],
+    "exclude": ["**/*.md", "public/tools/", "public/plugin/", "docs/reference/"]
+  },
   "tasks": {
+    "fmt": "deno fmt",
+    "fmt:check": "deno fmt --check",
     "dev": "deno run --env-file=.env --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN,PORT,LEARN_SESSION_KEY,WEBAUTHN_RP_ID,WEBAUTHN_ORIGINS,DENO_DEPLOY_BUILD_ID --allow-net --allow-read --watch main.ts",
     "check": "deno check main.ts src/app.ts public/js/*.js src/shared/**/*.js src/client/identity/*.js src/client/learning/*.js src/client/library/*.js src/client/storage/*.js src/client/ui/*.js src/client/pwa/register.js src/client/pwa/sw-routing.js src/client/pwa/update-policy.js src/server/**/*.ts scripts/*.ts && deno check --config deno.worker.json src/client/pwa/sw.js",
     "test": "deno test --allow-read --allow-write --allow-run=deno,git,claude,which --allow-net=127.0.0.1 --allow-env=LEARN_TOKEN,LEARN_BASE_URL tests/shared tests/client tests/server",

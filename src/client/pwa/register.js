@@ -25,8 +25,10 @@ export function installPwa({ canInterrupt }) {
     const notice = document.createElement("div");
     notice.className = "update";
     notice.setAttribute("role", "status");
-    notice.innerHTML = '<span>Update ready</span><button type="button">Reload</button>';
-    const button = /** @type {HTMLButtonElement} */ (notice.querySelector("button"));
+    notice.innerHTML =
+      '<span>Update ready</span><button type="button">Reload</button>';
+    const button =
+      /** @type {HTMLButtonElement} */ (notice.querySelector("button"));
     button.addEventListener("click", () => {
       button.disabled = true;
       worker.postMessage("SKIP_WAITING");
@@ -49,13 +51,19 @@ export function installPwa({ canInterrupt }) {
   async function register() {
     if (!("serviceWorker" in navigator)) return;
     try {
-      const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/", type: "module" });
+      const registration = await navigator.serviceWorker.register("/sw.js", {
+        scope: "/",
+        type: "module",
+      });
       if (registration.waiting && navigator.serviceWorker.controller) {
         waiting = registration.waiting;
         showUpdateReady();
       }
       track(registration.installing);
-      registration.addEventListener("updatefound", () => track(registration.installing));
+      registration.addEventListener(
+        "updatefound",
+        () => track(registration.installing),
+      );
       let reloaded = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
         if (reloaded || !shown) return;

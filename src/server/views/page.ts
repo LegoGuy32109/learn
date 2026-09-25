@@ -23,7 +23,10 @@ export interface PageSession {
 }
 
 /** The HTML document every server-rendered page shares: head, stylesheets, body and scripts. */
-export function document(body: string, options: { title?: string } = {}): string {
+export function document(
+  body: string,
+  options: { title?: string } = {},
+): string {
   const head = [
     '<meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">',

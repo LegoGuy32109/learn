@@ -11,11 +11,21 @@ export function pageRoutes(dependencies: Dependencies): Route[] {
    * The browser app still decides which cached revision the learner is pinned to.
    */
   const shell = async (request: Request) => {
-    const lessonId = new URL(request.url).pathname.match(/^\/learn\/([^/]+)/)?.[1];
+    const lessonId = new URL(request.url).pathname.match(/^\/learn\/([^/]+)/)
+      ?.[1];
     const session = await dependencies.sessions.read(request);
-    const owned = session && lessonId ? await dependencies.lessons.latestRevision(session.accountId, lessonId) : null;
-    const lesson = owned ? owned.content : await dependencies.lessons.featured();
-    return html(page(lesson, { signedIn: session != null, displayName: session?.displayName ?? null }));
+    const owned = session && lessonId
+      ? await dependencies.lessons.latestRevision(session.accountId, lessonId)
+      : null;
+    const lesson = owned
+      ? owned.content
+      : await dependencies.lessons.featured();
+    return html(
+      page(lesson, {
+        signedIn: session != null,
+        displayName: session?.displayName ?? null,
+      }),
+    );
   };
   return [
     route("GET", "/", shell),

@@ -11,7 +11,10 @@
 import { localRepository } from "../storage/repository.js";
 import { reduceProgress } from "../../shared/learning/progress.js";
 import { selectCheckpoint } from "../../shared/learning/sync.js";
-import { DRILL_CHECKPOINTED, reduceDrillCheckpoint } from "../../shared/learning/drill.js";
+import {
+  DRILL_CHECKPOINTED,
+  reduceDrillCheckpoint,
+} from "../../shared/learning/drill.js";
 
 function now() {
   return new Date().toISOString();
@@ -25,7 +28,9 @@ function now() {
  * @param {number} epoch
  */
 export function evidenceFor(events, revisionId, epoch) {
-  return events.filter((event) => event.lessonRevisionId === revisionId && (event.epoch ?? 0) === epoch);
+  return events.filter((event) =>
+    event.lessonRevisionId === revisionId && (event.epoch ?? 0) === epoch
+  );
 }
 
 /**
@@ -56,7 +61,14 @@ export function evidenceFor(events, revisionId, epoch) {
  * @param {Record<string, unknown>} data
  */
 function event(lesson, epoch, type, data) {
-  return { id: crypto.randomUUID(), type, lessonRevisionId: lesson.revisionId, epoch, occurredAt: now(), ...data };
+  return {
+    id: crypto.randomUUID(),
+    type,
+    lessonRevisionId: lesson.revisionId,
+    epoch,
+    occurredAt: now(),
+    ...data,
+  };
 }
 
 /**
@@ -70,7 +82,11 @@ export function createSession(lesson, stream = { epoch: 0 }, hooks = {}) {
   const onEvidence = hooks.onEvidence ?? (() => {});
   /** The canonical resume position from this device's navigation evidence. */
   async function rebuildCheckpoint() {
-    const navigation = evidenceFor(await localRepository.events("navigation_events"), lesson.revisionId, EPOCH);
+    const navigation = evidenceFor(
+      await localRepository.events("navigation_events"),
+      lesson.revisionId,
+      EPOCH,
+    );
     return selectCheckpoint(navigation, session.learningEvents);
   }
   const progressKey = `progress:${lesson.revisionId}:${EPOCH}`;
@@ -89,17 +105,39 @@ export function createSession(lesson, stream = { epoch: 0 }, hooks = {}) {
 
     async load() {
       await localRepository.seed(lesson);
-      session.learningEvents = evidenceFor(await localRepository.events("learning_events"), lesson.revisionId, EPOCH);
-      session.drillEvents = evidenceFor(await localRepository.events("drill_events"), lesson.revisionId, EPOCH);
+      session.learningEvents = evidenceFor(
+        await localRepository.events("learning_events"),
+        lesson.revisionId,
+        EPOCH,
+      );
+      session.drillEvents = evidenceFor(
+        await localRepository.events("drill_events"),
+        lesson.revisionId,
+        EPOCH,
+      );
       session.savedCheckpoint = await localRepository.projection(checkpointKey);
       if (!session.savedCheckpoint) {
         session.savedCheckpoint = await rebuildCheckpoint();
-        if (session.savedCheckpoint) await localRepository.projection(checkpointKey, session.savedCheckpoint);
+        if (session.savedCheckpoint) {
+          await localRepository.projection(
+            checkpointKey,
+            session.savedCheckpoint,
+          );
+        }
       }
-      session.savedDrillCheckpoint = await localRepository.projection(drillCheckpointKey);
+      session.savedDrillCheckpoint = await localRepository.projection(
+        drillCheckpointKey,
+      );
       if (!session.savedDrillCheckpoint) {
-        session.savedDrillCheckpoint = reduceDrillCheckpoint(session.drillEvents);
-        if (session.savedDrillCheckpoint) await localRepository.projection(drillCheckpointKey, session.savedDrillCheckpoint);
+        session.savedDrillCheckpoint = reduceDrillCheckpoint(
+          session.drillEvents,
+        );
+        if (session.savedDrillCheckpoint) {
+          await localRepository.projection(
+            drillCheckpointKey,
+            session.savedDrillCheckpoint,
+          );
+        }
       }
     },
 
@@ -118,7 +156,10 @@ export function createSession(lesson, stream = { epoch: 0 }, hooks = {}) {
         learningEventFrontier: session.learningEvents.map((event) => event.id),
       };
       session.savedCheckpoint = checkpoint;
-      await localRepository.appendOutgoing("navigation_events", event(lesson, EPOCH, "navigation_checkpointed", { checkpoint }));
+      await localRepository.appendOutgoing(
+        "navigation_events",
+        event(lesson, EPOCH, "navigation_checkpointed", { checkpoint }),
+      );
       await localRepository.projection(checkpointKey, checkpoint);
       onEvidence();
     },
@@ -129,7 +170,11 @@ export function createSession(lesson, stream = { epoch: 0 }, hooks = {}) {
      */
     async reload() {
       const before = JSON.stringify(session.savedCheckpoint ?? null);
-      session.learningEvents = evidenceFor(await localRepository.events("learning_events"), lesson.revisionId, EPOCH);
+      session.learningEvents = evidenceFor(
+        await localRepository.events("learning_events"),
+        lesson.revisionId,
+        EPOCH,
+      );
       session.savedCheckpoint = await rebuildCheckpoint();
       await localRepository.projection(checkpointKey, session.savedCheckpoint);
       await session.rebuildProgress();
@@ -146,7 +191,9 @@ export function createSession(lesson, stream = { epoch: 0 }, hooks = {}) {
       if (!session.drillFlow) return;
       const checkpoint = {
         ...structuredClone(session.drillFlow),
-        drillEventFrontier: session.drillEvents.map((candidate) => candidate.id),
+        drillEventFrontier: session.drillEvents.map((candidate) =>
+          candidate.id
+        ),
       };
       session.savedDrillCheckpoint = checkpoint;
       await session.recordDrillEvent(DRILL_CHECKPOINTED, { checkpoint });
@@ -168,7 +215,9 @@ export function createSession(lesson, stream = { epoch: 0 }, hooks = {}) {
     },
 
     hasEvent(type, predicate = () => true) {
-      return session.learningEvents.some((event) => event.type === type && predicate(event));
+      return session.learningEvents.some((event) =>
+        event.type === type && predicate(event)
+      );
     },
   };
   return session;

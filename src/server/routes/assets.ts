@@ -9,14 +9,38 @@ interface Root {
 }
 
 const roots: Root[] = [
-  { prefix: "/css/", directory: new URL("../../../public/css/", import.meta.url) },
-  { prefix: "/js/", directory: new URL("../../../public/js/", import.meta.url) },
-  { prefix: "/tools/", directory: new URL("../../../public/tools/", import.meta.url) },
-  { prefix: "/icons/", directory: new URL("../../../public/icons/", import.meta.url) },
-  { prefix: "/docs/", directory: new URL("../../../public/docs/", import.meta.url) },
-  { prefix: "/plugin/", directory: new URL("../../../public/plugin/", import.meta.url) },
-  { prefix: "/src/client/", directory: new URL("../../client/", import.meta.url) },
-  { prefix: "/src/shared/", directory: new URL("../../shared/", import.meta.url) },
+  {
+    prefix: "/css/",
+    directory: new URL("../../../public/css/", import.meta.url),
+  },
+  {
+    prefix: "/js/",
+    directory: new URL("../../../public/js/", import.meta.url),
+  },
+  {
+    prefix: "/tools/",
+    directory: new URL("../../../public/tools/", import.meta.url),
+  },
+  {
+    prefix: "/icons/",
+    directory: new URL("../../../public/icons/", import.meta.url),
+  },
+  {
+    prefix: "/docs/",
+    directory: new URL("../../../public/docs/", import.meta.url),
+  },
+  {
+    prefix: "/plugin/",
+    directory: new URL("../../../public/plugin/", import.meta.url),
+  },
+  {
+    prefix: "/src/client/",
+    directory: new URL("../../client/", import.meta.url),
+  },
+  {
+    prefix: "/src/shared/",
+    directory: new URL("../../shared/", import.meta.url),
+  },
 ];
 
 const mime: Record<string, string> = {
@@ -41,13 +65,25 @@ async function serve(root: Root, pathname: string): Promise<Response> {
   try {
     const bytes = await Deno.readFile(file);
     const name = pathname.slice(pathname.lastIndexOf("/") + 1);
-    const extension = name.includes(".") ? name.slice(name.lastIndexOf(".")) : "";
-    return new Response(bytes, { headers: { "content-type": mime[extension] ?? "application/octet-stream" } });
+    const extension = name.includes(".")
+      ? name.slice(name.lastIndexOf("."))
+      : "";
+    return new Response(bytes, {
+      headers: {
+        "content-type": mime[extension] ?? "application/octet-stream",
+      },
+    });
   } catch {
     return notFound();
   }
 }
 
 export function assetRoutes(): Route[] {
-  return roots.map((root) => route("GET", `${root.prefix}*`, (request) => serve(root, new URL(request.url).pathname)));
+  return roots.map((root) =>
+    route(
+      "GET",
+      `${root.prefix}*`,
+      (request) => serve(root, new URL(request.url).pathname),
+    )
+  );
 }

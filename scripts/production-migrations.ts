@@ -19,7 +19,11 @@ export async function pendingProductionMigrations(): Promise<string[]> {
   const parsed = parse(await Deno.readTextFile(envPath));
   const url = parsed.TURSO_DB_URL;
   const authToken = parsed.TURSO_DB_TOKEN;
-  if (!url || !authToken) throw new Error("TURSO_DB_URL and TURSO_DB_TOKEN are missing from .env.prod; run deno task db:provision:prod");
+  if (!url || !authToken) {
+    throw new Error(
+      "TURSO_DB_URL and TURSO_DB_TOKEN are missing from .env.prod; run deno task db:provision:prod",
+    );
+  }
   const db = createClient({ url, authToken });
   return await pendingMigrations(db);
 }

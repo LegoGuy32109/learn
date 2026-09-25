@@ -12,14 +12,23 @@
 async function read(path) {
   let response;
   try {
-    response = await fetch(path, { headers: { accept: "application/json" }, cache: "no-store" });
+    response = await fetch(path, {
+      headers: { accept: "application/json" },
+      cache: "no-store",
+    });
   } catch {
     return { ok: false, status: 0, message: "You are offline." };
   }
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
     await response.body?.cancel().catch(() => {});
-    return { ok: false, status: response.status, message: typeof body.detail === "string" ? body.detail : `The server answered ${response.status}.` };
+    return {
+      ok: false,
+      status: response.status,
+      message: typeof body.detail === "string"
+        ? body.detail
+        : `The server answered ${response.status}.`,
+    };
   }
   return { ok: true, value: await response.json() };
 }
@@ -36,7 +45,11 @@ export function fetchShelf() {
  * @returns {Promise<Fetched>}
  */
 export async function fetchRevision(lessonId, revisionId) {
-  const stored = await read(`/api/v1/lessons/${encodeURIComponent(lessonId)}/revisions/${encodeURIComponent(revisionId)}`);
+  const stored = await read(
+    `/api/v1/lessons/${encodeURIComponent(lessonId)}/revisions/${
+      encodeURIComponent(revisionId)
+    }`,
+  );
   if (!stored.ok) return stored;
   return { ok: true, value: stored.value.content };
 }

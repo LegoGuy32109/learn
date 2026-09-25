@@ -13,14 +13,22 @@ import {
   stepBack,
   submitAnswer,
 } from "../../src/client/learning/flow.js";
-import { afterFooterView, footerView, railView, regionView } from "../../src/client/learning/views.js";
-import { CLOSE, backButton, bind, icon } from "../../src/client/ui/controls.js";
+import {
+  afterFooterView,
+  footerView,
+  railView,
+  regionView,
+} from "../../src/client/learning/views.js";
+import { backButton, bind, CLOSE, icon } from "../../src/client/ui/controls.js";
 
 /** @typedef {import("../../src/client/learning/session.js").Session} Session */
 
 /** A fresh seed and attempt ID for a new Check or Wrap-up attempt. */
 function newAttempt() {
-  return { seed: Math.floor(Math.random() * 2 ** 31), attemptId: crypto.randomUUID() };
+  return {
+    seed: Math.floor(Math.random() * 2 ** 31),
+    attemptId: crypto.randomUUID(),
+  };
 }
 
 let inFlight = false;
@@ -49,7 +57,9 @@ async function once(work) {
  */
 export async function startLearning(session, nav) {
   session.surface = "learn";
-  if (!session.hasEvent("lesson_started")) await session.recordEvent("lesson_started");
+  if (!session.hasEvent("lesson_started")) {
+    await session.recordEvent("lesson_started");
+  }
   if (!session.flow) session.flow = session.savedCheckpoint || initialFlow();
   await session.saveCheckpoint();
   await nav.show("learn", nav.lessonPath, { replace: true });
@@ -66,17 +76,27 @@ export function renderLearning(root, session, progress, nav) {
   const flow = session.flow;
   const item = current(lesson, flow);
   const concept = activeConcept(lesson, flow);
-  const close = `<button class="close" data-action="shelf" aria-label="Close lesson">${icon(CLOSE)}</button>`;
-  const header = `<header class="shellhead">${backButton("back", "Back")}<h1>${lesson.title}</h1>${close}</header>`;
-  const region = `<main class="region">${regionView(lesson, flow, concept, item)}</main>`;
+  const close =
+    `<button class="close" data-action="shelf" aria-label="Close lesson">${
+      icon(CLOSE)
+    }</button>`;
+  const header = `<header class="shellhead">${
+    backButton("back", "Back")
+  }<h1>${lesson.title}</h1>${close}</header>`;
+  const region = `<main class="region">${
+    regionView(lesson, flow, concept, item)
+  }</main>`;
   const footer = `<footer class="footer">${footerView(flow)}</footer>`;
   const corrects = afterFooterView(lesson, flow);
-  root.innerHTML = `<section class="shell">${header}${railView(lesson, flow, progress)}${region}${footer}${corrects}</section>`;
+  root.innerHTML = `<section class="shell">${header}${
+    railView(lesson, flow, progress)
+  }${region}${footer}${corrects}</section>`;
   const live = () => session.flow === flow;
   bind(
     root,
     (action) => once(async () => live() && await handle(action, session, nav)),
-    (answer) => once(async () => live() && await submit(session, nav, answer, false)),
+    (answer) =>
+      once(async () => live() && await submit(session, nav, answer, false)),
   );
 }
 
@@ -92,13 +112,24 @@ async function handle(action, session, nav) {
   }
   if (action === "continue") return continueCard(session, nav);
   if (action === "submit") {
-    const field = /** @type {HTMLInputElement} */ (document.querySelector("#answer"));
+    const field =
+      /** @type {HTMLInputElement} */ (document.querySelector("#answer"));
     return submit(session, nav, field.value, false);
   }
   if (action === "idk") return submit(session, nav, null, true);
-  if (action === "advance") return commit(session, nav, advance(session.lesson, session.flow, newAttempt()));
-  if (action === "corrective") return commit(session, nav, enterCorrective(session.lesson, session.flow));
-  if (action === "return") return commit(session, nav, leaveCorrective(session.flow));
+  if (action === "advance") {
+    return commit(
+      session,
+      nav,
+      advance(session.lesson, session.flow, newAttempt()),
+    );
+  }
+  if (action === "corrective") {
+    return commit(session, nav, enterCorrective(session.lesson, session.flow));
+  }
+  if (action === "return") {
+    return commit(session, nav, leaveCorrective(session.flow));
+  }
   if (action === "back") return goBack(session, nav);
 }
 
@@ -124,8 +155,16 @@ async function continueCard(session, nav) {
   const flow = session.flow;
   const concept = lesson.concepts[flow.conceptIndex];
   const card = concept.cards[flow.cardIndex];
-  const seen = session.hasEvent("card_seen", (event) => event.cardId === card.id);
-  if (!seen) await session.recordEvent("card_seen", { cardId: card.id, conceptId: concept.id });
+  const seen = session.hasEvent(
+    "card_seen",
+    (event) => event.cardId === card.id,
+  );
+  if (!seen) {
+    await session.recordEvent("card_seen", {
+      cardId: card.id,
+      conceptId: concept.id,
+    });
+  }
   await commit(session, nav, continueFromCard(lesson, flow, newAttempt()));
 }
 

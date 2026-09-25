@@ -4,12 +4,18 @@ import type { Dependencies } from "../../../src/app.ts";
 import { TokenAuthenticator } from "../../../src/server/auth.ts";
 import type { Client } from "../../../src/server/db.ts";
 import { PasskeyService } from "../../../src/server/identity/passkeys.ts";
-import { HmacSessionCookies, randomSessionKey } from "../../../src/server/identity/sessions.ts";
+import {
+  HmacSessionCookies,
+  randomSessionKey,
+} from "../../../src/server/identity/sessions.ts";
 import { TursoIdentityRepository } from "../../../src/server/repositories/identity.ts";
 import { TursoLessonRepository } from "../../../src/server/repositories/lessons.ts";
 import { TursoProgressRepository } from "../../../src/server/repositories/progress.ts";
 
-export function tursoDependencies(db: Client, clock: () => number = Date.now): Dependencies {
+export function tursoDependencies(
+  db: Client,
+  clock: () => number = Date.now,
+): Dependencies {
   return {
     lessons: new TursoLessonRepository(db),
     progress: new TursoProgressRepository(db),

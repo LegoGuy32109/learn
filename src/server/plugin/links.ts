@@ -43,4 +43,3 @@ export function pluginLinks(origin: string) {
     skill: `${base}skills/${SKILL_NAME}/SKILL.md`,
   };
 }
-
