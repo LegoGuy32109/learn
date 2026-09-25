@@ -3,7 +3,7 @@
 // ceremony run by the software authenticator, and the rows they leave behind.
 // The database is deleted in `finally`. Nothing here prints a token.
 
-import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert";
+import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { createApp } from "../../src/app.ts";
 import { TokenAdmin } from "../../src/server/identity/token-admin.ts";
 import {

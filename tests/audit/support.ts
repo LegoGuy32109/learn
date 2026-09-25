@@ -1,13 +1,13 @@
 // Independent helpers for the phone-viewport audit. Nothing here is shared with the implementers'
 // e2e suite: the answer key is derived from the fixture itself, and every reload deletes the
 // derived projections first so the position has to come back from the event streams.
-import { expect } from "@playwright/test";
-import lesson from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+import { expect, type Locator, type Page } from "@playwright/test";
+import type { Lesson } from "../../src/shared/lessons/types.d.ts";
+import type { Projections, StoreName, Stores } from "../support/stores.ts";
+import { DEMO_LESSON as lesson } from "../support/demo-lesson.ts";
 
 export const VIEWPORT = { width: 390, height: 844 };
-export let LESSON = lesson as any;
+export let LESSON: Lesson = lesson;
 export const LESSON_PATH = `/learn/${LESSON.lessonId}`;
 export const DRILL_PATH = `${LESSON_PATH}/drill`;
 let screenshotDirectory = new URL("./screenshots/", import.meta.url).pathname;
@@ -23,7 +23,7 @@ let screenshotDirectory = new URL("./screenshots/", import.meta.url).pathname;
  * walking the bundled fixture; `LESSON_PATH`/`DRILL_PATH` above stay pointed at it too, since only
  * a local suite (never a `useLesson` caller) reads them.
  */
-export function useLesson(nextLesson: any) {
+export function useLesson(nextLesson: Lesson) {
   LESSON = nextLesson;
 }
 
@@ -86,29 +86,42 @@ export function observe(name: string, detail: string) {
 
 /** The Question with this stem, its Concept, and the correct and one wrong answer for it. */
 export function keyFor(stem: string) {
-  const question = LESSON.questions.find((candidate: any) =>
+  const question = LESSON.questions.find((candidate) =>
     candidate.stem === stem
   );
   if (!question) throw new Error(`Unknown stem: ${stem}`);
-  const concept = LESSON.concepts.find((candidate: any) =>
+  const concept = LESSON.concepts.find((candidate) =>
     candidate.id === question.conceptId
   );
-  const keyOption = concept.options.find((option: any) =>
+  if (!concept) throw new Error(`No Concept owns the Question: ${stem}`);
+  if (question.type !== "mcq") {
+    return {
+      question,
+      concept,
+      correct: String(question.answer),
+      wrong: "wrong answer",
+      isMcq: false,
+    };
+  }
+  const keyOption = concept.options.find((option) =>
     option.id === question.key
   );
-  const wrongOption = concept.options.find((option: any) =>
+  const wrongOption = concept.options.find((option) =>
     option.id !== question.key
   );
+  if (!keyOption || !wrongOption) {
+    throw new Error(`The Concept lacks a key and a distractor for: ${stem}`);
+  }
   return {
     question,
     concept,
-    correct: question.type === "mcq" ? keyOption.text : String(question.answer),
-    wrong: question.type === "mcq" ? wrongOption.text : "wrong answer",
-    isMcq: question.type === "mcq",
+    correct: keyOption.text,
+    wrong: wrongOption.text,
+    isMcq: true,
   };
 }
 
-export async function settle(page: any) {
+export async function settle(page: Page) {
   await page.waitForTimeout(80);
   await page.waitForFunction(() =>
     (document.querySelector("#app")?.textContent ?? "").trim().length > 0
@@ -128,7 +141,7 @@ export async function settle(page: any) {
  * capturing a "before" value the caller does not know in advance.
  */
 export async function stableText(
-  locator: any,
+  locator: Locator,
   timeout = 15000,
 ): Promise<string> {
   const deadline = Date.now() + timeout;
@@ -148,21 +161,21 @@ export async function stableText(
   return previous ?? "";
 }
 
-export async function tap(page: any, name: string | RegExp, exact = true) {
+export async function tap(page: Page, name: string | RegExp, exact = true) {
   await page.getByRole("button", { name, exact }).click();
   await settle(page);
 }
 
-export async function tapAction(page: any, action: string) {
+export async function tapAction(page: Page, action: string) {
   await page.locator(`[data-action="${action}"]`).first().click();
   await settle(page);
 }
 
-export async function stem(page: any): Promise<string> {
+export async function stem(page: Page): Promise<string> {
   return (await page.locator(".qhead").textContent()) ?? "";
 }
 
-export async function answer(page: any, correct: boolean): Promise<string> {
+export async function answer(page: Page, correct: boolean): Promise<string> {
   const text = await stem(page);
   const key = keyFor(text);
   const value = correct ? key.correct : key.wrong;
@@ -176,14 +189,17 @@ export async function answer(page: any, correct: boolean): Promise<string> {
   return text;
 }
 
-export async function idk(page: any): Promise<string> {
+export async function idk(page: Page): Promise<string> {
   const text = await stem(page);
   await tap(page, "I don't know");
   return text;
 }
 
 /** Everything a learner could notice about the surface, for a before/after reload comparison. */
-export async function signature(page: any) {
+/** What the learner can see, as data, so a reload can be compared with what came before. */
+export type Signature = Awaited<ReturnType<typeof signature>>;
+
+export async function signature(page: Page) {
   return await page.evaluate(() => {
     const text = (selector: string) =>
       (document.querySelector(selector)?.textContent ?? "").trim() || null;
@@ -233,10 +249,14 @@ export async function signature(page: any) {
   });
 }
 
-export async function readStore(page: any, store: string): Promise<any[]> {
+/** Every record in one IndexedDB store. */
+export async function readStore<S extends StoreName>(
+  page: Page,
+  store: S,
+): Promise<Stores[S][]> {
   return await page.evaluate(
     (name: string) =>
-      new Promise((resolve, reject) => {
+      new Promise<Stores[S][]>((resolve, reject) => {
         const request = indexedDB.open("learn-local-v1");
         request.onsuccess = () => {
           const db = request.result;
@@ -257,14 +277,18 @@ export async function readStore(page: any, store: string): Promise<any[]> {
  * the name alone matches the one record for the lesson this context opened; the bare id is still
  * accepted for the older layout.
  */
-export async function projection(page: any, id: string): Promise<any> {
+export async function projection<N extends keyof Projections>(
+  page: Page,
+  id: N,
+): Promise<Projections[N] | null> {
   const records = await readStore(page, "projections");
   const record = records.find((candidate) => candidate.id === id) ??
     records.find((candidate) => String(candidate.id).startsWith(`${id}:`));
-  return record?.value ?? null;
+  // The projection's name fixes its shape; see Projections.
+  return (record?.value ?? null) as Projections[N] | null;
 }
 
-export async function clearProjections(page: any) {
+export async function clearProjections(page: Page) {
   await page.evaluate(() =>
     new Promise((resolve, reject) => {
       const request = indexedDB.open("learn-local-v1");
@@ -283,7 +307,23 @@ export async function clearProjections(page: any) {
 }
 
 /** The resume-relevant part of a checkpoint: what must come back identically after a reload. */
-function resumeFields(checkpoint: any) {
+/** The checkpoint fields a reload must restore, whichever flow wrote the checkpoint. */
+interface ResumeFields {
+  screen?: unknown;
+  flowKind?: unknown;
+  conceptIndex?: unknown;
+  cardIndex?: unknown;
+  seed?: unknown;
+  attemptId?: unknown;
+  queue?: unknown;
+  feedback?: unknown;
+  detour?: unknown;
+  wrapTotal?: unknown;
+  runId?: unknown;
+  total?: unknown;
+}
+
+function resumeFields(checkpoint: ResumeFields | null) {
   if (!checkpoint) return null;
   const {
     screen,
@@ -321,18 +361,25 @@ function resumeFields(checkpoint: any) {
  * position is documented to differ (Back inspection does not move the canonical checkpoint).
  */
 export async function reloadSame(
-  page: any,
+  page: Page,
   name: string,
-  options: { checkpoint?: string; expected?: (before: any) => any } = {},
+  options: {
+    checkpoint?: "checkpoint" | "drill_checkpoint";
+    expected?: (before: Signature) => Signature;
+  } = {},
 ) {
   const before = await signature(page);
   const checkpointId = options.checkpoint ?? "checkpoint";
-  const checkpointBefore = resumeFields(await projection(page, checkpointId));
+  const checkpointBefore = resumeFields(
+    await projection(page, checkpointId),
+  );
   await clearProjections(page);
   await page.reload();
   await settle(page);
   const after = await signature(page);
-  const checkpointAfter = resumeFields(await projection(page, checkpointId));
+  const checkpointAfter = resumeFields(
+    await projection(page, checkpointId),
+  );
   const expected = options.expected ? options.expected(before) : before;
   await check(`reload · ${name} · surface comes back`, () => {
     expect(after).toEqual(expected);
@@ -357,7 +404,7 @@ const FORBIDDEN_WORDS = [
 ];
 
 /** Forbidden words and metrics are absent from the whole DOM, not just the visible text. */
-export async function forbidden(page: any, name: string) {
+export async function forbidden(page: Page, name: string) {
   const { html, text } = await page.evaluate(() => ({
     html: document.querySelector("#app")?.outerHTML ?? "",
     text: (document.querySelector("#app") as HTMLElement | null)?.innerText ??
@@ -383,7 +430,7 @@ export async function forbidden(page: any, name: string) {
 }
 
 /** Controls at least 44px on the shortest side, no horizontal overflow, I don't know off the edge, no blank panel. */
-export async function visual(page: any, name: string) {
+export async function visual(page: Page, name: string) {
   const report = await page.evaluate(() => {
     const visible = (element: Element) => {
       const rect = element.getBoundingClientRect();
@@ -443,7 +490,7 @@ export async function visual(page: any, name: string) {
       small,
       scrollWidth: document.documentElement.scrollWidth,
       bodyScrollWidth: document.body.scrollWidth,
-      innerWidth: window.innerWidth,
+      innerWidth: globalThis.innerWidth,
       idk: idk
         ? {
           left: Math.round(idk.left),
@@ -489,7 +536,7 @@ export async function visual(page: any, name: string) {
 let shot = 0;
 
 /** Screenshot the surface in both schemes; assert the scheme actually changes the page colours. */
-export async function schemes(page: any, name: string) {
+export async function schemes(page: Page, name: string) {
   shot += 1;
   const prefix = `${String(shot).padStart(2, "0")}-${
     name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()
@@ -520,13 +567,13 @@ export async function schemes(page: any, name: string) {
 
 /** The full battery every distinct surface gets. */
 export async function surface(
-  page: any,
+  page: Page,
   name: string,
   options: {
     screenshot?: boolean;
     reload?: boolean;
-    checkpoint?: string;
-    expected?: (before: any) => any;
+    checkpoint?: "checkpoint" | "drill_checkpoint";
+    expected?: (before: Signature) => Signature;
   } = {},
 ) {
   await forbidden(page, name);
@@ -541,7 +588,7 @@ export async function surface(
 }
 
 export function attachListeners(
-  page: any,
+  page: Page,
   errors: string[],
   consoleMessages: string[],
 ) {
@@ -549,7 +596,7 @@ export function attachListeners(
     "pageerror",
     (error: Error) => errors.push(`pageerror: ${error.message}`),
   );
-  page.on("console", (message: any) => {
+  page.on("console", (message) => {
     if (message.type() === "error" || message.type() === "warning") {
       consoleMessages.push(`${message.type()}: ${message.text()}`);
     }

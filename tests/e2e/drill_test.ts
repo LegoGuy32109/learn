@@ -1,10 +1,9 @@
 // Drill mode on a phone viewport: every Question once, feedback with belief and correcting Card,
 // a reload halfway that resumes the same Question, a summary that lists each Concept, and a shelf
 // and learning checkpoint that are exactly as they were before the drill.
-import { chromium, expect } from "@playwright/test";
-import lesson from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+import type { StoreName, Stores } from "../support/stores.ts";
+import { chromium, expect, type Page } from "@playwright/test";
+import { DEMO_LESSON as lesson } from "../support/demo-lesson.ts";
 import { app } from "../../src/app.ts";
 import {
   answerCorrectly,
@@ -15,16 +14,19 @@ import {
 } from "./support/demo.ts";
 
 interface Snapshot {
-  learning: unknown[];
-  navigation: unknown[];
+  learning: Stores["learning_events"][];
+  navigation: Stores["navigation_events"][];
   checkpoint: unknown;
   progress: unknown;
 }
 
-async function readStore(page: any, store: string): Promise<unknown[]> {
+async function readStore<S extends StoreName>(
+  page: Page,
+  store: S,
+): Promise<Stores[S][]> {
   return await page.evaluate(
     (name: string) =>
-      new Promise((resolve, reject) => {
+      new Promise<Stores[S][]>((resolve, reject) => {
         const request = indexedDB.open("learn-local-v1");
         request.onsuccess = () => {
           const read = request.result.transaction(name, "readonly").objectStore(
@@ -39,8 +41,8 @@ async function readStore(page: any, store: string): Promise<unknown[]> {
   );
 }
 
-async function snapshot(page: any): Promise<Snapshot> {
-  const projections = await readStore(page, "projections") as any[];
+async function snapshot(page: Page): Promise<Snapshot> {
+  const projections = await readStore(page, "projections");
   const find = (id: string) =>
     projections.find((record) => record.id === id)?.value ?? null;
   return {
@@ -101,7 +103,7 @@ Deno.test({
           await expect(page.getByText("Not quite", { exact: true }))
             .toBeVisible();
           await expect(page.locator(".corrects h3")).toBeVisible();
-          if (answerFor(text).option) {
+          if ("option" in answerFor(text)) {
             await expect(page.locator(".belief b")).not.toBeEmpty();
             sawBelief = true;
           }
@@ -177,7 +179,7 @@ Deno.test({
       expect(after.navigation).toEqual(before.navigation);
       expect(after.checkpoint).toEqual(before.checkpoint);
       expect(after.progress).toEqual(before.progress);
-      const drill = await readStore(page, "drill_events") as any[];
+      const drill = await readStore(page, "drill_events");
       expect(
         drill.filter((event) => event.type === "drill_question_answered")
           .length,

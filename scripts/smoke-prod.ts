@@ -20,7 +20,7 @@
 // Usage: deno task smoke:prod
 // Environment: LEARN_BASE_URL (optional). File: .env.prod (LEARN_OWNER_TOKEN)
 
-import { parse } from "jsr:@std/dotenv@0.225.8/parse";
+import { parse } from "@std/dotenv/parse";
 import { redactBearerTokens } from "../src/server/identity/redaction.ts";
 import { pendingProductionMigrations } from "./production-migrations.ts";
 
@@ -217,7 +217,9 @@ await check("list lessons", "/api/v1/lessons", {
   if (status(200, response)) return status(200, response);
   const body = JSON.parse(text);
   if (!Array.isArray(body.revisions)) return "list has no revisions array";
-  return body.revisions.some((revision: any) => revision.status === "published")
+  return body.revisions.some((revision: { status?: unknown }) =>
+      revision.status === "published"
+    )
     ? null
     : "no published demo revision is listed";
 });

@@ -8,7 +8,7 @@
 // the parent process already set, so trusting the process environment here could silently check
 // whatever database a caller's own `.env` happened to load. This runs no migration; it only asks
 // what is pending.
-import { parse } from "jsr:@std/dotenv@0.225.8/parse";
+import { parse } from "@std/dotenv/parse";
 import { createClient } from "@tursodatabase/serverless/compat";
 import { pendingMigrations } from "../src/server/migrations.ts";
 

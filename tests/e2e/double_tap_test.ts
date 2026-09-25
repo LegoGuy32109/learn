@@ -1,14 +1,14 @@
 // Ticket 20: a phone double tap lands a second click before the first action's re-render replaces
 // the DOM. Every learning and drill action must have the effect of one tap. The probe dispatches two
 // synchronous clicks, as a double tap does, on the feedback action and on Continue.
-import { chromium, expect } from "@playwright/test";
+import type { LearningEvent } from "../../src/shared/learning/types.d.ts";
+import type { Projections } from "../support/stores.ts";
+import { chromium, expect, type Page } from "@playwright/test";
 import { app } from "../../src/app.ts";
-import lesson from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+import { DEMO_LESSON as lesson } from "../support/demo-lesson.ts";
 import { answerWrong, openFirstCard, readCards, stem } from "./support/demo.ts";
 
-async function doubleTap(page: any, selector: string) {
+async function doubleTap(page: Page, selector: string) {
   await page.evaluate((target: string) => {
     const button = document.querySelector(target) as HTMLElement;
     button.click();
@@ -17,16 +17,18 @@ async function doubleTap(page: any, selector: string) {
   await page.waitForTimeout(300);
 }
 
-async function checkpoint(page: any): Promise<any> {
+async function checkpoint(
+  page: Page,
+): Promise<Projections["checkpoint"] | null> {
   return await page.evaluate(() =>
-    new Promise((resolve, reject) => {
+    new Promise<Projections["checkpoint"] | null>((resolve, reject) => {
       const request = indexedDB.open("learn-local-v1");
       request.onsuccess = () => {
         const read = request.result.transaction("projections", "readonly")
           .objectStore("projections").getAll();
         read.onsuccess = () =>
           resolve(
-            read.result.find((record: any) =>
+            read.result.find((record) =>
               String(record.id).startsWith("checkpoint:")
             )?.value ?? null,
           );
@@ -37,18 +39,18 @@ async function checkpoint(page: any): Promise<any> {
   );
 }
 
-async function cardsSeen(page: any): Promise<string[]> {
+async function cardsSeen(page: Page): Promise<string[]> {
   return await page.evaluate(() =>
-    new Promise((resolve, reject) => {
+    new Promise<string[]>((resolve, reject) => {
       const request = indexedDB.open("learn-local-v1");
       request.onsuccess = () => {
         const read = request.result.transaction("learning_events", "readonly")
           .objectStore("learning_events").getAll();
         read.onsuccess = () =>
           resolve(
-            read.result.filter((event: any) => event.type === "card_seen").map((
-              event: any,
-            ) => event.cardId),
+            (read.result as LearningEvent[]).filter((event) =>
+              event.type === "card_seen"
+            ).map((event) => event.cardId),
           );
         read.onerror = () => reject(read.error);
       };
@@ -91,10 +93,10 @@ Deno.test({
       const before = await checkpoint(page);
       await doubleTap(page, '[data-action="advance"]');
       const after = await checkpoint(page);
-      expect(after.screen).toBe("question");
-      expect(after.flowKind).toBe("check");
-      expect(after.feedback).toBeNull();
-      expect(after.queue.length).toBe(before.queue.length - 1);
+      expect(after?.screen).toBe("question");
+      expect(after?.flowKind).toBe("check");
+      expect(after?.feedback).toBeNull();
+      expect(after?.queue.length).toBe((before?.queue.length ?? 0) - 1);
       expect(await stem(page)).not.toBe(asked);
 
       // A double tap on an option records one answer.
@@ -110,7 +112,7 @@ Deno.test({
               ).objectStore("learning_events").getAll();
               read.onsuccess = () =>
                 resolve(
-                  read.result.filter((event: any) =>
+                  read.result.filter((event) =>
                     event.type === "question_answered"
                   ).length,
                 );

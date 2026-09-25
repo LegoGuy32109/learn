@@ -256,28 +256,31 @@ export class MemoryIdentityRepository implements IdentityRepository {
     for (const account of accounts) this.accounts.set(account.id, account);
   }
 
-  async account(id: string): Promise<Account | null> {
-    return this.accounts.get(id) ?? null;
+  account(id: string): Promise<Account | null> {
+    return Promise.resolve(this.accounts.get(id) ?? null);
   }
 
-  async credentials(accountId: string): Promise<PasskeyCredential[]> {
-    return Array.from(this.credentialRows.values()).filter((credential) =>
-      credential.accountId === accountId
+  credentials(accountId: string): Promise<PasskeyCredential[]> {
+    return Promise.resolve(
+      Array.from(this.credentialRows.values()).filter((credential) =>
+        credential.accountId === accountId
+      ),
     );
   }
 
-  async credential(id: string): Promise<PasskeyCredential | null> {
-    return this.credentialRows.get(id) ?? null;
+  credential(id: string): Promise<PasskeyCredential | null> {
+    return Promise.resolve(this.credentialRows.get(id) ?? null);
   }
 
-  async insertCredential(credential: PasskeyCredential): Promise<void> {
+  insertCredential(credential: PasskeyCredential): Promise<void> {
     if (this.credentialRows.has(credential.id)) {
-      throw new Error("credential already exists");
+      return Promise.reject(new Error("credential already exists"));
     }
     this.credentialRows.set(credential.id, { ...credential });
+    return Promise.resolve();
   }
 
-  async recordCredentialUse(
+  recordCredentialUse(
     id: string,
     signCount: number,
     usedAt: number,
@@ -290,32 +293,35 @@ export class MemoryIdentityRepository implements IdentityRepository {
         lastUsedAt: usedAt,
       });
     }
+    return Promise.resolve();
   }
 
-  async insertInvite(invite: Invite, tokenHash: string): Promise<void> {
+  insertInvite(invite: Invite, tokenHash: string): Promise<void> {
     this.invites.set(invite.id, { ...invite });
     this.inviteHashes.set(tokenHash, invite.id);
+    return Promise.resolve();
   }
 
-  async inviteByHash(tokenHash: string): Promise<Invite | null> {
+  inviteByHash(tokenHash: string): Promise<Invite | null> {
     const id = this.inviteHashes.get(tokenHash);
-    return id ? this.invites.get(id) ?? null : null;
+    return Promise.resolve(id ? this.invites.get(id) ?? null : null);
   }
 
-  async consumeInvite(id: string, now: number): Promise<boolean> {
+  consumeInvite(id: string, now: number): Promise<boolean> {
     const invite = this.invites.get(id);
     if (!invite || invite.consumedAt != null || invite.expiresAt <= now) {
-      return false;
+      return Promise.resolve(false);
     }
     this.invites.set(id, { ...invite, consumedAt: now });
-    return true;
+    return Promise.resolve(true);
   }
 
-  async insertChallenge(challenge: Challenge): Promise<void> {
+  insertChallenge(challenge: Challenge): Promise<void> {
     this.challenges.set(challenge.challenge, { ...challenge });
+    return Promise.resolve();
   }
 
-  async consumeChallenge(
+  consumeChallenge(
     challenge: string,
     purpose: ChallengePurpose,
     now: number,
@@ -323,8 +329,8 @@ export class MemoryIdentityRepository implements IdentityRepository {
     const found = this.challenges.get(challenge);
     this.challenges.delete(challenge);
     if (!found || found.purpose !== purpose || found.expiresAt <= now) {
-      return null;
+      return Promise.resolve(null);
     }
-    return found;
+    return Promise.resolve(found);
   }
 }

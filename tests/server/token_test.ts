@@ -3,10 +3,8 @@ import {
   assertEquals,
   assertMatch,
   assertStringIncludes,
-} from "jsr:@std/assert";
-import lesson from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+} from "@std/assert";
+import { DEMO_LESSON as lesson } from "../support/demo-lesson.ts";
 import { createApp, fixtureDependencies } from "../../src/app.ts";
 import type { Authenticator } from "../../src/server/auth.ts";
 import { FixtureLessonRepository } from "../../src/server/repositories/lessons.ts";
@@ -75,8 +73,8 @@ Deno.test("redaction keeps the prefix and removes the secret from any text", () 
 
 Deno.test("a missing or invalid token gets 401 and a valid token without the scope gets 403", async () => {
   const forbidding = appWith({
-    async authenticate() {
-      return { ok: false, reason: "forbidden" };
+    authenticate() {
+      return Promise.resolve({ ok: false, reason: "forbidden" });
     },
   });
   const forbidden = await forbidding(
@@ -96,8 +94,8 @@ Deno.test("a missing or invalid token gets 401 and a valid token without the sco
   assert(!forbiddenBody.includes(token));
 
   const rejecting = appWith({
-    async authenticate() {
-      return { ok: false, reason: "unauthenticated" };
+    authenticate() {
+      return Promise.resolve({ ok: false, reason: "unauthenticated" });
     },
   });
   const unauthenticated = await rejecting(
@@ -111,9 +109,11 @@ Deno.test("a missing or invalid token gets 401 and a valid token without the sco
 
 Deno.test("a bearer token passed into an error path never reaches the error message or the log", async () => {
   const failing = appWith({
-    async authenticate(request) {
-      throw new Error(
-        `lookup failed for ${request.headers.get("authorization")}`,
+    authenticate(request) {
+      return Promise.reject(
+        new Error(
+          `lookup failed for ${request.headers.get("authorization")}`,
+        ),
       );
     },
   });

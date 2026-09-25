@@ -10,6 +10,7 @@
 //
 // The site under attack is LEARN_BASE_URL, defaulting to the deployed origin. The duplicate-draft
 // attacks need LEARN_TOKEN (or LEARN_OWNER_TOKEN); without one they are recorded as skipped.
+import type { Resolution } from "../../../src/shared/authoring/resolver.js";
 import { Ajv2020 } from "ajv/2020";
 import addFormatsModule from "ajv-formats";
 import { resolveLesson } from "../../../src/shared/authoring/resolver.js";
@@ -20,7 +21,6 @@ import {
   assert,
   check,
   equal,
-  observations,
   observe,
   ORIGIN,
   report,
@@ -105,8 +105,18 @@ async function resolveRemote(
   };
 }
 
+/** One row of the served diagnostics catalog. */
+interface CatalogEntry {
+  code: string;
+  schema: boolean;
+  severity: string;
+}
+
 /** A document of exactly `bytes` serialized bytes, built by padding one source excerpt. */
-function sized(base: Record<string, any>, bytes: number): string {
+function sized(
+  base: { sources: Array<{ capturedText: string | null }> },
+  bytes: number,
+): string {
   const document = structuredClone(base);
   document.sources[0].capturedText = "";
   const overhead =
@@ -191,9 +201,10 @@ async function runAudit(directory: string) {
 
   const schema = JSON.parse(servedSchema.body);
   const catalogByCode = new Map<string, { schema: boolean; severity: string }>(
-    JSON.parse(servedCatalog.body).diagnostics.map((
-      entry: any,
-    ) => [entry.code, { schema: entry.schema, severity: entry.severity }]),
+    (JSON.parse(servedCatalog.body) as { diagnostics: CatalogEntry[] })
+      .diagnostics.map((
+        entry,
+      ) => [entry.code, { schema: entry.schema, severity: entry.severity }]),
   );
   const ajv = new Ajv2020({ strict: true, allErrors: true });
   addFormats(ajv);
@@ -306,8 +317,8 @@ async function runAudit(directory: string) {
       },
     );
 
-    const parsed = JSON.parse(local);
-    const codes: string[] = parsed.diagnostics.map((diagnostic: any) =>
+    const parsed: Resolution = JSON.parse(local);
+    const codes: string[] = parsed.diagnostics.map((diagnostic) =>
       diagnostic.code
     );
     await check(
@@ -407,13 +418,13 @@ async function runAudit(directory: string) {
   await check(
     "hostile-document · 1,000,001 bytes · the validator reports document.size alone",
     () => {
-      const parsed = JSON.parse(
+      const parsed: Resolution = JSON.parse(
         byName.get("generated-size-limit-plus-one.json") ?? "{}",
       );
       equal(
         [
           parsed.valid,
-          parsed.diagnostics.map((diagnostic: any) => diagnostic.code),
+          parsed.diagnostics.map((diagnostic) => diagnostic.code),
         ],
         [false, ["document.size"]],
         "oversized validator result",
@@ -449,7 +460,7 @@ async function runAudit(directory: string) {
   await check(
     "hostile-document · exactly 1,000,000 bytes · accepted by the API and the validator alike",
     () => {
-      const parsed = JSON.parse(
+      const parsed: Resolution = JSON.parse(
         byName.get("generated-size-limit-exact.json") ?? "{}",
       );
       equal(
@@ -470,10 +481,10 @@ async function runAudit(directory: string) {
   await check(
     "hostile-document · 200 levels deep · document.nesting alone, from the API and the validator",
     () => {
-      const parsed = JSON.parse(
+      const parsed: Resolution = JSON.parse(
         byName.get("generated-nesting-200-bare.json") ?? "{}",
       );
-      equal(parsed.diagnostics.map((diagnostic: any) => diagnostic.code), [
+      equal(parsed.diagnostics.map((diagnostic) => diagnostic.code), [
         "document.nesting",
       ], "deep validator result");
       equal(deepRemote.status, 422, "deep status");
@@ -499,7 +510,7 @@ async function runAudit(directory: string) {
       `hostile-document · a JSON ${name} body is document.object alone, identically`,
       () => {
         equal(
-          JSON.parse(local).diagnostics.map((diagnostic: any) =>
+          (JSON.parse(local) as Resolution).diagnostics.map((diagnostic) =>
             diagnostic.code
           ),
           ["document.object"],
@@ -543,7 +554,7 @@ async function runAudit(directory: string) {
         "the hostile document must be rejected",
       );
       equal(
-        ({} as any).polluted,
+        ({} as { polluted?: unknown }).polluted,
         undefined,
         "Object.prototype was polluted by resolving the document",
       );
@@ -571,12 +582,13 @@ async function openapiCoverage() {
       );
     },
   );
-  const document = JSON.parse(served.body);
+  const document: { paths: Record<string, Record<string, unknown>> } = JSON
+    .parse(served.body);
 
   // Every documented route must answer something other than 404-with-no-route.
   const sample = "6f1c1c2a-3b1e-4b6f-9a1c-2f6d8e4b7a10";
   for (
-    const [path, item] of Object.entries(document.paths as Record<string, any>)
+    const [path, item] of Object.entries(document.paths)
   ) {
     for (const method of ["get", "post", "put", "patch", "delete"]) {
       if (!(method in item)) continue;
@@ -627,13 +639,11 @@ async function openapiCoverage() {
     "/sw.js",
     "/sw-routing.js",
   ]);
-  const localDocument = openapiDocument("https://learn.joshhale.me") as any;
+  const localDocument = openapiDocument("https://learn.joshhale.me");
   const routes = composeRoutes(await fixtureDependencies());
   const documented = new Set<string>();
   for (
-    const [path, item] of Object.entries(
-      localDocument.paths as Record<string, any>,
-    )
+    const [path, item] of Object.entries(localDocument.paths)
   ) {
     for (const method of ["get", "post", "put", "patch", "delete"]) {
       if (!(method in item)) continue;

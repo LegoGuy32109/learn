@@ -1,7 +1,12 @@
 // The discovery contract must not drift from the code. These tests hold the JSON Schema, the
 // OpenAPI document, the diagnostics reference, the capability document and the generated files
 // to the resolver and the routes the server actually serves.
-import { assert, assertEquals } from "jsr:@std/assert";
+import {
+  type AuthoredLesson,
+  authoredLesson,
+  DEMO_LESSON,
+} from "../support/demo-lesson.ts";
+import { assert, assertEquals } from "@std/assert";
 import { Ajv2020 } from "ajv/2020";
 import addFormatsModule from "ajv-formats";
 import manifest from "../../fixtures/authoring/manifest.json" with {
@@ -48,17 +53,35 @@ function validator(strict = true) {
   return ajv;
 }
 
-const demo = await fixture("lessons/browser-http-cache.json") as Record<
-  string,
-  unknown
->;
+const demo = DEMO_LESSON;
+
+/** The parts of the OpenAPI document the example walk reads. */
+interface MediaObject {
+  schema: { $ref: string };
+  example?: unknown;
+  examples?: { default: { $ref: string } };
+}
+interface Body {
+  content?: Record<string, MediaObject>;
+}
+interface Operation {
+  requestBody?: Body;
+  responses?: Record<string, Body>;
+}
+interface OpenApiWalk {
+  components: {
+    schemas: Record<string, Record<string, unknown>>;
+    examples: Record<string, { value: unknown }>;
+  };
+  paths: Record<string, Record<string, Operation | unknown[]>>;
+}
 
 /** Documents that exercise rules no committed fixture isolates, so every emitted code is seen at runtime. */
-async function mutatedDocuments(): Promise<unknown[]> {
-  const mutate = (change: (input: any) => void) => {
-    const input = structuredClone(demo) as any;
-    delete input.lessonId;
-    delete input.revisionId;
+function mutatedDocuments(): unknown[] {
+  // Each change breaks the contract on purpose: Object.assign writes a value of the wrong type,
+  // and Reflect.deleteProperty removes a field the contract requires.
+  const mutate = (change: (input: AuthoredLesson) => void) => {
+    const input = authoredLesson(demo.title);
     change(input);
     return input;
   };
@@ -69,31 +92,33 @@ async function mutatedDocuments(): Promise<unknown[]> {
     null,
     huge,
     mutate((input) => {
-      input.schema = "lesson/v2";
-      delete input.schemaVersion;
-      delete input.title;
-      delete input.assumedKnowledge;
-      input.concepts = [];
-      input.sources = [];
-      input.provenance = { status: "maybe" };
+      Object.assign(input, {
+        schema: "lesson/v2",
+        concepts: [],
+        sources: [],
+        provenance: { status: "maybe" },
+      });
+      Reflect.deleteProperty(input, "schemaVersion");
+      Reflect.deleteProperty(input, "title");
+      Reflect.deleteProperty(input, "assumedKnowledge");
     }),
     mutate((input) => {
-      input.provenance = { status: "provided" };
+      Object.assign(input, { provenance: { status: "provided" } });
     }),
     mutate((input) => {
-      input.sources = [{ capturedText: 5 }];
+      Object.assign(input, { sources: [{ capturedText: 5 }] });
     }),
     mutate((input) => {
       const concept = input.concepts[0];
       concept.id = "not-a-uuid";
       concept.poolId = "not-a-uuid";
-      delete concept.title;
+      Reflect.deleteProperty(concept, "title");
       concept.statement = "";
       concept.options[0].text = "";
       concept.options[1].id = concept.options[2].id;
       concept.cards = [concept.cards[0]];
       concept.cards[0].id = "x";
-      delete concept.cards[0].heading;
+      Reflect.deleteProperty(concept.cards[0], "heading");
       concept.misconceptions[0].statement = "";
       concept.misconceptions[1].id = concept.misconceptions[2].id;
     }),
@@ -103,32 +128,32 @@ async function mutatedDocuments(): Promise<unknown[]> {
       question.conceptId = "missing";
       question.poolId = "missing";
       question.correctingCardId = "missing";
-      question.type = "essay";
-      delete question.stem;
-      question.reserved = "yes";
+      Object.assign(question, { type: "essay", reserved: "yes" });
+      Reflect.deleteProperty(question, "stem");
     }),
     mutate((input) => {
       const mcq = input.questions[0];
+      assert(mcq.type === "mcq");
       mcq.map.extra = "validate_every_time";
       mcq.map[mcq.key] = "validate_every_time";
       mcq.feedback.extra = "text";
     }),
     mutate((input) => {
-      const numeric = input.questions.find((question: any) =>
+      const numeric = input.questions.find((question) =>
         question.type === "numeric"
       );
-      numeric.answer = "sixty";
-      numeric.tolerance = -1;
-      numeric.unit = 4;
-      delete numeric.feedback;
+      assert(numeric);
+      Object.assign(numeric, { answer: "sixty", tolerance: -1, unit: 4 });
+      Reflect.deleteProperty(numeric, "feedback");
     }),
     mutate((input) => {
-      const short = input.questions.find((question: any) =>
+      const short = input.questions.find((question) =>
         question.type === "short"
       );
-      delete short.answer;
-      short.aliases = [1];
-      delete short.feedback;
+      assert(short);
+      Object.assign(short, { aliases: [1] });
+      Reflect.deleteProperty(short, "answer");
+      Reflect.deleteProperty(short, "feedback");
     }),
   ];
 }
@@ -234,9 +259,9 @@ Deno.test("the OpenAPI document validates against the OpenAPI 3.1 meta-schema", 
   const validate = ajv.compile(
     bindDynamicAnchors(openapiMetaSchema) as Record<string, unknown>,
   );
-  const document = JSON.parse(
+  const document: unknown = JSON.parse(
     JSON.stringify(openapiDocument("https://learn.joshhale.me")),
-  ) as any;
+  );
   const conforms = validate(document);
   assert(conforms, JSON.stringify(validate.errors, null, 2));
   const built = openapiDocument("https://learn.joshhale.me");
@@ -245,9 +270,9 @@ Deno.test("the OpenAPI document validates against the OpenAPI 3.1 meta-schema", 
 });
 
 Deno.test("the OpenAPI examples validate against the component schemas they claim", async () => {
-  const document = JSON.parse(
+  const document: OpenApiWalk = JSON.parse(
     JSON.stringify(openapiDocument("https://learn.joshhale.me")),
-  ) as any;
+  );
   const components = document.components.schemas;
   // Embed the components as $defs of one schema resource: drop the Lesson component's $id and repoint the refs.
   const embed = (value: unknown) =>
@@ -271,9 +296,9 @@ Deno.test("the OpenAPI examples validate against the component schemas they clai
     );
   };
   /** The example of a media object: inline, or shared through components.examples. */
-  const exampleOf = (mediaObject: any) => {
+  const exampleOf = (mediaObject: MediaObject) => {
     if ("example" in mediaObject) return mediaObject.example;
-    const ref: string = mediaObject.examples.default.$ref;
+    const ref = mediaObject.examples?.default.$ref ?? "";
     assert(ref.startsWith("#/components/examples/"), ref);
     const shared =
       document.components.examples[ref.slice("#/components/examples/".length)];
@@ -281,16 +306,23 @@ Deno.test("the OpenAPI examples validate against the component schemas they clai
     return shared.value;
   };
   const resolutions = document.paths["/api/v1/lesson-resolutions"].post;
+  assert(!Array.isArray(resolutions), "the resolutions POST is an operation");
+  /** The JSON media object of a body the resolutions operation must document. */
+  const json = (body: Body | undefined, name: string) => {
+    const media = body?.content?.["application/json"];
+    assert(media, `the resolutions ${name} has a JSON example`);
+    return media;
+  };
   let checked = 0;
-  for (const item of Object.values(document.paths) as any[]) {
-    for (const operation of Object.values(item) as any[]) {
+  for (const item of Object.values(document.paths)) {
+    for (const operation of Object.values(item)) {
       if (Array.isArray(operation)) continue;
       const bodies = [
         operation.requestBody,
         ...Object.values(operation.responses ?? {}),
-      ].filter(Boolean) as any[];
+      ].filter((body) => body !== undefined);
       for (const body of bodies) {
-        for (const mediaObject of Object.values(body.content ?? {}) as any[]) {
+        for (const mediaObject of Object.values(body.content ?? {})) {
           if (!("example" in mediaObject) && !mediaObject.examples) continue;
           const ref: string = mediaObject.schema.$ref;
           check(
@@ -307,13 +339,13 @@ Deno.test("the OpenAPI examples validate against the component schemas they clai
     new Request("http://local/api/v1/lesson-resolutions", {
       method: "POST",
       body: JSON.stringify(
-        exampleOf(resolutions.requestBody.content["application/json"]),
+        exampleOf(json(resolutions.requestBody, "request")),
       ),
     }),
   )).json();
   assertEquals(
     live,
-    exampleOf(resolutions.responses["200"].content["application/json"]),
+    exampleOf(json(resolutions.responses?.["200"], "200 response")),
   );
   check(
     "DiagnosticsReference",
@@ -474,7 +506,7 @@ Deno.test("every diagnostic emitted at runtime is listed with its severity, and 
   const seen = new Map<string, string>();
   const documents: unknown[] = [];
   for (const entry of manifest) documents.push(await fixture(entry.file));
-  documents.push(...await mutatedDocuments());
+  documents.push(...mutatedDocuments());
   const bySeverity = new Map(
     DIAGNOSTICS.map((entry) => [entry.code, entry.severity]),
   );

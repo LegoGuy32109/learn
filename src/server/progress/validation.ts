@@ -2,6 +2,7 @@
 // trusts a client's shape: every event needs a UUIDv4 ID, the batch's revision and epoch, a client
 // timestamp, and references that exist in that revision. Correctness of an answer is recomputed with
 // the shared evaluator, so a stored `correct` is never a client assertion.
+import type { Lesson } from "../../shared/lessons/types.d.ts";
 import { evaluateAnswer } from "../../shared/learning/evaluate.js";
 
 export const LEARNING_STREAM = "learning";
@@ -101,13 +102,11 @@ function validateCommon(
 
 function validateLearning(
   event: Record<string, unknown>,
-  lesson: Record<string, any>,
+  lesson: Lesson,
   reject: Reject,
 ): void {
   if (event.type === "lesson_started") return;
-  const concepts: Array<Record<string, any>> = Array.isArray(lesson.concepts)
-    ? lesson.concepts
-    : [];
+  const concepts = lesson.concepts;
   if (event.type === "card_seen") {
     const concept = concepts.find((candidate) =>
       candidate.id === event.conceptId
@@ -120,9 +119,7 @@ function validateLearning(
       );
     }
     if (
-      !concept.cards.some((card: Record<string, any>) =>
-        card.id === event.cardId
-      )
+      !concept.cards.some((card) => card.id === event.cardId)
     ) {
       reject(
         "card.unknown",
@@ -132,9 +129,7 @@ function validateLearning(
     }
     return;
   }
-  const questions: Array<Record<string, any>> = Array.isArray(lesson.questions)
-    ? lesson.questions
-    : [];
+  const questions = lesson.questions;
   const question = questions.find((candidate) =>
     candidate.id === event.questionId
   );
@@ -196,7 +191,7 @@ function validateLearning(
 
 function validateNavigation(
   event: Record<string, unknown>,
-  lesson: Record<string, any>,
+  lesson: Lesson,
   reject: Reject,
 ): void {
   if (!("checkpoint" in event)) {
@@ -226,9 +221,7 @@ function validateNavigation(
       "learningEventFrontier must list the UUIDv4 IDs of the learning events the checkpoint depends on.",
     );
   }
-  const concepts: Array<unknown> = Array.isArray(lesson.concepts)
-    ? lesson.concepts
-    : [];
+  const concepts = lesson.concepts;
   if (
     !Number.isInteger(checkpoint.conceptIndex) ||
     Number(checkpoint.conceptIndex) < 0 ||
@@ -240,9 +233,7 @@ function validateNavigation(
       "conceptIndex must name a Concept of this Lesson Revision.",
     );
   }
-  const questions: Array<Record<string, any>> = Array.isArray(lesson.questions)
-    ? lesson.questions
-    : [];
+  const questions = lesson.questions;
   const known = new Set(questions.map((question) => question.id));
   if (
     !Array.isArray(checkpoint.queue) ||
@@ -265,7 +256,7 @@ export function validateBatch(
   events: unknown,
   revisionId: string,
   epoch: number,
-  lesson: Record<string, any>,
+  lesson: Lesson,
 ): { accepted: SyncEvent[]; rejections: EventRejection[] } {
   const rejections: EventRejection[] = [];
   const accepted: SyncEvent[] = [];

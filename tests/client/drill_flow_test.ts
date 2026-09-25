@@ -1,7 +1,6 @@
-import { assert, assertEquals } from "jsr:@std/assert";
-import lesson from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+import { assert, assertEquals } from "@std/assert";
+import { DEMO_LESSON as lesson } from "../support/demo-lesson.ts";
+import type { Question } from "../../src/shared/lessons/types.d.ts";
 import {
   advanceDrill,
   drillPosition,
@@ -9,6 +8,7 @@ import {
 } from "../../src/client/learning/drill-flow.js";
 import {
   current,
+  currentQuestion,
   enterCorrective,
   leaveCorrective,
   submitAnswer,
@@ -17,12 +17,21 @@ import { drillQueue } from "../../src/shared/learning/drill.js";
 
 const run = { seed: 7, runId: "run-1" };
 
-function wrongAnswer(question: any): string {
+function conceptOf(question: Question) {
+  const concept = lesson.concepts.find((candidate) =>
+    candidate.id === question.conceptId
+  );
+  if (!concept) throw new Error(`No Concept owns Question ${question.id}`);
+  return concept;
+}
+
+function wrongAnswer(question: Question): string {
   if (question.type === "mcq") {
-    const concept = lesson.concepts.find((candidate) =>
-      candidate.id === question.conceptId
-    ) as any;
-    return concept.options.find((option: any) => option.id !== question.key).id;
+    const distractor = conceptOf(question).options.find((option) =>
+      option.id !== question.key
+    );
+    if (!distractor) throw new Error(`No distractor for ${question.id}`);
+    return distractor.id;
   }
   return "definitely wrong";
 }
@@ -35,7 +44,7 @@ Deno.test("a drill run starts on the first Question of the seeded order over eve
   assertEquals(flow.queue, drillQueue(lesson, 7));
   assertEquals(flow.total, lesson.questions.length);
   assertEquals(drillPosition(flow), 1);
-  assertEquals(current(lesson, flow as any).id, flow.queue[0]);
+  assertEquals(current(lesson, flow)?.id, flow.queue[0]);
   assertEquals(startDrill(lesson, run).queue, flow.queue);
 });
 
@@ -43,11 +52,11 @@ Deno.test("drill asks each Question once, wrong or not, and ends on the summary"
   let flow = startDrill(lesson, run);
   const asked: string[] = [];
   for (let steps = 0; steps < 50 && flow.screen !== "summary"; steps++) {
-    const question = current(lesson, flow as any);
+    const question = currentQuestion(lesson, flow);
     asked.push(question.id);
     const submitted = submitAnswer(
       lesson,
-      flow as any,
+      flow,
       steps % 2 ? wrongAnswer(question) : null,
       steps % 2 === 0,
     );
@@ -58,7 +67,7 @@ Deno.test("drill asks each Question once, wrong or not, and ends on the summary"
       flow.queue,
       "feedback never auto-advances",
     );
-    flow = advanceDrill(submitted.flow as any);
+    flow = advanceDrill(submitted.flow);
     assertEquals(flow.feedback, null);
   }
   assertEquals(flow.screen, "summary");
@@ -70,24 +79,22 @@ Deno.test("drill asks each Question once, wrong or not, and ends on the summary"
 Deno.test("a wrong drill answer carries the belief and the correcting Card, and the detour returns to the same Question", () => {
   let flow = startDrill(lesson, run);
   const index = flow.queue.findIndex((id) =>
-    (lesson.questions as any[]).find((question) => question.id === id).type ===
-      "mcq"
+    lesson.questions.find((question) => question.id === id)?.type === "mcq"
   );
   flow = { ...flow, queue: flow.queue.slice(index) };
-  const question = current(lesson, flow as any);
-  const concept = lesson.concepts.find((candidate) =>
-    candidate.id === question.conceptId
-  ) as any;
+  const question = currentQuestion(lesson, flow);
+  assert(question.type === "mcq");
   const distractor = wrongAnswer(question);
-  const submitted = submitAnswer(lesson, flow as any, distractor, false);
-  const misconception = concept.misconceptions.find((candidate: any) =>
+  const submitted = submitAnswer(lesson, flow, distractor, false);
+  const misconception = conceptOf(question).misconceptions.find((candidate) =>
     candidate.id === question.map[distractor]
   );
+  assert(misconception, `${question.id} maps ${distractor} to a misconception`);
   assertEquals(submitted.flow.feedback?.belief, misconception.statement);
   assertEquals(submitted.flow.feedback?.cardId, misconception.correctingCardId);
-  const detour = enterCorrective(lesson, submitted.flow as any);
+  const detour = enterCorrective(lesson, submitted.flow);
   assertEquals(detour.screen, "corrective");
-  assertEquals(current(lesson, detour).id, misconception.correctingCardId);
+  assertEquals(current(lesson, detour)?.id, misconception.correctingCardId);
   const back = leaveCorrective(detour);
   assertEquals(back.screen, "question");
   assertEquals(back.queue, submitted.flow.queue);

@@ -1,7 +1,7 @@
 // A database or network failure during authentication is a server error, not
 // an authentication error. Ticket 16 ruled this path out as the cause of the
 // post-deploy 401 and pinned the behavior here.
-import { assert, assertEquals, assertRejects } from "jsr:@std/assert";
+import { assert, assertEquals, assertRejects } from "@std/assert";
 import {
   createApp,
   fixtureDependencies,
@@ -26,11 +26,11 @@ function failingDb(message: string): Client {
 /** A database that finds the token but fails on the `last_used_at` update. */
 function failingOnUpdateDb(): Client {
   return {
-    async execute(statement: { sql: string }) {
+    execute(statement: { sql: string }) {
       if (statement.sql.startsWith("UPDATE")) {
-        throw new Error("connection reset during UPDATE");
+        return Promise.reject(new Error("connection reset during UPDATE"));
       }
-      return {
+      return Promise.resolve({
         rows: [{
           id: "t1",
           account_id: "a1",
@@ -38,7 +38,7 @@ function failingOnUpdateDb(): Client {
           scopes_json: JSON.stringify(["lessons:read"]),
           expires_at: null,
         }],
-      };
+      });
     },
   } as unknown as Client;
 }

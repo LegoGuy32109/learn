@@ -1,7 +1,8 @@
 // The downloadable validator is generated from the shared resolver. This test runs the generated
 // file in a real subprocess, from a temporary directory with no network access, and compares its
 // result JSON byte for byte with the in-process resolver for every fixture.
-import { assert, assertEquals } from "jsr:@std/assert";
+import type { Resolution } from "../../src/shared/authoring/resolver.js";
+import { assert, assertEquals } from "@std/assert";
 import manifest from "../../fixtures/authoring/manifest.json" with {
   type: "json",
 };
@@ -114,18 +115,18 @@ Deno.test("the generated validator and the shared resolver return byte-equivalen
         `${path} differs between the generated validator and the shared resolver`,
       );
     }
-    const byName = Object.fromEntries(
+    const byName: Record<string, Resolution> = Object.fromEntries(
       files.map((
         path,
         index,
       ) => [path.slice(directory.length + 1), JSON.parse(lines[index])]),
     );
     assertEquals(
-      byName["generated-oversized.json"].diagnostics.map((d: any) => d.code),
+      byName["generated-oversized.json"].diagnostics.map((d) => d.code),
       ["document.size"],
     );
     assertEquals(
-      byName["generated-deep-nesting.json"].diagnostics.map((d: any) => d.code),
+      byName["generated-deep-nesting.json"].diagnostics.map((d) => d.code),
       ["document.nesting"],
     );
     assertEquals(byName["generated-prototype-keys.json"].valid, false);

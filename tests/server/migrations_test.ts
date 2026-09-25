@@ -2,12 +2,13 @@
 // caught it before ticket 50 found every progress-sync route answering 500 for hours. These tests
 // hold the comparison logic (pendingAgainst) and the read-only pending check (pendingMigrations)
 // that scripts/deploy.ts and scripts/smoke-prod.ts now both refuse or fail on.
-import { assert, assertEquals, assertThrows } from "jsr:@std/assert";
+import { assert, assertEquals, assertThrows } from "@std/assert";
 import type {
   Client,
   InStatement,
   ResultSet,
 } from "@tursodatabase/serverless/compat";
+import type { Row } from "../../src/server/db.ts";
 import {
   appliedLedger,
   migrateDatabase,
@@ -89,7 +90,7 @@ class FakeMigrationsClient implements Pick<Client, "execute" | "batch"> {
     throw new Error(`FakeMigrationsClient does not understand: ${sql}`);
   }
 
-  batch(stmts: InStatement[]): Promise<any> {
+  batch(stmts: InStatement[]): Promise<ResultSet[]> {
     for (const stmt of stmts) {
       const sql = (typeof stmt === "string" ? stmt : stmt.sql).trim();
       if (sql.startsWith("INSERT INTO schema_migrations")) {
@@ -117,9 +118,10 @@ function emptyResult(): ResultSet {
   };
 }
 
-function rowOf(row: Record<string, unknown>) {
+/** A result row as the client returns it: readable by column name and by index. */
+function rowOf(row: Record<string, string>): Row {
   const values = Object.values(row);
-  const proxy = { ...row, length: values.length } as any;
+  const proxy: Row = { ...row, length: values.length };
   values.forEach((value, index) => (proxy[index] = value));
   return proxy;
 }

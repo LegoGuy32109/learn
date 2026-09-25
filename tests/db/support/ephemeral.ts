@@ -29,7 +29,22 @@ function platform(): { api: string; headers: HeadersInit } {
   };
 }
 
-async function json(response: Response): Promise<any> {
+/** The fields this helper reads from any Turso Platform API response. */
+interface TursoBody {
+  error?: string;
+  message?: string;
+  database?: TursoDatabase;
+  jwt?: string;
+  Hostname?: string;
+  hostname?: string;
+}
+
+interface TursoDatabase {
+  Hostname?: string;
+  hostname?: string;
+}
+
+async function json(response: Response): Promise<TursoBody> {
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw new Error(

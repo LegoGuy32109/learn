@@ -112,7 +112,7 @@ export function renderDrill(root, session, nav) {
  * @param {Session} session
  * @param {any} nav
  */
-async function handle(action, session, nav) {
+function handle(action, session, nav) {
   if (action === "overview") return leave(session, nav);
   if (action === "back") {
     if (session.drillFlow.screen === "corrective") {

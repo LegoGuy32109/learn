@@ -72,7 +72,7 @@ export class TokenAuthenticator implements Authenticator {
 }
 
 export class RejectingAuthenticator implements Authenticator {
-  async authenticate(): Promise<AuthResult> {
-    return UNAUTHENTICATED;
+  authenticate(): Promise<AuthResult> {
+    return Promise.resolve(UNAUTHENTICATED);
   }
 }

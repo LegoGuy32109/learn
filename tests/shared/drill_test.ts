@@ -1,7 +1,5 @@
-import { assert, assertEquals } from "jsr:@std/assert";
-import lesson from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+import { assert, assertEquals } from "@std/assert";
+import { DEMO_LESSON as lesson } from "../support/demo-lesson.ts";
 import {
   describeOutcome,
   DRILL_ANSWERED,
@@ -34,7 +32,11 @@ Deno.test("the drill order is fixed by the seed and differs between seeds", () =
 });
 
 Deno.test("the drill checkpoint replays from the drill stream and a null checkpoint ends the run", () => {
-  const events = [
+  const events: Array<{
+    type: string;
+    occurredAt: string;
+    checkpoint: Record<string, unknown> | null;
+  }> = [
     {
       type: DRILL_CHECKPOINTED,
       occurredAt: "2026-01-01T00:00:00Z",
@@ -59,7 +61,7 @@ Deno.test("the drill checkpoint replays from the drill stream and a null checkpo
   events.push({
     type: DRILL_CHECKPOINTED,
     occurredAt: "2026-01-01T00:02:00Z",
-    checkpoint: null as any,
+    checkpoint: null,
   });
   assertEquals(reduceDrillCheckpoint(events), null);
 });

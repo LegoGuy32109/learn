@@ -3,7 +3,7 @@
 // backoff and idempotent; a lost response after acceptance duplicates nothing; pulls union by id and
 // hand the reducers the union; a 409 never moves the local stream, only the explicit adoption does;
 // and every request failing leaves every event in the outbox with a sensible state.
-import { assert, assertEquals } from "jsr:@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import {
   BATCH_SIZE,
   createSyncClient,
@@ -21,9 +21,12 @@ const REVISION = "0b7e5b4e-8c2d-4f1a-b3e6-1d9a7c5e2f33";
 const LESSON = "6f1c1c2a-3b1e-4b6f-9a1c-2f6d8e4b7a10";
 const SCOPE = { lessonId: LESSON, lessonRevisionId: REVISION, epoch: 0 };
 
+/** An event as the sync layer handles it: identified by ID, otherwise opaque. */
+type Synced = { id: string } & Record<string, unknown>;
+
 /** The IndexedDB repository's sync surface over plain maps, with the same semantics. */
 function memoryRepository() {
-  const stores: Record<string, Map<string, any>> = {
+  const stores: Record<string, Map<string, Synced>> = {
     learning_events: new Map(),
     navigation_events: new Map(),
   };
@@ -36,7 +39,7 @@ function memoryRepository() {
     log,
     streams,
     stores,
-    async appendOutgoing(store: string, event: any) {
+    appendOutgoing(store: string, event: Synced) {
       log.push(`store:${event.id}`);
       stores[store].set(event.id, event);
       clock += 1;
@@ -46,31 +49,38 @@ function memoryRepository() {
         event,
         queuedAt: String(clock).padStart(6, "0"),
       });
+      return Promise.resolve();
     },
-    async appendRemote(store: string, events: any[]) {
+    appendRemote(store: string, events: Synced[]) {
       for (const event of events) {
         if (!stores[store].has(event.id)) stores[store].set(event.id, event);
       }
+      return Promise.resolve();
     },
-    async events(store: string) {
-      return Array.from(stores[store].values());
+    events(store: string) {
+      return Promise.resolve(Array.from(stores[store].values()));
     },
-    async outbox() {
-      return Array.from(outbox.values()).sort((a, b) =>
-        a.queuedAt.localeCompare(b.queuedAt)
+    outbox() {
+      return Promise.resolve(
+        Array.from(outbox.values()).sort((a, b) =>
+          a.queuedAt.localeCompare(b.queuedAt)
+        ),
       );
     },
-    async acknowledge(ids: string[]) {
+    acknowledge(ids: string[]) {
       for (const id of ids) outbox.delete(id);
+      return Promise.resolve();
     },
-    async cursor(key: string) {
-      return cursors.get(key) ?? "";
+    cursor(key: string) {
+      return Promise.resolve(cursors.get(key) ?? "");
     },
-    async saveCursor(key: string, cursor: string) {
+    saveCursor(key: string, cursor: string) {
       cursors.set(key, cursor);
+      return Promise.resolve();
     },
-    async saveStream(stream: ProgressStream) {
+    saveStream(stream: ProgressStream) {
       streams.set(stream.id, stream);
+      return Promise.resolve();
     },
   };
 }
@@ -120,11 +130,11 @@ async function settle() {
 
 /** A server double: stores by id per scope, hands out pages by arrival order, and can be told to fail. */
 function fakeServer() {
-  const stored: Record<string, Map<string, any>> = {
+  const stored: Record<string, Map<string, Synced>> = {
     learning_events: new Map(),
     navigation_events: new Map(),
   };
-  const arrival: Record<string, any[]> = {
+  const arrival: Record<string, Synced[]> = {
     learning_events: [],
     navigation_events: [],
   };
@@ -136,10 +146,10 @@ function fakeServer() {
     | null = null;
   let pageSize = 1000;
   const transport: Transport = {
-    async push(store, scope, events) {
+    push(store, scope, events) {
       calls.push(`push:${store}:${events.length}`);
       if (failing && !failing.loseResponse) {
-        return {
+        return Promise.resolve({
           ok: false,
           status: failing.status,
           code: failing.code ?? "http",
@@ -147,10 +157,10 @@ function fakeServer() {
           stream: failing.code === "epoch.stale"
             ? { lessonId: LESSON, lessonRevisionId: "newer-revision", epoch }
             : null,
-        };
+        });
       }
       if (scope.epoch < epoch) {
-        return {
+        return Promise.resolve({
           ok: false,
           status: 409,
           code: "epoch.stale",
@@ -160,7 +170,7 @@ function fakeServer() {
             lessonRevisionId: "newer-revision",
             epoch,
           },
-        };
+        });
       }
       let accepted = 0;
       for (const event of events) {
@@ -170,34 +180,34 @@ function fakeServer() {
         accepted += 1;
       }
       if (failing?.loseResponse) {
-        return {
+        return Promise.resolve({
           ok: false,
           status: 0,
           code: "network",
           message: "lost",
           stream: null,
-        };
+        });
       }
-      return {
+      return Promise.resolve({
         ok: true,
         accepted,
         duplicates: events.length - accepted,
         stream: { lessonId: LESSON, lessonRevisionId: REVISION, epoch },
-      };
+      });
     },
-    async pull(store, scope, cursor) {
+    pull(store, scope, cursor) {
       calls.push(`pull:${store}:${cursor || "start"}`);
       if (failing) {
-        return {
+        return Promise.resolve({
           ok: false,
           status: failing.status,
           code: failing.code ?? "http",
           message: "nope",
           stream: null,
-        };
+        });
       }
       if (scope.epoch < epoch) {
-        return {
+        return Promise.resolve({
           ok: false,
           status: 409,
           code: "epoch.stale",
@@ -207,18 +217,18 @@ function fakeServer() {
             lessonRevisionId: "newer-revision",
             epoch,
           },
-        };
+        });
       }
       const after = cursor ? Number(atob(cursor)) : 0;
       const slice = arrival[store].slice(after, after + pageSize);
       const next = after + slice.length;
-      return {
+      return Promise.resolve({
         ok: true,
         events: slice,
         cursor: btoa(String(next)),
         hasMore: next < arrival[store].length,
         stream: { lessonId: LESSON, lessonRevisionId: REVISION, epoch },
-      };
+      });
     },
   };
   return {
@@ -288,7 +298,7 @@ Deno.test("an event enters the outbox before the UI is told, and no request leav
   const h = harness();
   h.client.setEnabled(true);
   let merged = 0;
-  h.client.attach(SCOPE, async () => void merged++);
+  h.client.attach(SCOPE, () => Promise.resolve(void merged++));
   // The session's write path: store plus outbox in one step, then the UI hook, then the render kicks.
   const made = event("lesson_started");
   await h.repository.appendOutgoing("learning_events", made);

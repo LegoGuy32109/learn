@@ -6,15 +6,21 @@
 // Lesson (same fixture content, a distinct title so `createLesson` does not dedupe by fingerprint), so
 // scenarios cannot contaminate each other's streams.
 //
-// This is a verification suite: it never fixes anything it finds. Confirmed defects are filed as new
-// ticket files under issues/, numbered from 40.
-import { chromium, expect } from "@playwright/test";
-import { assert, assertEquals } from "jsr:@std/assert";
-import fixture from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+// This is a verification suite: it never fixes anything it finds. A confirmed defect is filed by hand
+// as a new ticket file under issues/.
+import type { StoreName, Stores } from "../support/stores.ts";
+import { type Browser, chromium, expect, type Page } from "@playwright/test";
+import type { Client } from "../../src/server/db.ts";
+import { assert, assertEquals } from "@std/assert";
+import {
+  authoredLesson,
+  DEMO_LESSON as fixture,
+} from "../support/demo-lesson.ts";
 import { resolveLesson } from "../../src/shared/authoring/resolver.js";
-import { selectCheckpoint } from "../../src/shared/learning/sync.js";
+import {
+  frontierCount,
+  selectCheckpoint,
+} from "../../src/shared/learning/sync.js";
 import { createApp } from "../../src/app.ts";
 import { TursoLessonRepository } from "../../src/server/repositories/lessons.ts";
 import { TursoProgressRepository } from "../../src/server/repositories/progress.ts";
@@ -32,21 +38,32 @@ const PHONE = {
   hasTouch: true,
 };
 
+/** The `screen` of a checkpoint the server stored as opaque JSON, or null. */
+function screenOf(checkpoint: unknown): unknown {
+  return typeof checkpoint === "object" && checkpoint !== null &&
+      "screen" in checkpoint
+    ? checkpoint.screen
+    : null;
+}
+
+/** What `GET /api/v1/progress/checkpoint` answers. */
+interface ServedCheckpoint {
+  checkpoint:
+    | ({ screen?: string; marker?: string } & Record<string, unknown>)
+    | null;
+  frontier: number;
+  learningEvents: number;
+}
+
 /** A fresh Lesson owned by `accountId`: the fixture's content with a scenario-unique title, so the
  * server's fingerprint dedupe never folds two scenarios' lessons together. */
-async function freshLesson(db: any, accountId: string, suffix: string) {
-  const document = structuredClone(fixture) as Record<string, unknown>;
-  delete document.lessonId;
-  delete document.revisionId;
-  document.title = `${fixture.title} (${suffix})`;
-  const resolved = await resolveLesson(document);
-  assert(
-    resolved.valid && resolved.normalizedLesson,
-    `fixture with title "${document.title}" failed to resolve`,
-  );
+async function freshLesson(db: Client, accountId: string, suffix: string) {
+  const title = `${fixture.title} (${suffix})`;
+  const resolved = await resolveLesson(authoredLesson(title));
+  assert(resolved.valid, `fixture with title "${title}" failed to resolve`);
   const stored = await new TursoLessonRepository(db).createLesson(
     accountId,
-    resolved as any,
+    resolved,
   );
   // `GET /` always inlines the featured (newest published) lesson for its first paint, even for a
   // signed-in account visiting the shelf, so at least one published revision must exist or every page
@@ -61,31 +78,28 @@ async function freshLesson(db: any, accountId: string, suffix: string) {
 
 /** A second revision of an existing Lesson, so its shelf entry gets a new `latestRevisionId`. */
 async function nextRevision(
-  db: any,
+  db: Client,
   accountId: string,
   lessonId: string,
   suffix: string,
 ) {
-  const document = structuredClone(fixture) as Record<string, unknown>;
-  delete document.lessonId;
-  delete document.revisionId;
-  document.title = `${fixture.title} (${suffix})`;
-  const resolved = await resolveLesson(document);
-  assert(
-    resolved.valid && resolved.normalizedLesson,
-    `fixture with title "${document.title}" failed to resolve`,
-  );
+  const title = `${fixture.title} (${suffix})`;
+  const resolved = await resolveLesson(authoredLesson(title));
+  assert(resolved.valid, `fixture with title "${title}" failed to resolve`);
   return await new TursoLessonRepository(db).createRevision(
     accountId,
     lessonId,
-    resolved as any,
+    resolved,
   );
 }
 
-async function readStore(page: any, store: string): Promise<any[]> {
+async function readStore<S extends StoreName>(
+  page: Page,
+  store: S,
+): Promise<Stores[S][]> {
   return await page.evaluate(
     (name: string) =>
-      new Promise((resolve, reject) => {
+      new Promise<Stores[S][]>((resolve, reject) => {
         const request = indexedDB.open("learn-local-v1");
         request.onsuccess = () => {
           const all = request.result.transaction(name, "readonly").objectStore(
@@ -100,17 +114,17 @@ async function readStore(page: any, store: string): Promise<any[]> {
   );
 }
 
-function status(page: any) {
+function status(page: Page) {
   return page.locator("#sync-status");
 }
 
-async function continueOn(page: any) {
+async function continueOn(page: Page) {
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.waitForTimeout(40);
 }
 
 /** Read every Card and pass every Check, arriving at the first Wrap-up Question. */
-async function reachWrapUp(page: any) {
+async function reachWrapUp(page: Page) {
   for (const concept of fixture.concepts) {
     await expect(page.locator(".cardbody h2")).toHaveText(
       concept.cards[0].heading,
@@ -125,7 +139,7 @@ async function reachWrapUp(page: any) {
 }
 
 /** From the first Wrap-up Question, answer every Wrap-up Question correctly to the Learned summary. */
-async function finishWrapUp(page: any) {
+async function finishWrapUp(page: Page) {
   for (
     let steps = 0;
     steps < 10 &&
@@ -142,7 +156,7 @@ async function finishWrapUp(page: any) {
 }
 
 /** Open the lesson from the shelf by its title fragment, then Start (or Resume). */
-async function openLesson(page: any, origin: string, title: string) {
+async function openLesson(page: Page, origin: string, title: string) {
   await page.goto(`${origin}/`);
   await page.getByRole("button", { name: new RegExp(escapeRegExp(title)) })
     .click();
@@ -155,7 +169,7 @@ function escapeRegExp(text: string): string {
 /** Click whichever the overview offers: progress is shared across every device on the same account,
  * so a device that opens after another device on the same account has already recorded a
  * `lesson_started` event sees "Resume", not "Start lesson", once its merge lands. */
-async function startOrResume(page: any) {
+async function startOrResume(page: Page) {
   await expect(
     page.getByRole("button", { name: "Start lesson" }).or(
       page.getByRole("button", { name: "Resume" }),
@@ -168,7 +182,7 @@ async function startOrResume(page: any) {
 
 /** Click a named button, dumping the overview/shell text on failure so a timeout is diagnosable. */
 async function click(
-  page: any,
+  page: Page,
   name: string,
   options: Record<string, unknown> = {},
 ) {
@@ -183,21 +197,6 @@ async function click(
   }
 }
 
-const defects: Array<{ number: number; slug: string; title: string }> = [];
-
-function defectPath(number: number, slug: string): string {
-  return `issues/${number}-${slug}.md`;
-}
-
-async function fileDefect(number: number, slug: string, body: string) {
-  await Deno.writeTextFile(defectPath(number, slug), body);
-  defects.push({
-    number,
-    slug,
-    title: body.split("\n")[0].replace(/^#\s*\d+\s*—\s*/, ""),
-  });
-}
-
 Deno.test({
   name:
     "cross-device sync, verified adversarially against an ephemeral database",
@@ -207,7 +206,7 @@ Deno.test({
     const ephemeral = await createEphemeralDatabase();
     console.log(`ephemeral database created: ${ephemeral.name}`);
     const { db } = ephemeral;
-    let browser: any = null;
+    let browser: Browser | null = null;
     let server: Deno.HttpServer | null = null;
     try {
       const clock = () => Date.now();
@@ -227,22 +226,23 @@ Deno.test({
       };
       const cookieHeader = { cookie: `learn_session=${cookieValue}` };
 
-      browser = await chromium.launch({ headless: true });
+      const phone = await chromium.launch({ headless: true });
+      browser = phone;
 
-      async function newDevice() {
-        const context = await browser.newContext(PHONE);
+      const newDevice = async () => {
+        const context = await phone.newContext(PHONE);
         await context.addCookies([sessionCookie]);
         const page = await context.newPage();
         page.setDefaultTimeout(20000);
         const errors: string[] = [];
         page.on("pageerror", (error: Error) => errors.push(error.message));
         return { context, page, errors };
-      }
+      };
 
       const progressRepo = new TursoProgressRepository(db);
 
       /** Raw row counts and the served checkpoint for one Lesson Revision and epoch, straight from the DB. */
-      async function inspect(revisionId: string, epoch = 0) {
+      const inspect = async (revisionId: string, epoch = 0) => {
         const learningRows = await db.execute({
           sql:
             "SELECT id, epoch FROM progress_events WHERE account_id = ? AND lesson_revision_id = ? AND epoch = ?",
@@ -265,13 +265,13 @@ Deno.test({
         return {
           learningCount: learningRows.rows.length,
           navigationCount: navigationRows.rows.length,
-          learningIds: learningRows.rows.map((row: any) => String(row.id)),
-          navigationIds: navigationRows.rows.map((row: any) => String(row.id)),
+          learningIds: learningRows.rows.map((row) => String(row.id)),
+          navigationIds: navigationRows.rows.map((row) => String(row.id)),
           navigation,
           learning,
           checkpoint,
         };
-      }
+      };
 
       // ---------------------------------------------------------------------------------------------
       await t.step(
@@ -430,12 +430,12 @@ Deno.test({
               assertEquals(
                 row.learningCount,
                 new Set([
-                  ...(await readStore(a.page, "learning_events")).map((
-                    e: any,
-                  ) => e.id),
-                  ...(await readStore(b.page, "learning_events")).map((
-                    e: any,
-                  ) => e.id),
+                  ...(await readStore(a.page, "learning_events")).map((e) =>
+                    e.id
+                  ),
+                  ...(await readStore(b.page, "learning_events")).map((e) =>
+                    e.id
+                  ),
                 ]).size,
                 "the server's union has every learning event exactly once",
               );
@@ -454,7 +454,7 @@ Deno.test({
               }
               for (const device of [a, b]) {
                 const events = await readStore(device.page, "learning_events");
-                const ids = new Set(events.map((e: any) => e.id));
+                const ids = new Set(events.map((e) => e.id));
                 expect(ids.size).toBe(row.learningCount);
               }
               expect(a.errors).toEqual([]);
@@ -536,8 +536,8 @@ Deno.test({
             assertEquals(
               merged.learningCount,
               new Set([
-                ...learningBefore[0].map((e: any) => e.id),
-                ...learningBefore[1].map((e: any) => e.id),
+                ...learningBefore[0].map((e) => e.id),
+                ...learningBefore[1].map((e) => e.id),
               ]).size,
               "both answers to the same Question are kept, Learned never lost",
             );
@@ -545,7 +545,7 @@ Deno.test({
             // Construct an equal-frontier tie: two checkpoints over the SAME accepted learning events, one
             // with an earlier occurredAt and a lower event id, one with a later occurredAt (or, when the
             // clocks tie too, a greater event id). The server must deterministically prefer the later one.
-            const ids = merged.learning.map((event: any) => event.id);
+            const ids = merged.learning.map((event) => event.id);
             const checkpointed = (
               marker: string,
               occurredAt: string,
@@ -754,7 +754,7 @@ Deno.test({
           const device = await newDevice();
           let requests = 0;
           try {
-            await device.page.route("**/api/v1/progress/**", (route: any) => {
+            await device.page.route("**/api/v1/progress/**", (route) => {
               requests += 1;
               return route.fulfill({
                 status: 500,
@@ -781,7 +781,7 @@ Deno.test({
               "navigation_events",
             );
             const outbox = await readStore(device.page, "outbox");
-            const queuedIds = new Set(outbox.map((entry: any) => entry.id));
+            const queuedIds = new Set(outbox.map((entry) => entry.id));
             for (const event of learning) {
               expect(queuedIds.has(event.id)).toBe(true);
             }
@@ -852,13 +852,14 @@ Deno.test({
             // "Synced" can reflect an earlier cycle that predates the debounced upload of the final
             // summary checkpoint (kick() waits KICK_DELAY_MS after the render before a cycle runs), so
             // poll the server's own account until it agrees, rather than trusting one status read.
-            let before: any = null;
+            const seen: { before: ServedCheckpoint | null } = { before: null };
             await expect.poll(async () => {
-              before = await (await fetch(
+              const served: ServedCheckpoint = await (await fetch(
                 `${origin}/api/v1/progress/checkpoint?revision=${lesson.revisionId}&epoch=0`,
                 { headers: cookieHeader },
               )).json();
-              return before.checkpoint?.screen;
+              seen.before = served;
+              return served.checkpoint?.screen;
             }, { timeout: 20000 }).toBe("summary");
 
             // A stale checkpoint depending on far less evidence, stamped with a LATER client clock so only
@@ -901,18 +902,18 @@ Deno.test({
             assertEquals(pushed.status, 200);
             assertEquals((await pushed.json()).accepted, 1);
 
-            const after = await (await fetch(
+            const after: ServedCheckpoint = await (await fetch(
               `${origin}/api/v1/progress/checkpoint?revision=${lesson.revisionId}&epoch=0`,
               { headers: cookieHeader },
             )).json();
             assertEquals(
-              after.checkpoint.screen,
+              after.checkpoint?.screen,
               "summary",
               "a checkpoint with a smaller frontier never replaces one with a larger frontier, however late it arrives or however new its clock",
             );
             assertEquals(
-              after.checkpoint.marker,
-              before.checkpoint.marker ?? undefined,
+              after.checkpoint?.marker,
+              seen.before?.checkpoint?.marker ?? undefined,
             );
 
             const raw = await inspect(lesson.revisionId);
@@ -921,7 +922,7 @@ Deno.test({
               "the stale event is stored",
             );
             assertEquals(
-              selectCheckpoint(raw.navigation, raw.learning).screen,
+              screenOf(selectCheckpoint(raw.navigation, raw.learning)),
               "summary",
             );
 
@@ -933,7 +934,7 @@ Deno.test({
               await expect.poll(
                 async () =>
                   (await readStore(device.page, "navigation_events")).some((
-                    event: any,
+                    event,
                   ) => event.id === stale.id),
                 { timeout: 20000 },
               ).toBe(true);
@@ -960,7 +961,7 @@ Deno.test({
         async () => {
           const lesson = await freshLesson(db, accountId, "scenario 7");
           const title = lesson.content.title;
-          const context = await browser.newContext(PHONE);
+          const context = await phone.newContext(PHONE);
           await context.addCookies([sessionCookie]);
           let page = await context.newPage();
           page.setDefaultTimeout(20000);
@@ -976,13 +977,15 @@ Deno.test({
             // dropped connection.
             await page.route(
               "**/api/v1/progress/learning-events",
-              async (route: any) => {
+              async (route) => {
                 if (route.request().method() !== "POST") {
                   return route.continue();
                 }
-                const posted = JSON.parse(route.request().postData() ?? "{}");
+                const posted: { events?: Array<{ id: string }> } = JSON.parse(
+                  route.request().postData() ?? "{}",
+                );
                 learningIds.push(
-                  ...(posted.events ?? []).map((event: any) => event.id),
+                  ...(posted.events ?? []).map((event) => event.id),
                 );
                 const replayed = await fetch(
                   `${origin}/api/v1/progress/learning-events`,
@@ -1018,7 +1021,7 @@ Deno.test({
             // Every event this device holds locally, learning and navigation alike, must end up stored
             // exactly once after the kill-and-reopen below — whether or not its own batch ever got sent.
             const navigationIds = (await readStore(page, "navigation_events"))
-              .map((event: any) => event.id);
+              .map((event) => event.id);
             expect(navigationIds.length).toBeGreaterThan(0);
 
             // The server holds the learning batch; the client, mid-request, never got the response. Kill the tab.
@@ -1070,7 +1073,7 @@ Deno.test({
               "SELECT DISTINCT lesson_revision_id, epoch FROM navigation_events WHERE account_id = ?",
             args: [accountId],
           });
-          for (const row of streams.rows as any[]) {
+          for (const row of streams.rows) {
             const revisionId = String(row.lesson_revision_id);
             const epoch = Number(row.epoch);
             const navigation =
@@ -1082,22 +1085,16 @@ Deno.test({
               lessonRevisionId: revisionId,
               epoch,
             })).map((r) => r.event);
-            const accepted = new Set(learning.map((event: any) => event.id));
-            const served = selectCheckpoint(navigation, learning) as any;
+            const accepted = new Set(learning.map((event) => event.id));
+            const served = selectCheckpoint(navigation, learning);
             if (!served) continue;
-            const servedFrontier = Array.isArray(served.learningEventFrontier)
-              ? served.learningEventFrontier.filter((id: string) =>
-                accepted.has(id)
-              ).length
-              : 0;
-            for (const candidate of navigation as any[]) {
+            const servedFrontier = frontierCount(
+              { checkpoint: served },
+              accepted,
+            );
+            for (const candidate of navigation) {
               if (candidate.type !== "navigation_checkpointed") continue;
-              const frontier =
-                Array.isArray(candidate.checkpoint?.learningEventFrontier)
-                  ? candidate.checkpoint.learningEventFrontier.filter((
-                    id: string,
-                  ) => accepted.has(id)).length
-                  : 0;
+              const frontier = frontierCount(candidate, accepted);
               expect(
                 frontier,
                 `checkpoint ${candidate.id} in revision ${revisionId} epoch ${epoch} depends on more accepted evidence than the served one`,

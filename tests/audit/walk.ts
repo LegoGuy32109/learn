@@ -3,7 +3,9 @@
 // local audit (learning_loop_phone_test.ts) runs it against the database-free app; the production
 // audit (tests/audit-prod) runs the same walk against the deployed site, where the demo lesson has
 // its own server-assigned ID, so the lesson path and the page timeout are parameters.
-import { expect } from "@playwright/test";
+import { type Browser, expect, type Page } from "@playwright/test";
+import type { QuestionAnswered } from "../../src/shared/learning/types.d.ts";
+import type { Projections } from "../support/stores.ts";
 import {
   answer,
   attachListeners,
@@ -55,7 +57,7 @@ function settings(options: WalkOptions) {
 }
 
 /** Open the lesson from the shelf: by its id when the shelf may hold more than one match for the title, otherwise by the title text. */
-async function openFromShelf(page: any, lessonId: string | undefined) {
+async function openFromShelf(page: Page, lessonId: string | undefined) {
   if (lessonId) await page.locator(`[data-lesson="${lessonId}"]`).click();
   else {await page.getByRole("button", {
       name: new RegExp(LESSON.title),
@@ -65,14 +67,14 @@ async function openFromShelf(page: any, lessonId: string | undefined) {
 }
 
 /** This lesson's own row on the shelf: by id when the shelf may hold more than one match for the title, otherwise the whole shelf's one `.lstatus`. */
-function shelfRow(page: any, lessonId: string | undefined) {
+function shelfRow(page: Page, lessonId: string | undefined) {
   return lessonId
     ? page.locator(`[data-lesson="${lessonId}"]`)
     : page.locator(".lesson").filter({ hasText: LESSON.title });
 }
 
 export async function fullWalk(
-  browser: any,
+  browser: Browser,
   ORIGIN: string,
   errors: string[],
   consoleMessages: string[],
@@ -258,14 +260,14 @@ export async function fullWalk(
   await check(
     "card · Back inspection does not replace the canonical checkpoint",
     async () => {
-      expect((await projection(page, "checkpoint")).cardIndex).toBe(1);
+      expect((await projection(page, "checkpoint"))?.cardIndex).toBe(1);
     },
   );
   await reloadSame(page, "inspecting Card 1 resumes at the canonical Card 2", {
     expected: (before) => ({
       ...before,
       cardHeading: secondCard,
-      eyebrow: before.eyebrow.replace("Card 1", "Card 2"),
+      eyebrow: before.eyebrow?.replace("Card 1", "Card 2") ?? null,
     }),
   });
   await check(
@@ -314,9 +316,7 @@ export async function fullWalk(
     "check 1 · Review opens the correcting Card as a detour with Return to questions",
     async () => {
       await expect(page.locator(".notice")).toContainText("Correcting card");
-      const headings = LESSON.concepts[0].cards.map((card: any) =>
-        card.heading
-      );
+      const headings = LESSON.concepts[0].cards.map((card) => card.heading);
       expect(headings).toContain(
         await page.locator(".cardbody h2").textContent(),
       );
@@ -349,7 +349,7 @@ export async function fullWalk(
       expect(askedInChecks.has(check1Second)).toBe(false);
       expect(keyFor(check1Second).concept.id).toBe(LESSON.concepts[0].id);
       const checkpoint = await projection(page, "checkpoint");
-      expect(checkpoint.queue).not.toContain(keyFor(check1First).question.id);
+      expect(checkpoint?.queue).not.toContain(keyFor(check1First).question.id);
     },
   );
   askedInChecks.add(check1Second);
@@ -408,17 +408,17 @@ export async function fullWalk(
   await check(
     "check 2 · I don't know carries no penalty: progress state is unchanged",
     async () => {
-      expect((await projection(page, "progress")).state).toBe(
-        progressBeforeIdk.state,
+      expect((await projection(page, "progress"))?.state).toBe(
+        progressBeforeIdk?.state,
       );
       const recorded = (await readStore(page, "learning_events")).find((
         event,
-      ) =>
+      ): event is QuestionAnswered =>
         event.type === "question_answered" &&
         event.questionId === keyFor(idkStem).question.id
       );
-      expect(recorded.correct).toBe(false);
-      expect(recorded.answer).toBeNull();
+      expect(recorded?.correct).toBe(false);
+      expect(recorded?.answer).toBeNull();
     },
   );
   await surface(page, "check 2 I don't know feedback", { screenshot: true });
@@ -437,7 +437,7 @@ export async function fullWalk(
     await tap(page, "Continue");
   }
   const drawable3 =
-    LESSON.questions.filter((question: any) =>
+    LESSON.questions.filter((question) =>
       question.conceptId === LESSON.concepts[2].id && question.reserved !== true
     ).length;
   const check3Stems: string[] = [];
@@ -578,7 +578,7 @@ export async function fullWalk(
     async () => {
       await expect(page.locator(".lessonhero h1")).toHaveText("Learned");
       const progress = await projection(page, "progress");
-      expect(progress.state).toBe("learned");
+      expect(progress?.state).toBe("learned");
     },
   );
   observe(
@@ -623,7 +623,7 @@ export async function fullWalk(
 }
 
 export async function drillFromFresh(
-  browser: any,
+  browser: Browser,
   ORIGIN: string,
   errors: string[],
   consoleMessages: string[],
@@ -813,9 +813,9 @@ export async function drillFromFresh(
     },
   );
   for (const [conceptId, orders] of optionOrders) {
-    const title = LESSON.concepts.find((concept: any) =>
+    const title = LESSON.concepts.find((concept) =>
       concept.id === conceptId
-    ).title;
+    )?.title ?? conceptId;
     observe(
       `drill option order · ${title}`,
       `${orders.size} distinct option order(s) across this Concept's MCQs in one run.`,
@@ -892,7 +892,7 @@ export async function drillFromFresh(
 }
 
 /** Exactly three shared options, all from the Concept's set, an I don't know control, and a blank field. */
-async function checkQuestionShape(page: any, name: string) {
+async function checkQuestionShape(page: Page, name: string) {
   await check(
     `${name} · exactly three shared options, I don't know present, field blank`,
     async () => {
@@ -904,10 +904,10 @@ async function checkQuestionShape(page: any, name: string) {
         await expect(page.locator(".opt")).toHaveCount(3);
         const shown = (await page.locator(".opt").allInnerTexts()).sort();
         expect(shown).toEqual(
-          key.concept.options.map((option: any) => option.text).sort(),
+          key.concept.options.map((option) => option.text).sort(),
         );
         expect(Object.keys(key.question.feedback).sort()).toEqual(
-          key.concept.options.map((option: any) => option.id).sort(),
+          key.concept.options.map((option) => option.id).sort(),
         );
       } else {
         await expect(page.locator("#answer")).toHaveValue("");
@@ -919,7 +919,7 @@ async function checkQuestionShape(page: any, name: string) {
 }
 
 /** An unsubmitted draft in the answer field reloads blank. */
-async function checkDraftNotCheckpointed(page: any, name: string) {
+async function checkDraftNotCheckpointed(page: Page, name: string) {
   if (!(await page.locator("#answer").count())) return;
   await page.locator("#answer").fill("draft that must not survive");
   await clearProjections(page);
@@ -935,7 +935,7 @@ async function checkDraftNotCheckpointed(page: any, name: string) {
 
 /** Wrong-answer feedback: verdict, option feedback, belief for a distractor, clamped correcting Card below the action row. */
 async function checkWrongFeedback(
-  page: any,
+  page: Page,
   name: string,
   asked: string,
   expectedAction: string,
@@ -956,9 +956,9 @@ async function checkWrongFeedback(
       expect(shown.length).toBe(1);
       if (key.isMcq) {
         await expect(page.locator(".belief b")).not.toBeEmpty();
-        const statements = key.concept.misconceptions.map((
-          misconception: any,
-        ) => misconception.statement);
+        const statements = key.concept.misconceptions.map((misconception) =>
+          misconception.statement
+        );
         expect(statements).toContain(
           await page.locator(".belief b").textContent(),
         );
@@ -970,15 +970,14 @@ async function checkWrongFeedback(
   );
 }
 
-async function signatureAfterReturn(page: any) {
+async function signatureAfterReturn(page: Page) {
   await tap(page, "Return to questions");
   return await signature(page);
 }
 
-function learnedIds(progress: any): string[] {
-  return (progress?.conceptStates ?? []).filter((concept: any) =>
-    concept.learned
-  ).map((concept: any) => concept.id);
+function learnedIds(progress: Projections["progress"] | null): string[] {
+  return (progress?.conceptStates ?? []).filter((concept) => concept.learned)
+    .map((concept) => concept.id);
 }
 
 /**
@@ -986,7 +985,7 @@ function learnedIds(progress: any): string[] {
  * the reload probes and rebuilt whenever a lesson is opened, so they are not part of the comparison;
  * the evidence stores and the shelf's own status line are.
  */
-async function snapshot(page: any, lessonId?: string) {
+async function snapshot(page: Page, lessonId?: string) {
   return {
     learning: await readStore(page, "learning_events"),
     navigation: await readStore(page, "navigation_events"),

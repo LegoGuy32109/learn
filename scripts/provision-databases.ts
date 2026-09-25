@@ -19,7 +19,16 @@ interface DatabaseInfo {
   hostname?: string;
 }
 
-async function json(response: Response): Promise<any> {
+/** The fields this script reads from any Turso Platform API response. */
+interface TursoBody extends DatabaseInfo {
+  error?: string;
+  message?: string;
+  databases?: DatabaseInfo[];
+  database?: DatabaseInfo;
+  jwt?: string;
+}
+
+async function json(response: Response): Promise<TursoBody> {
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw new Error(

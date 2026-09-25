@@ -1,10 +1,14 @@
 // Progress sync routes against the database-free application: idempotent push, order-insensitive
 // projection, epoch rejection, short-answer round trip, revision and Question validation, opaque
 // cursor paging, and frontier-first checkpoint selection with its tie breaker. Cookie or bearer.
-import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert";
-import fixture from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+import type {
+  NumericQuestion,
+  Question,
+  ShortQuestion,
+} from "../../src/shared/lessons/types.d.ts";
+import type { EventRejection } from "../../src/server/progress/validation.ts";
+import { assert, assertEquals, assertStringIncludes } from "@std/assert";
+import { DEMO_LESSON as fixture } from "../support/demo-lesson.ts";
 import { reduceProgress } from "../../src/shared/learning/progress.js";
 import { selectCheckpoint } from "../../src/shared/learning/sync.js";
 import {
@@ -21,9 +25,15 @@ const READER_ONLY = "reader-token";
 const WRITER_ONLY = "writer-token";
 const OTHER = "other-account-token";
 const REVISION = fixture.revisionId;
-const lesson = fixture as any;
+const lesson = fixture;
 
-type Event = Record<string, unknown> & { id: string };
+type Event = Record<string, unknown> & { id: string; type: string };
+
+/** A refused push: which events were rejected, and why. */
+interface Refused {
+  code: string;
+  rejections: EventRejection[];
+}
 
 let clock = Date.parse("2026-09-22T10:00:00Z");
 function at(offsetSeconds = 0): string {
@@ -46,12 +56,12 @@ function event(
   };
 }
 
-function correctAnswer(question: any): string {
+function correctAnswer(question: Question): string {
   return question.type === "mcq" ? question.key : String(question.answer);
 }
 
 function answered(
-  question: any,
+  question: Question,
   answer: unknown,
   correct: boolean,
   flowKind = "check",
@@ -246,18 +256,16 @@ Deno.test("repeated upload of the same events is accepted once and returns succe
 Deno.test("events arriving out of order produce the same progress and checkpoint as in order", async () => {
   const h = await harness();
   const concept = lesson.concepts[0];
-  const cards = concept.cards.map((card: any) =>
+  const cards = concept.cards.map((card) =>
     event("card_seen", { cardId: card.id, conceptId: concept.id })
   );
+  const reserved = lesson.questions.find((question) =>
+    question.conceptId === concept.id && question.reserved
+  );
+  assert(reserved, "the Concept reserves a Wrap-up Question");
   const wrapUp = answered(
-    lesson.questions.find((question: any) =>
-      question.conceptId === concept.id && question.reserved
-    ),
-    correctAnswer(
-      lesson.questions.find((question: any) =>
-        question.conceptId === concept.id && question.reserved
-      ),
-    ),
+    reserved,
+    correctAnswer(reserved),
     true,
     "wrap_up",
   );
@@ -364,14 +372,16 @@ Deno.test("events from an epoch older than the stream's current epoch are reject
 
 Deno.test("short-answer text round-trips unchanged, and the shared evaluator decides correctness", async () => {
   const h = await harness();
-  const short = lesson.questions.find((question: any) =>
+  const short = lesson.questions.find((question): question is ShortQuestion =>
     question.type === "short"
   );
+  assert(short, "the demo has a short-answer Question");
   const typed = "  If-None-Match\t\u00a0ünïcode « quotes » 🙂 \u2028 line";
   const sent = answered(short, typed, false);
-  const numeric = lesson.questions.find((question: any) =>
-    question.type === "numeric"
-  );
+  const numeric = lesson.questions.find((
+    question,
+  ): question is NumericQuestion => question.type === "numeric");
+  assert(numeric, "the demo has a numeric Question");
   const idk = answered(numeric, null, false);
   const right = answered(short, ` ${short.answer.toUpperCase()} `, true);
   assertEquals(
@@ -426,10 +436,10 @@ Deno.test("an unknown Lesson Revision, a Question outside its revision and a mal
     wrongConcept,
   ]);
   assertEquals(rejected.status, 422);
-  const body = await rejected.json();
+  const body: Refused = await rejected.json();
   assertEquals(body.code, "events.rejected");
   assertEquals(
-    body.rejections.map((entry: any) => [entry.index, entry.code, entry.path]),
+    body.rejections.map((entry) => [entry.index, entry.code, entry.path]),
     [[1, "question.unknown", "/events/1/questionId"], [
       2,
       "question.concept",
@@ -448,7 +458,7 @@ Deno.test("an unknown Lesson Revision, a Question outside its revision and a mal
     epoch: 0,
     occurredAt: "yesterday",
   }, { ...event("lesson_started"), epoch: 4 }]);
-  const codes = (await malformed.json()).rejections.map((entry: any) =>
+  const codes = ((await malformed.json()) as Refused).rejections.map((entry) =>
     entry.code
   ).sort();
   assertEquals(codes, ["event.epoch", "event.id", "event.occurredAt"]);
@@ -461,7 +471,9 @@ Deno.test("an unknown Lesson Revision, a Question outside its revision and a mal
     },
   }]);
   assertEquals(
-    (await foreignCheckpoint.json()).rejections.map((entry: any) => entry.code),
+    ((await foreignCheckpoint.json()) as Refused).rejections.map((entry) =>
+      entry.code
+    ),
     ["checkpoint.frontier"],
   );
   const tooMany = await h.push(
@@ -483,11 +495,11 @@ Deno.test("incremental pull pages with an opaque cursor and never skips or repea
   const concept = lesson.concepts[1];
   const events = [
     event("lesson_started"),
-    ...concept.cards.map((card: any) =>
+    ...concept.cards.map((card) =>
       event("card_seen", { cardId: card.id, conceptId: concept.id })
     ),
   ];
-  const drawable = lesson.questions.filter((question: any) =>
+  const drawable = lesson.questions.filter((question) =>
     question.conceptId === concept.id && !question.reserved
   );
   for (const question of drawable) {
@@ -545,7 +557,7 @@ Deno.test("the checkpoint is rebuilt from the streams, a smaller frontier never 
   const concept = lesson.concepts[0];
   const evidence = [
     event("lesson_started"),
-    ...concept.cards.map((card: any) =>
+    ...concept.cards.map((card) =>
       event("card_seen", { cardId: card.id, conceptId: concept.id })
     ),
   ];

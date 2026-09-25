@@ -1,7 +1,6 @@
-import { assert, assertEquals } from "jsr:@std/assert";
-import lesson from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+import { assert, assertEquals } from "@std/assert";
+import type { McqQuestion } from "../../src/shared/lessons/types.d.ts";
+import { DEMO_LESSON as lesson } from "../support/demo-lesson.ts";
 import { validateLesson } from "../../src/shared/lessons/lesson.js";
 import {
   canonicalize,
@@ -18,10 +17,10 @@ import {
 Deno.test("demo fixture satisfies structural invariants", () =>
   assertEquals(validateLesson(lesson), []));
 Deno.test("answer evaluation is exact and normalized", () => {
-  const [mcq, numeric, short] = lesson.questions as any[];
-  assertEquals(mcq.type, "mcq");
-  assertEquals(numeric.type, "numeric");
-  assertEquals(short.type, "short");
+  const [mcq, numeric, short] = lesson.questions;
+  assert(mcq.type === "mcq");
+  assert(numeric.type === "numeric");
+  assert(short.type === "short");
   assert(evaluateAnswer(lesson, mcq, mcq.key));
   assert(!evaluateAnswer(lesson, mcq, "revalidate"));
   assert(!evaluateAnswer(lesson, mcq, "not-an-option"));
@@ -35,13 +34,13 @@ Deno.test("answer evaluation is exact and normalized", () => {
   assertEquals(canonicalize(" A\u00a0 B "), "a b");
 });
 Deno.test("MCQ keys point at the shared option set and the key moves across a Concept's MCQs", () => {
-  for (const concept of lesson.concepts as any[]) {
+  for (const concept of lesson.concepts) {
     assertEquals(concept.options.length, 3);
-    const mcqs = lesson.questions.filter((question: any) =>
+    const mcqs = lesson.questions.filter((question): question is McqQuestion =>
       question.conceptId === concept.id && question.type === "mcq"
-    ) as any[];
+    );
     for (const question of mcqs) {
-      assert(concept.options.some((option: any) => option.id === question.key));
+      assert(concept.options.some((option) => option.id === question.key));
     }
     assert(
       new Set(mcqs.map((question) => question.key)).size > 1,
@@ -50,7 +49,9 @@ Deno.test("MCQ keys point at the shared option set and the key moves across a Co
   }
 });
 Deno.test("progress reducer is monotonic and derives learned", () => {
-  const events: any[] = [{ type: "lesson_started" }];
+  const events: Array<{ type: string } & Record<string, unknown>> = [{
+    type: "lesson_started",
+  }];
   assertEquals(reduceProgress(lesson, events).state, "in_progress");
   for (const c of lesson.concepts) {
     for (const card of c.cards) {
@@ -75,7 +76,11 @@ Deno.test("shuffling is stable and seed-sensitive", () => {
   );
 });
 Deno.test("checkpoint reconstruction chooses the last immutable checkpoint", () => {
-  const events = [{
+  const events: Array<{
+    type: string;
+    occurredAt: string;
+    checkpoint: Record<string, unknown> | null;
+  }> = [{
     type: "navigation_checkpointed",
     occurredAt: "2026-01-01T00:00:00Z",
     checkpoint: { screen: "card", cardIndex: 0 },

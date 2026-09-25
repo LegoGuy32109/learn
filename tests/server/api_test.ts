@@ -1,7 +1,6 @@
-import { assertEquals } from "jsr:@std/assert";
-import lesson from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+import { assertEquals } from "@std/assert";
+import type { Resolution } from "../../src/shared/authoring/resolver.js";
+import { DEMO_LESSON as lesson } from "../support/demo-lesson.ts";
 import { createApp, fixtureDependencies } from "../../src/app.ts";
 import { FixtureLessonRepository } from "../../src/server/repositories/lessons.ts";
 
@@ -9,8 +8,11 @@ const app = createApp({
   ...await fixtureDependencies(),
   lessons: new FixtureLessonRepository(lesson),
   auth: {
-    async authenticate() {
-      return { ok: false as const, reason: "unauthenticated" as const };
+    authenticate() {
+      return Promise.resolve({
+        ok: false as const,
+        reason: "unauthenticated" as const,
+      });
     },
   },
 });
@@ -24,8 +26,7 @@ Deno.test("capability discovery is public", async () => {
 });
 
 Deno.test("resolver reports diagnostics without authentication", async () => {
-  const invalid = structuredClone(lesson) as any;
-  delete invalid.provenance;
+  const { provenance: _provenance, ...invalid } = structuredClone(lesson);
   const response = await app(
     new Request("http://local/api/v1/lesson-resolutions", {
       method: "POST",
@@ -57,12 +58,12 @@ Deno.test("the demo path: a 90-word Card and an always-longest key return 422 wi
     await fixture("authoring/invalid/demo-path-two-diagnostics.json"),
   );
   assertEquals(response.status, 422);
-  const body = await response.json();
+  const body: Resolution = await response.json();
   assertEquals(body.valid, false);
   assertEquals(body.fingerprint, null);
   assertEquals(
     body.diagnostics.map((
-      diagnostic: any,
+      diagnostic,
     ) => [diagnostic.severity, diagnostic.code, diagnostic.path]),
     [
       ["error", "lesson.key.longest", "/concepts"],
@@ -76,9 +77,9 @@ Deno.test("a lesson with only warnings resolves 200 and includes them", async ()
     await fixture("authoring/valid/warning-single-paragraph-card.json"),
   );
   assertEquals(response.status, 200);
-  const body = await response.json();
+  const body: Resolution = await response.json();
   assertEquals(body.valid, true);
-  assertEquals(body.diagnostics.map((diagnostic: any) => diagnostic.severity), [
+  assertEquals(body.diagnostics.map((diagnostic) => diagnostic.severity), [
     "warning",
   ]);
 });
@@ -106,7 +107,9 @@ Deno.test("oversized, deeply nested and malformed bodies are rejected without a 
   );
   assertEquals(deep.status, 422);
   assertEquals(
-    (await deep.json()).diagnostics.map((diagnostic: any) => diagnostic.code),
+    ((await deep.json()) as Resolution).diagnostics.map((diagnostic) =>
+      diagnostic.code
+    ),
     ["document.nesting"],
   );
 

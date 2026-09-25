@@ -7,7 +7,13 @@
 // created in tests/audit-prod/last-run.md.
 //
 // Run: deno task audit:prod            (LEARN_BASE_URL optional; token from .env.prod)
-import { chromium, expect } from "@playwright/test";
+import {
+  type Browser,
+  type BrowserContext,
+  chromium,
+  expect,
+} from "@playwright/test";
+import type { Lesson } from "../../src/shared/lessons/types.d.ts";
 import {
   attachListeners,
   observations,
@@ -449,7 +455,7 @@ async function transportAndSecurity() {
 // ---------------------------------------------------------------------------------------------
 // Manifest, service worker and offline shell.
 
-async function manifestAndWorker(browser: any) {
+async function manifestAndWorker(browser: Browser) {
   const context = await browser.newContext(PHONE);
   const page = await context.newPage();
   page.setDefaultTimeout(10000);
@@ -464,11 +470,11 @@ async function manifestAndWorker(browser: any) {
     const parsed = await cdp.send("Page.getAppManifest") as {
       url: string;
       errors: unknown[];
-      manifest: any;
+      manifest: ChromiumManifest;
     };
     let installability: unknown = "unavailable";
     try {
-      installability = (await cdp.send("Page.getInstallabilityErrors") as any)
+      installability = (await cdp.send("Page.getInstallabilityErrors"))
         .installabilityErrors;
     } catch (error) {
       installability = `unavailable: ${
@@ -671,14 +677,29 @@ async function manifestAndWorker(browser: any) {
 // ---------------------------------------------------------------------------------------------
 // Sign-in: invite, passkey, cookie, restart, reuse.
 
+/** The browser state a signed-in context carries to the next one. */
+type StorageState = Awaited<ReturnType<BrowserContext["storageState"]>>;
+
+/** The page inlines the lesson it serves for the first paint. */
+type InlinedWindow = Window & { __LESSON__?: Lesson };
+
+/** The fields of Chromium's parsed manifest (`Page.getAppManifest`) this audit reads. */
+interface ChromiumManifest {
+  name: string;
+  display: string;
+  startUrl: string;
+  themeColor: string;
+  icons: Array<{ sizes: string }>;
+}
+
 interface SignedIn {
-  storageState: any;
+  storageState: StorageState | null;
   credentialId: string | null;
   /** The account's display name as the invite page announced it. */
   displayName: string;
 }
 
-async function signIn(browser: any): Promise<SignedIn> {
+async function signIn(browser: Browser): Promise<SignedIn> {
   const outcome: SignedIn = {
     storageState: null,
     credentialId: null,
@@ -714,9 +735,9 @@ async function signIn(browser: any): Promise<SignedIn> {
   recordPageBodies(page, "sign-in");
   const cdp = await context.newCDPSession(page);
   let setCookieHeader: string | null = null;
-  page.on("response", async (response: any) => {
+  page.on("response", async (response) => {
     if (new URL(response.url()).pathname === "/api/v1/passkeys/registrations") {
-      const header = (await response.headersArray()).find((entry: any) =>
+      const header = (await response.headersArray()).find((entry) =>
         entry.name.toLowerCase() === "set-cookie"
       );
       if (header) setCookieHeader = header.value;
@@ -741,6 +762,7 @@ async function signIn(browser: any): Promise<SignedIn> {
     await check(
       "invite · the invite page opens for Josh's account with one Register a passkey button",
       async () => {
+        if (!landing) throw new Error("the invite page returned no response");
         expect(landing.status()).toBe(200);
         const notice = await page.locator(".notice strong").first()
           .textContent();
@@ -769,7 +791,7 @@ async function signIn(browser: any): Promise<SignedIn> {
     );
     const credentials =
       (await cdp.send("WebAuthn.getCredentials", { authenticatorId }))
-        .credentials as any[];
+        .credentials;
     outcome.credentialId = credentials[0]?.credentialId ?? null;
     if (outcome.credentialId) {
       created.push(
@@ -779,13 +801,13 @@ async function signIn(browser: any): Promise<SignedIn> {
       );
     }
 
-    const cookie = (await context.cookies()).find((candidate: any) =>
+    const cookie = (await context.cookies()).find((candidate) =>
       candidate.name === "learn_session"
     );
     await check(
       "cookie · learn_session is HttpOnly, Secure, SameSite=Lax, Path=/, host-only and expires in about 30 days",
       () => {
-        expect(cookie, "no learn_session cookie").toBeTruthy();
+        if (!cookie) throw new Error("no learn_session cookie");
         expect(cookie.httpOnly).toBe(true);
         expect(cookie.secure).toBe(true);
         expect(cookie.sameSite).toBe("Lax");
@@ -823,7 +845,7 @@ async function signIn(browser: any): Promise<SignedIn> {
         await page.getByRole("button", { name: "Sign out" }).click();
         await expect(page.locator("#account-status")).toHaveText("Guest");
         expect(
-          (await context.cookies()).some((candidate: any) =>
+          (await context.cookies()).some((candidate) =>
             candidate.name === "learn_session"
           ),
         ).toBe(false);
@@ -832,7 +854,7 @@ async function signIn(browser: any): Promise<SignedIn> {
         await expect(page.locator("#account-status")).toHaveText(signedInAs());
         const after =
           (await cdp.send("WebAuthn.getCredentials", { authenticatorId }))
-            .credentials as any[];
+            .credentials;
         expect(after[0].signCount).toBeGreaterThan(0);
         return `sign count after sign-in: ${after[0].signCount}; ${await snap(
           page,
@@ -846,6 +868,7 @@ async function signIn(browser: any): Promise<SignedIn> {
     await check(
       "invite · opening the used invite again is a plain 410 page saying it was already used",
       async () => {
+        if (!reused) throw new Error("the used invite returned no response");
         expect(reused.status()).toBe(410);
         await expect(page.getByText("already used")).toBeVisible();
         expect(looksLikeStackTrace(await page.content())).toBe(false);
@@ -922,7 +945,7 @@ async function signIn(browser: any): Promise<SignedIn> {
 // ---------------------------------------------------------------------------------------------
 // Shelf: a laptop-created draft, refresh, open, cache, offline, second revision, Outdated, discard.
 
-async function shelf(browser: any, signedIn: SignedIn) {
+async function shelf(browser: Browser, signedIn: SignedIn) {
   if (!signedIn.storageState) {
     await check("shelf · the shelf section needs a signed-in session", () => {
       throw new Error(
@@ -1227,7 +1250,7 @@ async function shelf(browser: any, signedIn: SignedIn) {
           guestPage.getByRole("button", { name: "Sign in with a passkey" }),
         ).toBeVisible();
         const inlined = await guestPage.evaluate(() =>
-          (window as any).__LESSON__?.title ?? null
+          (window as InlinedWindow).__LESSON__?.title ?? null
         );
         expect(inlined).not.toBe(title);
         expect(inlined).not.toBe(revisedTitle);
@@ -1244,19 +1267,20 @@ async function shelf(browser: any, signedIn: SignedIn) {
 // ---------------------------------------------------------------------------------------------
 // The ticket 12 learning loop, against production, as a guest on the featured demo lesson.
 
-async function learningLoop(browser: any) {
+async function learningLoop(browser: Browser) {
   const context = await browser.newContext(PHONE);
   const page = await context.newPage();
   let lessonPath = "";
   try {
     await page.goto(`${BASE}/`);
     const inlined = await page.evaluate(() =>
-      (window as any).__LESSON__ ?? null
+      (window as InlinedWindow).__LESSON__ ?? null
     );
     await check(
       "learning · the shell inlines the published demo lesson with the fixture's content",
       () => {
         expect(inlined?.title).toBe("How browser HTTP caching works");
+        if (!inlined) throw new Error("the shell inlined no lesson");
         expect(inlined.concepts.length).toBe(3);
         lessonPath = `/learn/${inlined.lessonId}`;
         return `demo lessonId ${inlined.lessonId}, revisionId ${inlined.revisionId}`;

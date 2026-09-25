@@ -3,8 +3,21 @@
 // The fixtures and manifest.json are committed; the test reads them and never regenerates.
 // The oversized documents are built at test time because a 1,000,001-byte file has no place in Git.
 
+import type {
+  Concept,
+  McqQuestion,
+  NormalizedLesson,
+  NumericQuestion,
+  Question,
+} from "../../../src/shared/lessons/types.d.ts";
+
+/** The audit lesson as an agent writes it: `schema` names the version, and no server IDs. */
+type AuditDocument = Omit<NormalizedLesson, "schemaVersion"> & {
+  schema: string;
+};
+
 const here = new URL("./", import.meta.url);
-const base = JSON.parse(
+const base: AuditDocument = JSON.parse(
   await Deno.readTextFile(new URL("audit-lesson.json", here)),
 );
 
@@ -24,9 +37,13 @@ export interface Attack {
 }
 
 const attacks: Attack[] = [];
-type Mutation = (lesson: any) => void;
+/**
+ * One attack on a copy of the audit lesson. Attacks break the contract on purpose: Object.assign
+ * writes a value of the wrong type, and Reflect.deleteProperty removes a field the contract requires.
+ */
+type Mutation = (lesson: AuditDocument) => void;
 
-function clone(): any {
+function clone(): AuditDocument {
   return structuredClone(base);
 }
 
@@ -66,17 +83,40 @@ function bodyOf(words: number): string[] {
   return [all.slice(0, split).join(" "), all.slice(split).join(" ")];
 }
 
-const mcqs = (lesson: any) =>
-  lesson.questions.filter((question: any) => question.type === "mcq");
-const conceptOf = (lesson: any, question: any) =>
-  lesson.concepts.find((concept: any) => concept.id === question.conceptId);
+const mcqs = (lesson: AuditDocument) =>
+  lesson.questions.filter((question): question is McqQuestion =>
+    question.type === "mcq"
+  );
+/** The Question at `index`, which the attacks below rely on being an MCQ. */
+const mcqAt = (lesson: AuditDocument, index: number): McqQuestion => {
+  const question = lesson.questions[index];
+  if (question.type !== "mcq") {
+    throw new Error(`Question ${index} is not an MCQ`);
+  }
+  return question;
+};
+/** The Question at `index`, which the attacks below rely on being numeric. */
+const numericAt = (lesson: AuditDocument, index: number): NumericQuestion => {
+  const question = lesson.questions[index];
+  if (question.type !== "numeric") {
+    throw new Error(`Question ${index} is not numeric`);
+  }
+  return question;
+};
+const conceptOf = (lesson: AuditDocument, question: Question): Concept => {
+  const concept = lesson.concepts.find((concept) =>
+    concept.id === question.conceptId
+  );
+  if (!concept) throw new Error(`No Concept owns Question ${question.id}`);
+  return concept;
+};
 
 // --- The reference plugin's validate.mjs rules, translated to lesson/v1 ---------------------------
 
 await fixture("ref-no-title", "reference-validator", {
   valid: false,
   codes: ["title.required"],
-}, (lesson) => delete lesson.title);
+}, (lesson) => Reflect.deleteProperty(lesson, "title"));
 await fixture("ref-no-concepts", "reference-validator", {
   valid: false,
   codes: ["concepts.required"],
@@ -117,7 +157,7 @@ await fixture("ref-duplicate-card-id", "reference-validator", {
 await fixture("ref-card-no-heading", "reference-validator", {
   valid: false,
   codes: ["card.heading"],
-}, (lesson) => delete lesson.concepts[2].cards[0].heading);
+}, (lesson) => Reflect.deleteProperty(lesson.concepts[2].cards[0], "heading"));
 await fixture("ref-card-no-body", "reference-validator", {
   valid: false,
   codes: ["card.body.paragraphs"],
@@ -162,9 +202,10 @@ await fixture("ref-no-reserved", "reference-validator", {
   valid: false,
   codes: ["pool.reserved.missing"],
 }, (lesson) => {
-  const reserved = lesson.questions.find((question: any) =>
+  const reserved = lesson.questions.find((question) =>
     question.conceptId === lesson.concepts[2].id && question.reserved
   );
+  if (!reserved) throw new Error("Concept 3 reserves no Question");
   reserved.reserved = false;
 });
 await fixture("ref-drawable-under-3", "reference-validator", {
@@ -173,7 +214,7 @@ await fixture("ref-drawable-under-3", "reference-validator", {
   note:
     "Removing one drawable MCQ also lifts the lesson-wide key-longest rate from 3/9 to 3/8, which is above one third.",
 }, (lesson) => {
-  const index = lesson.questions.findIndex((question: any) =>
+  const index = lesson.questions.findIndex((question) =>
     question.conceptId === lesson.concepts[2].id && !question.reserved
   );
   lesson.questions.splice(index, 1);
@@ -185,7 +226,7 @@ await fixture("ref-duplicate-question-id", "reference-validator", {
 await fixture("ref-no-stem", "reference-validator", {
   valid: false,
   codes: ["question.stem"],
-}, (lesson) => delete lesson.questions[0].stem);
+}, (lesson) => Reflect.deleteProperty(lesson.questions[0], "stem"));
 await fixture(
   "ref-stem-deixis",
   "reference-validator",
@@ -201,37 +242,37 @@ await fixture("ref-numeric-reserved", "reference-validator", {
 await fixture("ref-numeric-answer-not-number", "reference-validator", {
   valid: false,
   codes: ["numeric.answer"],
-}, (lesson) => lesson.questions[2].answer = "thirty");
+}, (lesson) => Object.assign(numericAt(lesson, 2), { answer: "thirty" }));
 await fixture("ref-numeric-zero-tolerance", "reference-validator", {
   valid: false,
   codes: ["numeric.tolerance.missing"],
-}, (lesson) => lesson.questions[2].tolerance = 0);
+}, (lesson) => numericAt(lesson, 2).tolerance = 0);
 await fixture("ref-numeric-no-feedback", "reference-validator", {
   valid: false,
   codes: ["question.feedback"],
-}, (lesson) => delete lesson.questions[2].feedback);
+}, (lesson) => Reflect.deleteProperty(numericAt(lesson, 2), "feedback"));
 await fixture("ref-numeric-answer-uncovered", "reference-validator", {
   valid: false,
   codes: ["numeric.answer.uncovered"],
-}, (lesson) => lesson.questions[2].answer = 31);
+}, (lesson) => numericAt(lesson, 2).answer = 31);
 await fixture("ref-mcq-key-not-in-set", "reference-validator", {
   valid: false,
   codes: ["mcq.key"],
   exact: false,
   note: "The old key is now a distractor without a map entry.",
-}, (lesson) => lesson.questions[0].key = "nope");
+}, (lesson) => mcqAt(lesson, 0).key = "nope");
 await fixture("ref-mcq-feedback-missing", "reference-validator", {
   valid: false,
   codes: ["mcq.feedback.missing"],
-}, (lesson) => delete lesson.questions[0].feedback.bump);
+}, (lesson) => delete mcqAt(lesson, 0).feedback.bump);
 await fixture("ref-mcq-map-missing", "reference-validator", {
   valid: false,
   codes: ["mcq.map.missing"],
-}, (lesson) => delete lesson.questions[0].map.remint);
+}, (lesson) => delete mcqAt(lesson, 0).map.remint);
 await fixture("ref-mcq-map-unknown", "reference-validator", {
   valid: false,
   codes: ["mcq.map.unknown"],
-}, (lesson) => lesson.questions[0].map.remint = "no_such_belief");
+}, (lesson) => mcqAt(lesson, 0).map.remint = "no_such_belief");
 await fixture("ref-misconception-unused", "reference-validator", {
   valid: false,
   codes: ["misconception.unused"],
@@ -251,10 +292,7 @@ await fixture("ref-key-longest", "reference-validator", {
   for (const question of mcqs(lesson)) {
     const concept = conceptOf(lesson, question);
     const longest = concept.options.reduce(
-      (
-        best: any,
-        option: any,
-      ) => (option.text.length > best.text.length ? option : best),
+      (best, option) => (option.text.length > best.text.length ? option : best),
       concept.options[0],
     );
     if (question.key === longest.id) continue;
@@ -270,15 +308,14 @@ await fixture("ref-key-longest", "reference-validator", {
   // Every misconception must still be used; re-map one distractor per Concept where needed.
   for (const concept of lesson.concepts) {
     const used = new Set(
-      mcqs(lesson).filter((q: any) => q.conceptId === concept.id).flatMap((
-        q: any,
-      ) => Object.values(q.map)),
+      mcqs(lesson).filter((q) => q.conceptId === concept.id).flatMap((q) =>
+        Object.values(q.map)
+      ),
     );
     for (const misconception of concept.misconceptions) {
       if (used.has(misconception.id)) continue;
-      const question = mcqs(lesson).find((q: any) =>
-        q.conceptId === concept.id
-      );
+      const question = mcqs(lesson).find((q) => q.conceptId === concept.id);
+      if (!question) throw new Error(`${concept.title} has no MCQ`);
       const [distractor] = Object.keys(question.map);
       question.map[distractor] = misconception.id;
       used.add(misconception.id);
@@ -298,10 +335,7 @@ await fixture("key-longest-every-mcq", "key-longest", {
   for (const question of mcqs(lesson)) {
     const concept = conceptOf(lesson, question);
     const longest = concept.options.reduce(
-      (
-        best: any,
-        option: any,
-      ) => (option.text.length > best.text.length ? option : best),
+      (best, option) => (option.text.length > best.text.length ? option : best),
       concept.options[0],
     );
     if (question.key === longest.id) continue;
@@ -405,7 +439,7 @@ await fixture("nesting-200-deep", "hostile-document", {
 }, (lesson) => {
   let deep: unknown = [];
   for (let level = 0; level < 199; level++) deep = [deep];
-  lesson.deep = deep;
+  Object.assign(lesson, { deep });
 });
 await fixture("nesting-32-deep", "hostile-document", {
   valid: true,
@@ -416,7 +450,7 @@ await fixture("nesting-32-deep", "hostile-document", {
 }, (lesson) => {
   let deep: unknown = "leaf";
   for (let level = 0; level < 31; level++) deep = [deep];
-  lesson.deep = deep;
+  Object.assign(lesson, { deep });
 });
 
 await fixture("duplicate-card-id-across-concepts", "duplicate-ids", {
@@ -441,8 +475,8 @@ await fixture("duplicate-option-id-across-concepts", "duplicate-ids", {
 }, (lesson) => {
   lesson.concepts[2].options[0].id = "bump";
   for (
-    const question of lesson.questions.filter((q: any) =>
-      q.conceptId === lesson.concepts[2].id && q.type === "mcq"
+    const question of mcqs(lesson).filter((q) =>
+      q.conceptId === lesson.concepts[2].id
     )
   ) {
     if (question.key === "drain") question.key = "bump";
@@ -473,9 +507,7 @@ for (const name of ["__proto__", "constructor", "prototype"]) {
     const old = concept.options[0].id;
     concept.options[0].id = name;
     for (
-      const question of lesson.questions.filter((q: any) =>
-        q.conceptId === concept.id && q.type === "mcq"
-      )
+      const question of mcqs(lesson).filter((q) => q.conceptId === concept.id)
     ) {
       if (question.key === old) question.key = name;
       if (old in question.map) {
@@ -495,9 +527,7 @@ for (const name of ["__proto__", "constructor", "prototype"]) {
     const old = concept.misconceptions[0].id;
     concept.misconceptions[0].id = name;
     for (
-      const question of lesson.questions.filter((q: any) =>
-        q.conceptId === concept.id && q.type === "mcq"
-      )
+      const question of mcqs(lesson).filter((q) => q.conceptId === concept.id)
     ) {
       for (const [option, misconception] of Object.entries(question.map)) {
         if (misconception === old) question.map[option] = name;
@@ -526,16 +556,22 @@ for (const name of ["__proto__", "constructor", "prototype"]) {
 await fixture("reserved-name-feedback-key", "reserved-names", {
   valid: false,
   codes: ["mcq.feedback.extra"],
-}, (lesson) => lesson.questions[0].feedback.__proto__ = "polluted");
-await fixture("reserved-name-map-key", "reserved-names", {
-  valid: false,
-  codes: ["mcq.map.extra"],
-}, (lesson) => lesson.questions[0].map.constructor = "only_this_device");
+}, (lesson) => mcqAt(lesson, 0).feedback.__proto__ = "polluted");
+await fixture(
+  "reserved-name-map-key",
+  "reserved-names",
+  {
+    valid: false,
+    codes: ["mcq.map.extra"],
+  },
+  (lesson) =>
+    Object.assign(mcqAt(lesson, 0).map, { constructor: "only_this_device" }),
+);
 
 await fixture("provenance-omitted", "provenance", {
   valid: false,
   codes: ["provenance.required"],
-}, (lesson) => delete lesson.provenance);
+}, (lesson) => Reflect.deleteProperty(lesson, "provenance"));
 await fixture(
   "provenance-declined",
   "provenance",
@@ -545,7 +581,7 @@ await fixture(
 await fixture("provenance-missing-model", "provenance", {
   valid: false,
   codes: ["provenance.model"],
-}, (lesson) => delete lesson.provenance.model);
+}, (lesson) => Reflect.deleteProperty(lesson.provenance, "model"));
 await fixture("provenance-declined-with-fields", "provenance", {
   valid: true,
   codes: [],
@@ -556,7 +592,7 @@ await fixture("provenance-declined-with-fields", "provenance", {
 await fixture("provenance-status-unknown", "provenance", {
   valid: false,
   codes: ["provenance.required"],
-}, (lesson) => lesson.provenance.status = "maybe");
+}, (lesson) => Object.assign(lesson.provenance, { status: "maybe" }));
 
 await fixture(
   "valid-audit-lesson",

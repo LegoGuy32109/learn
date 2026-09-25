@@ -105,7 +105,7 @@ export function renderLearning(root, session, progress, nav) {
  * @param {Session} session
  * @param {any} nav
  */
-async function handle(action, session, nav) {
+function handle(action, session, nav) {
   if (action === "shelf") {
     session.flow = null;
     return nav.show("shelf", "/");

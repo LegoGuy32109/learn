@@ -1,7 +1,6 @@
-import { assert, assertEquals } from "jsr:@std/assert";
-import lesson from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+import { assert, assertEquals } from "@std/assert";
+import type { ShelfLesson } from "../../src/server/repositories/lessons.ts";
+import { DEMO_LESSON as lesson } from "../support/demo-lesson.ts";
 import { createApp } from "../../src/app.ts";
 import { createDb } from "../../src/server/db.ts";
 import { tursoDependencies } from "./support/dependencies.ts";
@@ -14,8 +13,9 @@ Deno.test("authenticated draft API persists idempotently in Turso", async () => 
   const db = createDb();
   const dependencies = tursoDependencies(db);
   const app = createApp(dependencies);
-  const input = structuredClone(lesson) as any;
+  const input = structuredClone(lesson);
   input.title = `Turso integration ${crypto.randomUUID()}`;
+  assert(input.provenance.status === "provided");
   input.provenance.session_reference = "database-integration-test";
   const request = () =>
     new Request("http://local/api/v1/lessons", {
@@ -61,9 +61,10 @@ Deno.test("authenticated draft API persists idempotently in Turso", async () => 
     );
     assertEquals(listed.status, 200);
     assert(
-      (await listed.json()).revisions.some((revision: any) =>
-        revision.revisionId === created.revisionId
-      ),
+      ((await listed.json()) as { revisions: Array<{ revisionId: string }> })
+        .revisions.some((revision) =>
+          revision.revisionId === created.revisionId
+        ),
     );
 
     // The shelf: newest lesson first with its newest revision, by bearer and by the browser cookie.
@@ -73,13 +74,13 @@ Deno.test("authenticated draft API persists idempotently in Turso", async () => 
       }),
     );
     assertEquals(shelf.status, 200);
-    const { lessons } = await shelf.json();
+    const { lessons }: { lessons: ShelfLesson[] } = await shelf.json();
     assertEquals(lessons[0].lessonId, created.lessonId);
     assertEquals(lessons[0].latestRevisionId, created.revisionId);
     assertEquals(lessons[0].latestRevisionNumber, 1);
     assertEquals(lessons[0].conceptCount, 3);
     assertEquals(
-      lessons.filter((lesson: any) => lesson.lessonId === created.lessonId)
+      lessons.filter((lesson) => lesson.lessonId === created.lessonId)
         .length,
       1,
     );
@@ -114,15 +115,15 @@ Deno.test("authenticated draft API persists idempotently in Turso", async () => 
       }),
     );
     assertEquals(byCookie.status, 200);
-    const afterRevision = (await byCookie.json()).lessons;
+    const afterRevision =
+      ((await byCookie.json()) as { lessons: ShelfLesson[] }).lessons;
     assertEquals(afterRevision[0].lessonId, created.lessonId);
     assertEquals(afterRevision[0].latestRevisionId, second.revisionId);
     assertEquals(afterRevision[0].latestRevisionNumber, 2);
     assertEquals(afterRevision[0].title, input.title);
     assertEquals(
-      afterRevision.filter((lesson: any) =>
-        lesson.lessonId === created.lessonId
-      ).length,
+      afterRevision.filter((lesson) => lesson.lessonId === created.lessonId)
+        .length,
       1,
     );
 

@@ -1,7 +1,16 @@
 // Ticket 12 audit: targeted attempts to break the learning-loop contract on a phone viewport.
 // Each probe runs in a fresh browser context. Failing checks are collected into the report and
 // the test fails at the end when any check failed.
-import { chromium, expect } from "@playwright/test";
+import {
+  type BrowserContext,
+  chromium,
+  expect,
+  type Page,
+} from "@playwright/test";
+import type {
+  CardSeen,
+  DrillAnswered,
+} from "../../src/shared/learning/types.d.ts";
 import { app } from "../../src/app.ts";
 import { advanceWrapUp } from "../../src/shared/learning/transitions.js";
 import { cardsFlow, startCheck } from "../../src/client/learning/flow.js";
@@ -21,6 +30,7 @@ import {
   report,
   results,
   settle,
+  type Signature,
   signature,
   stem,
   tap,
@@ -87,9 +97,9 @@ Deno.test({
   },
 });
 
-type Fresh = () => Promise<{ page: any; context: any }>;
+type Fresh = () => Promise<{ page: Page; context: BrowserContext }>;
 
-async function openFirstCard(page: any) {
+async function openFirstCard(page: Page) {
   await tap(page, new RegExp(LESSON.title));
   await tap(page, /Start lesson|Resume/, false);
   await expect(page.locator(".cardbody h2")).toHaveText(
@@ -98,7 +108,7 @@ async function openFirstCard(page: any) {
 }
 
 /** Two taps that land before the first re-render, as a phone double-tap does. */
-async function doubleTap(page: any, selector: string) {
+async function doubleTap(page: Page, selector: string) {
   await page.evaluate((target: string) => {
     const button = document.querySelector(target) as HTMLElement;
     button.click();
@@ -115,9 +125,11 @@ async function doubleTapContinueOnCard(fresh: Fresh) {
   await check(
     "double-tap · Continue on Card 1 advances one Card and marks only Card 1 Seen",
     async () => {
-      const seen = (await readStore(page, "learning_events")).filter((event) =>
-        event.type === "card_seen"
-      ).map((event) => event.cardId);
+      const seen = (await readStore(page, "learning_events")).filter((
+        event,
+      ): event is CardSeen => event.type === "card_seen").map((event) =>
+        event.cardId
+      );
       const shown = await signature(page);
       expect(shown.cardHeading).toBe(LESSON.concepts[0].cards[1].heading);
       expect(seen).toEqual([LESSON.concepts[0].cards[0].id]);
@@ -147,9 +159,9 @@ async function doubleTapAfterFeedback(fresh: Fresh) {
       expect(shown.surface).toBe("learn");
       expect(shown.stem).not.toBeNull();
       expect(shown.stem).not.toBe(asked);
-      expect(after.screen).toBe("question");
-      expect(after.flowKind).toBe("check");
-      expect(after.queue.length).toBe(before.queue.length - 1);
+      expect(after?.screen).toBe("question");
+      expect(after?.flowKind).toBe("check");
+      expect(after?.queue.length).toBe((before?.queue.length ?? 0) - 1);
     },
   );
   await context.close();
@@ -198,9 +210,9 @@ async function emptyAnswerSubmit(fresh: Fresh) {
   const asked = await stem(page);
   await tap(page, "Answer");
   const shown = await signature(page);
-  const last = (await readStore(page, "drill_events")).filter((event) =>
-    event.type === "drill_question_answered"
-  ).at(-1);
+  const last = (await readStore(page, "drill_events")).filter((
+    event,
+  ): event is DrillAnswered => event.type === "drill_question_answered").at(-1);
   observe(
     "empty answer",
     shown.verdict
@@ -245,7 +257,7 @@ async function deadBackControls(fresh: Fresh) {
       `back · ${name} · Back looks back at the last Card of ${concept.title}`,
       () => {
         expect(after.surface).toBe("learn");
-        expect(after.cardHeading).toBe(concept.cards.at(-1).heading);
+        expect(after.cardHeading).toBe(concept.cards.at(-1)?.heading);
         expect(after.controls).toContain("Continue");
       },
     );
@@ -296,10 +308,10 @@ async function deadBackControls(fresh: Fresh) {
       );
       expect(seen.length).toBe(LESSON.concepts[0].cards.length);
       const checkpoint = await projection(page, "checkpoint");
-      expect(checkpoint.screen).toBe("card");
-      expect(checkpoint.conceptIndex).toBe(1);
-      expect(checkpoint.cardIndex).toBe(0);
-      expect(checkpoint.detour).toBeNull();
+      expect(checkpoint?.screen).toBe("card");
+      expect(checkpoint?.conceptIndex).toBe(1);
+      expect(checkpoint?.cardIndex).toBe(0);
+      expect(checkpoint?.detour).toBeNull();
     },
   );
   await context.close();
@@ -313,7 +325,7 @@ async function browserBackMidLesson(fresh: Fresh) {
     LESSON.concepts[0].cards[1].heading,
   );
   const pathFor = (
-    shown: any,
+    shown: Signature,
   ) => (shown.surface === "shelf"
     ? "/"
     : shown.surface === "drill"
@@ -422,11 +434,11 @@ async function optionOrderPerQuestion() {
     seed: 7,
     attemptId: "attempt",
   });
-  const mcqs = LESSON.questions.filter((question: any) =>
+  const mcqs = LESSON.questions.filter((question) =>
     question.conceptId === concept.id && question.type === "mcq"
   );
   const orders = new Set(
-    mcqs.map((question: any) => {
+    mcqs.map((question) => {
       const html = questionView(concept, question, flow);
       return [...html.matchAll(/data-answer="([^"]+)"/g)].map((match) =>
         match[1]

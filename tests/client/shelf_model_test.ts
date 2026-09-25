@@ -1,10 +1,8 @@
 // The shelf as data: server lessons merged with cached revisions without duplicates, newest first,
 // each pinned to one revision with progress from local evidence, Outdated only when progress exists
 // on an older revision, and a discard that advances the epoch without moving progress.
-import { assert, assertEquals } from "jsr:@std/assert";
-import fixture from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+import { assert, assertEquals } from "@std/assert";
+import { DEMO_LESSON as fixture } from "../support/demo-lesson.ts";
 import {
   buildShelf,
   discardTo,

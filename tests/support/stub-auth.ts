@@ -13,7 +13,7 @@ export function stubAuthenticator(
   tokens: Record<string, StubToken>,
 ): Authenticator {
   return {
-    async authenticate(
+    authenticate(
       request: Request,
       requiredScope: string,
     ): Promise<AuthResult> {
@@ -21,18 +21,20 @@ export function stubAuthenticator(
       const token = header.startsWith("Bearer ")
         ? tokens[header.slice(7).trim()]
         : undefined;
-      if (!token) return { ok: false, reason: "unauthenticated" };
-      if (!token.scopes.includes(requiredScope)) {
-        return { ok: false, reason: "forbidden" };
+      if (!token) {
+        return Promise.resolve({ ok: false, reason: "unauthenticated" });
       }
-      return {
+      if (!token.scopes.includes(requiredScope)) {
+        return Promise.resolve({ ok: false, reason: "forbidden" });
+      }
+      return Promise.resolve({
         ok: true,
         principal: {
           accountId: token.accountId,
           scopes: token.scopes,
           tokenPrefix: token.prefix,
         },
-      };
+      });
     },
   };
 }

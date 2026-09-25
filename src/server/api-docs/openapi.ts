@@ -16,11 +16,13 @@ import { capabilitiesFor } from "./capabilities.ts";
 
 /** The canonical origin. Per-request documents substitute the request origin in `servers`. */
 import { PUBLIC_ORIGIN } from "../plugin/links.ts";
+import type { NormalizedLesson } from "../../shared/lessons/types.d.ts";
 
 /** The origin documents default to when no request origin is known. One value, set in src/server/plugin/links.ts. */
 export const CANONICAL_ORIGIN = PUBLIC_ORIGIN;
 
-export const exampleLesson: Record<string, unknown> = JSON.parse(
+/** A valid lesson/v1 document as an agent submits it, with no server-assigned IDs. */
+export const exampleLesson: NormalizedLesson = JSON.parse(
   await Deno.readTextFile(
     new URL(
       "../../../fixtures/authoring/valid/demo-without-ids.json",
@@ -34,7 +36,7 @@ if (!resolved.valid) {
   throw new Error("The OpenAPI example lesson must resolve valid");
 }
 
-const invalidLesson = structuredClone(exampleLesson) as Record<string, any>;
+const invalidLesson = structuredClone(exampleLesson);
 invalidLesson.concepts[0].cards[0].body = ["A Card that is far too short."];
 const rejected = await resolveLesson(invalidLesson);
 
@@ -58,8 +60,7 @@ function problem(status: number, title: string, detail: string) {
   return { type: "about:blank", title, status, detail };
 }
 
-const exampleConcept =
-  (exampleRevision.content as Record<string, any>).concepts[0];
+const exampleConcept = exampleRevision.content.concepts[0];
 const exampleStream = {
   lessonId: exampleLessonId,
   lessonRevisionId: exampleRevisionId,

@@ -1,7 +1,9 @@
-import { assert, assertEquals } from "jsr:@std/assert";
-import lesson from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+import { assert, assertEquals } from "@std/assert";
+import { DEMO_LESSON as lesson } from "../support/demo-lesson.ts";
+import type {
+  McqQuestion,
+  Question,
+} from "../../src/shared/lessons/types.d.ts";
 import {
   activeConcept,
   advance,
@@ -10,6 +12,7 @@ import {
   cardsFlow,
   continueFromCard,
   current,
+  currentQuestion,
   enterCorrective,
   initialFlow,
   leaveCorrective,
@@ -23,7 +26,6 @@ import { poolQuestions } from "../../src/shared/lessons/lesson.js";
 
 const attempt = { seed: 7, attemptId: "attempt-1" };
 const firstConcept = lesson.concepts[0];
-const anyLesson = lesson as any;
 
 function afterFirstConcept() {
   let flow = initialFlow();
@@ -33,24 +35,32 @@ function afterFirstConcept() {
   return flow;
 }
 
-function questionById(id: string): any {
-  return lesson.questions.find((question) => question.id === id);
+function questionById(id: string): Question {
+  const question = lesson.questions.find((question) => question.id === id);
+  if (!question) throw new Error(`No Question ${id}`);
+  return question;
 }
 
-function conceptOf(question: any): any {
-  return lesson.concepts.find((concept) => concept.id === question.conceptId);
+function conceptOf(question: Question) {
+  const concept = lesson.concepts.find((concept) =>
+    concept.id === question.conceptId
+  );
+  if (!concept) throw new Error(`No Concept owns Question ${question.id}`);
+  return concept;
 }
 
-function correctAnswer(question: any): string {
+function correctAnswer(question: Question): string {
   if (question.type === "mcq") return question.key;
   return String(question.answer);
 }
 
-function wrongAnswer(question: any): string {
+function wrongAnswer(question: Question): string {
   if (question.type === "mcq") {
-    return conceptOf(question).options.find((option: any) =>
+    const distractor = conceptOf(question).options.find((option) =>
       option.id !== question.key
-    ).id;
+    );
+    if (!distractor) throw new Error(`No distractor for ${question.id}`);
+    return distractor.id;
   }
   return "definitely wrong";
 }
@@ -58,7 +68,7 @@ function wrongAnswer(question: any): string {
 Deno.test("Continue walks every Card, then opens a shuffled Check over the drawable Questions only", () => {
   let flow = initialFlow();
   assert(atFirstCard(flow));
-  assertEquals(current(lesson, flow).id, firstConcept.cards[0].id);
+  assertEquals(current(lesson, flow)?.id, firstConcept.cards[0].id);
   flow = continueFromCard(lesson, flow, attempt);
   assertEquals(flow.cardIndex, 1);
   assert(!atFirstCard(flow));
@@ -66,10 +76,10 @@ Deno.test("Continue walks every Card, then opens a shuffled Check over the drawa
   assertEquals(flow.screen, "question");
   assertEquals(flow.flowKind, "check");
   assertEquals(flow.attemptId, "attempt-1");
-  const drawable = poolQuestions(anyLesson, firstConcept.id, "drawable").map((
+  const drawable = poolQuestions(lesson, firstConcept.id, "drawable").map((
     question,
   ) => question.id);
-  const reserved = poolQuestions(anyLesson, firstConcept.id, "reserved").map((
+  const reserved = poolQuestions(lesson, firstConcept.id, "reserved").map((
     question,
   ) => question.id);
   assertEquals(new Set(flow.queue), new Set(drawable));
@@ -84,7 +94,7 @@ Deno.test("Continue walks every Card, then opens a shuffled Check over the drawa
 Deno.test("the Check never draws a reserved Question for any seed or Concept", () => {
   for (const [conceptIndex, concept] of lesson.concepts.entries()) {
     const reserved = new Set(
-      poolQuestions(anyLesson, concept.id, "reserved").map((question) =>
+      poolQuestions(lesson, concept.id, "reserved").map((question) =>
         question.id
       ),
     );
@@ -97,7 +107,7 @@ Deno.test("the Check never draws a reserved Question for any seed or Concept", (
       for (const id of flow.queue) assert(!reserved.has(id));
       assertEquals(
         flow.queue.length,
-        poolQuestions(anyLesson, concept.id, "drawable").length,
+        poolQuestions(lesson, concept.id, "drawable").length,
       );
     }
   }
@@ -120,7 +130,7 @@ Deno.test("the Wrap-up draws a reserved Question for every Concept, so it is one
 });
 
 Deno.test("a Pool without a reserved Question falls back to any Question so the Wrap-up still asks", () => {
-  const unreserved = structuredClone(lesson) as any;
+  const unreserved = structuredClone(lesson);
   for (const question of unreserved.questions) question.reserved = false;
   const flow = startWrapUp(unreserved, attempt);
   assertEquals(flow.queue.length, unreserved.concepts.length);
@@ -133,7 +143,7 @@ Deno.test("a wrong Check answer offers another Question; the last one moves to t
     const submitted = submitAnswer(
       lesson,
       flow,
-      wrongAnswer(current(lesson, flow)),
+      wrongAnswer(currentQuestion(lesson, flow)),
       false,
     );
     assertEquals(submitted.correct, false);
@@ -144,7 +154,12 @@ Deno.test("a wrong Check answer offers another Question; the last one moves to t
   }
   flow = advance(
     lesson,
-    submitAnswer(lesson, flow, wrongAnswer(current(lesson, flow)), false).flow,
+    submitAnswer(
+      lesson,
+      flow,
+      wrongAnswer(currentQuestion(lesson, flow)),
+      false,
+    ).flow,
     attempt,
   );
   assertEquals(flow.screen, "card");
@@ -154,9 +169,9 @@ Deno.test("a wrong Check answer offers another Question; the last one moves to t
 
 Deno.test("a chosen distractor names the belief behind it and the Card in the same Concept that corrects it", () => {
   for (
-    const question of lesson.questions.filter((candidate) =>
-      candidate.type === "mcq"
-    ) as any[]
+    const question of lesson.questions.filter((
+      candidate,
+    ): candidate is McqQuestion => candidate.type === "mcq")
   ) {
     const concept = conceptOf(question);
     for (const option of concept.options) {
@@ -174,7 +189,7 @@ Deno.test("a chosen distractor names the belief behind it and the Card in the sa
         assertEquals(feedback.cardId, null);
         continue;
       }
-      const misconception = concept.misconceptions.find((candidate: any) =>
+      const misconception = concept.misconceptions.find((candidate) =>
         candidate.id === question.map[option.id]
       );
       assert(
@@ -184,7 +199,7 @@ Deno.test("a chosen distractor names the belief behind it and the Card in the sa
       assertEquals(feedback.belief, misconception.statement);
       assertEquals(feedback.cardId, misconception.correctingCardId);
       assert(
-        concept.cards.some((card: any) => card.id === feedback.cardId),
+        concept.cards.some((card) => card.id === feedback.cardId),
         "the correcting Card is in the same Concept",
       );
     }
@@ -195,7 +210,7 @@ Deno.test("numeric and short answers carry the Question feedback and the Questio
   for (
     const question of lesson.questions.filter((candidate) =>
       candidate.type !== "mcq"
-    ) as any[]
+    )
   ) {
     const right = buildFeedback(
       lesson,
@@ -220,7 +235,7 @@ Deno.test("numeric and short answers carry the Question feedback and the Questio
 
 Deno.test("correct feedback never auto-advances and keeps the key's feedback", () => {
   const flow = afterFirstConcept();
-  const question = current(lesson, flow);
+  const question = currentQuestion(lesson, flow);
   const submitted = submitAnswer(lesson, flow, correctAnswer(question), false);
   assert(submitted.correct);
   assertEquals(submitted.flow.screen, "question");
@@ -245,7 +260,10 @@ Deno.test("I don't know ends the Check, names the answer, and points at the corr
   );
   const detour = enterCorrective(lesson, submitted.flow);
   assertEquals(detour.screen, "corrective");
-  assertEquals(current(lesson, detour).id, submitted.question.correctingCardId);
+  assertEquals(
+    current(lesson, detour)?.id,
+    submitted.question.correctingCardId,
+  );
   const back = leaveCorrective(detour);
   assertEquals(back.screen, "question");
   assertEquals(back.queue, submitted.flow.queue);
@@ -259,14 +277,15 @@ Deno.test("the corrective detour opens the misconception's Card for a chosen dis
     questionById(id).type === "mcq"
   );
   const positioned = { ...flow, queue: flow.queue.slice(mcqIndex) };
-  const question = current(lesson, positioned);
+  const question = currentQuestion(lesson, positioned);
+  assert(question.type === "mcq");
   const distractor = wrongAnswer(question);
   const submitted = submitAnswer(lesson, positioned, distractor, false);
-  const misconception = conceptOf(question).misconceptions.find((
-    candidate: any,
-  ) => candidate.id === question.map[distractor]);
+  const misconception = conceptOf(question).misconceptions.find((candidate) =>
+    candidate.id === question.map[distractor]
+  );
   const detour = enterCorrective(lesson, submitted.flow);
-  assertEquals(current(lesson, detour).id, misconception.correctingCardId);
+  assertEquals(current(lesson, detour)?.id, misconception?.correctingCardId);
 });
 
 Deno.test("the Wrap-up asks one Question per Concept, retries misses, and finishes on the summary", () => {
@@ -279,7 +298,12 @@ Deno.test("the Wrap-up asks one Question per Concept, retries misses, and finish
   const missed = flow.queue[0];
   flow = advance(
     lesson,
-    submitAnswer(lesson, flow, wrongAnswer(current(lesson, flow)), false).flow,
+    submitAnswer(
+      lesson,
+      flow,
+      wrongAnswer(currentQuestion(lesson, flow)),
+      false,
+    ).flow,
     attempt,
   );
   assertEquals(flow.queue.length, lesson.concepts.length);
@@ -288,7 +312,7 @@ Deno.test("the Wrap-up asks one Question per Concept, retries misses, and finish
     const submitted = submitAnswer(
       lesson,
       flow,
-      correctAnswer(current(lesson, flow)),
+      correctAnswer(currentQuestion(lesson, flow)),
       false,
     );
     assert(submitted.correct);
@@ -321,7 +345,10 @@ Deno.test("Back on a Question looks back at the Concept's last Card, and Continu
   assertEquals(lookedBack.screen, "card");
   assertEquals(lookedBack.conceptIndex, 0);
   assertEquals(lookedBack.cardIndex, lastCard);
-  assertEquals(current(lesson, lookedBack).id, firstConcept.cards[lastCard].id);
+  assertEquals(
+    current(lesson, lookedBack)?.id,
+    firstConcept.cards[lastCard].id,
+  );
   assertEquals(lookedBack.detour, check);
   // Continue on the looked-back Card returns to the same unanswered Question, never a new Check.
   assertEquals(
@@ -341,9 +368,13 @@ Deno.test("Back on a Question looks back at the Concept's last Card, and Continu
     check,
   );
   // Feedback keeps its answer through a look-back.
-  const answered =
-    submitAnswer(lesson, check, wrongAnswer(current(lesson, check)), false)
-      .flow;
+  const answered = submitAnswer(
+    lesson,
+    check,
+    wrongAnswer(currentQuestion(lesson, check)),
+    false,
+  )
+    .flow;
   const fromFeedback = stepBack(lesson, answered);
   assertEquals(fromFeedback.screen, "card");
   assertEquals(continueFromCard(lesson, fromFeedback, attempt), answered);
@@ -351,9 +382,13 @@ Deno.test("Back on a Question looks back at the Concept's last Card, and Continu
 
 Deno.test("Back on a correcting Card returns to the Question it interrupted", () => {
   const check = afterFirstConcept();
-  const answered =
-    submitAnswer(lesson, check, wrongAnswer(current(lesson, check)), false)
-      .flow;
+  const answered = submitAnswer(
+    lesson,
+    check,
+    wrongAnswer(currentQuestion(lesson, check)),
+    false,
+  )
+    .flow;
   const detour = enterCorrective(lesson, answered);
   assertEquals(stepBack(lesson, detour), answered);
 });
@@ -371,7 +406,7 @@ Deno.test("Back on the first Card of a later Concept looks back at the previous 
   assertEquals(earlier.detour, conceptTwo);
   // The Wrap-up looks back at the Card of the Question's own Concept.
   const wrapUp = startWrapUp(lesson, attempt);
-  const question = current(lesson, wrapUp);
+  const question = currentQuestion(lesson, wrapUp);
   const concept = conceptOf(question);
   const fromWrapUp = stepBack(lesson, wrapUp);
   assertEquals(fromWrapUp.conceptIndex, lesson.concepts.indexOf(concept));
@@ -381,28 +416,27 @@ Deno.test("Back on the first Card of a later Concept looks back at the previous 
 
 Deno.test("MCQ option order depends on the Question as well as the seed, and is stable for a reload", async () => {
   const { optionOrder } = await import("../../src/client/learning/views.js");
-  const concept = lesson.concepts[0] as any;
-  const mcqs = (lesson.questions as any[]).filter((question) =>
+  const concept = lesson.concepts[0];
+  const mcqs = lesson.questions.filter((question): question is McqQuestion =>
     question.conceptId === concept.id && question.type === "mcq"
   );
   assert(mcqs.length > 1);
   const orders = new Set(
     mcqs.map((question) =>
-      optionOrder(concept, question, { seed: 7 }).map((option: any) =>
-        option.id
-      ).join(",")
+      optionOrder(concept, question, { seed: 7 }).map((option) => option.id)
+        .join(",")
     ),
   );
   assert(orders.size > 1);
-  const again = optionOrder(concept, mcqs[0], { seed: 7 }).map((option: any) =>
+  const again = optionOrder(concept, mcqs[0], { seed: 7 }).map((option) =>
     option.id
   );
   assertEquals(
     again,
-    optionOrder(concept, mcqs[0], { seed: 7 }).map((option: any) => option.id),
+    optionOrder(concept, mcqs[0], { seed: 7 }).map((option) => option.id),
   );
   assertEquals(
     new Set(again),
-    new Set(concept.options.map((option: any) => option.id)),
+    new Set(concept.options.map((option) => option.id)),
   );
 });

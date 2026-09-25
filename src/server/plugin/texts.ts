@@ -16,13 +16,11 @@ import {
 import { DIAGNOSTICS } from "../../shared/authoring/diagnostics.js";
 import { capabilitiesFor } from "../api-docs/capabilities.ts";
 import {
-  ARCHIVE_FILE,
   MARKETPLACE_NAME,
   PLUGIN_NAME,
   PLUGIN_VERSION,
   pluginLinks,
   PUBLIC_ORIGIN,
-  REPOSITORY_DIR,
   SKILL_NAME,
 } from "./links.ts";
 
@@ -527,7 +525,31 @@ function countableRules(): string {
   );
 }
 
-type Schema = Record<string, any>;
+/** The JSON Schema keywords the reference renderer reads. */
+interface Schema {
+  $ref?: string;
+  $defs?: Record<string, Schema>;
+  type?: string | string[];
+  const?: unknown;
+  enum?: unknown[];
+  description?: string;
+  pattern?: string;
+  minLength?: number;
+  exclusiveMinimum?: number;
+  items?: Schema;
+  minItems?: number;
+  maxItems?: number;
+  properties?: Record<string, Schema>;
+  required?: string[];
+  additionalProperties?: boolean | Schema;
+  propertyNames?: Schema;
+  minProperties?: number;
+  maxProperties?: number;
+  oneOf?: Schema[];
+  allOf?: Schema[];
+  not?: Schema;
+  unevaluatedProperties?: boolean;
+}
 
 function refName(ref: string): string {
   return ref.slice(ref.lastIndexOf("/") + 1);
@@ -634,7 +656,7 @@ function definitionSection(name: string, definition: Schema): string {
     if (definition.not?.enum) {
       lines.push(
         `Never one of ${
-          definition.not.enum.map((value: string) => `\`${value}\``).join(", ")
+          definition.not.enum.map((value) => `\`${value}\``).join(", ")
         }.`,
         "",
       );
@@ -811,7 +833,7 @@ slugs local to their Concept.
 
 ## Top level
 
-${propertyRows(schema, schema.required)}
+${propertyRows(schema, schema.required ?? [])}
 
 Unknown top-level fields are rejected by the schema as likely typos. The
 document may be at most ${MAX_DOCUMENT_BYTES.toLocaleString("en-US")} bytes.

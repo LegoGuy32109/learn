@@ -1,11 +1,12 @@
 // The agent plugin served under /plugin must be exactly what the shared sources generate, must
 // install by every route the human page describes, and its scripts must never leak the token.
+import type { Lesson } from "../../src/shared/lessons/types.d.ts";
 import {
   assert,
   assertEquals,
   assertMatch,
   assertStringIncludes,
-} from "jsr:@std/assert";
+} from "@std/assert";
 import { Ajv2020 } from "ajv/2020";
 import addFormatsModule from "ajv-formats";
 import {
@@ -505,51 +506,53 @@ const TOKEN = "learn_pat_testprefix_" + "s".repeat(43);
 /** Drafts in memory with the same fingerprint idempotency as the Turso repository. */
 class MemoryLessons implements LessonRepository {
   revisions: StoredRevision[] = [];
-  constructor(private fixture: Record<string, unknown>) {}
-  async featured() {
-    return this.fixture;
+  constructor(private fixture: Lesson) {}
+  featured() {
+    return Promise.resolve(this.fixture);
   }
-  async createLesson(
+  createLesson(
     _account: string,
     resolved: ResolvedLesson,
   ): Promise<StoredRevision> {
     const existing = this.revisions.find((revision) =>
       revision.fingerprint === resolved.fingerprint
     );
-    if (existing) return existing;
+    if (existing) return Promise.resolve(existing);
+    const lessonId = crypto.randomUUID();
+    const revisionId = crypto.randomUUID();
     const stored: StoredRevision = {
-      lessonId: crypto.randomUUID(),
-      revisionId: crypto.randomUUID(),
+      lessonId,
+      revisionId,
       revisionNumber: 1,
       status: "draft",
       fingerprint: resolved.fingerprint,
-      content: resolved.normalizedLesson,
+      content: { ...resolved.normalizedLesson, lessonId, revisionId },
       createdAt: Date.now(),
     };
     this.revisions.push(stored);
-    return stored;
+    return Promise.resolve(stored);
   }
-  async createRevision(
+  createRevision(
     account: string,
     _lessonId: string,
     resolved: ResolvedLesson,
   ) {
-    return this.createLesson(account, resolved);
+    return Promise.resolve(this.createLesson(account, resolved));
   }
-  async getRevision() {
-    return null;
+  getRevision() {
+    return Promise.resolve(null);
   }
-  async latestRevision() {
-    return null;
+  latestRevision() {
+    return Promise.resolve(null);
   }
-  async learnableRevision() {
-    return null;
+  learnableRevision() {
+    return Promise.resolve(null);
   }
-  async listMine() {
-    return [];
+  listMine() {
+    return Promise.resolve([]);
   }
-  async shelf() {
-    return [];
+  shelf() {
+    return Promise.resolve([]);
   }
 }
 
@@ -560,17 +563,17 @@ async function draftApp() {
     ...dependencies,
     lessons,
     auth: {
-      async authenticate(request, scope) {
+      authenticate(request, scope) {
         if (request.headers.get("authorization") !== `Bearer ${TOKEN}`) {
-          return { ok: false, reason: "unauthenticated" };
+          return Promise.resolve({ ok: false, reason: "unauthenticated" });
         }
         if (scope !== "lessons:write") {
-          return { ok: false, reason: "forbidden" };
+          return Promise.resolve({ ok: false, reason: "forbidden" });
         }
-        return {
+        return Promise.resolve({
           ok: true,
           principal: { accountId: "owner", scopes: ["lessons:write"] },
-        };
+        });
       },
     },
   });

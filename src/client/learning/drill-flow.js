@@ -1,4 +1,5 @@
 // @ts-check
+/** @typedef {import("../../shared/lessons/types.d.ts").Lesson} Lesson */
 // Drill flow controller: pure transitions over one drill run. A run asks every Question once in
 // the order fixed by its seed. Answering reuses the learning flow's evaluation, feedback and
 // corrective detour; only the queue rule differs, and nothing here awards Learned.
@@ -16,13 +17,13 @@ import { drillQueue } from "../../shared/learning/drill.js";
  * @property {number} conceptIndex  Only meaningful on the corrective screen
  * @property {number} cardIndex  Only meaningful on the corrective screen
  * @property {import("./flow.js").Feedback|null} feedback
- * @property {any} detour
+ * @property {DrillFlow|null} detour
  * @property {string[]} [drillEventFrontier]
  */
 
 /**
  * Begin a drill run over every Question in every Pool.
- * @param {any} lesson
+ * @param {Lesson} lesson
  * @param {{ seed: number, runId: string }} run
  * @returns {DrillFlow}
  */

@@ -1,4 +1,8 @@
 // @ts-check
+/** @typedef {import("../../shared/lessons/types.d.ts").Card} Card */
+/** @typedef {import("../../shared/lessons/types.d.ts").Concept} Concept */
+/** @typedef {import("../../shared/lessons/types.d.ts").Lesson} Lesson */
+/** @typedef {import("../../shared/lessons/types.d.ts").Question} Question */
 // Renders the Card, Question, feedback, corrective and summary views of the learning shell.
 import { shuffled } from "../../shared/learning/shuffle.js";
 import { card as findCard } from "../../shared/lessons/lesson.js";
@@ -22,8 +26,8 @@ function paragraphs(body) {
 }
 
 /**
- * @param {any} concept
- * @param {any} card
+ * @param {Concept} concept
+ * @param {Card} card
  * @param {any} flow
  */
 export function cardView(concept, card, flow) {
@@ -41,7 +45,7 @@ export function cardView(concept, card, flow) {
 /**
  * The correcting Card clamped to its first paragraph. The rest folds behind a disclosure so the
  * action row above it stays reachable without scrolling.
- * @param {any} card
+ * @param {Card} card
  */
 export function clampedCardView(card) {
   const [first, ...rest] = card.body;
@@ -91,8 +95,8 @@ function hashString(value) {
 /**
  * The option display order for one MCQ. It depends on the attempt seed and the Question ID, so it
  * survives a reload of the same attempt yet differs between the Questions of one Concept.
- * @param {any} concept
- * @param {any} question
+ * @param {Concept} concept
+ * @param {Question} question
  * @param {any} flow
  */
 export function optionOrder(concept, question, flow) {
@@ -105,8 +109,8 @@ export function optionOrder(concept, question, flow) {
 /**
  * The MCQ options, or the typed-answer form. The typed form submits on Enter as well as on the
  * Answer button: `bind` in controls.js turns the form's submit event into the `submit` action.
- * @param {any} concept
- * @param {any} question
+ * @param {Concept} concept
+ * @param {Question} question
  * @param {any} flow
  */
 function answerForm(concept, question, flow) {
@@ -119,7 +123,7 @@ function answerForm(concept, question, flow) {
     );
     return `<div class="opts">${buttons.join("")}</div>`;
   }
-  const hint = question.unit
+  const hint = question.type === "numeric" && question.unit
     ? `answer in ${question.unit}`
     : "one word or short phrase";
   const inputMode = question.type === "numeric" ? ' inputmode="decimal"' : "";
@@ -127,8 +131,8 @@ function answerForm(concept, question, flow) {
 }
 
 /**
- * @param {any} concept
- * @param {any} question
+ * @param {Concept} concept
+ * @param {Question} question
  * @param {any} flow
  */
 export function questionView(concept, question, flow) {
@@ -169,7 +173,7 @@ export function drillSummaryView(outcomes) {
   return `${hero}<div class="summary drill">${lines.join("")}</div>`;
 }
 
-/** @param {any} lesson */
+/** @param {Lesson} lesson */
 export function summaryView(lesson) {
   const count = lesson.concepts.length;
   const hero =
@@ -181,9 +185,9 @@ export function summaryView(lesson) {
 
 /**
  * The replaceable region of the learning shell.
- * @param {any} lesson
+ * @param {Lesson} lesson
  * @param {any} flow
- * @param {any} concept
+ * @param {Concept} concept
  * @param {any} item
  */
 export function regionView(lesson, flow, concept, item) {
@@ -197,7 +201,7 @@ export function regionView(lesson, flow, concept, item) {
 
 /**
  * The clamped correcting Card shown under the action row after a wrong or unknown answer.
- * @param {any} lesson
+ * @param {Lesson} lesson
  * @param {any} flow
  */
 export function afterFooterView(lesson, flow) {
@@ -247,11 +251,12 @@ export function footerView(flow) {
 const STARTED_FILL = 40;
 
 /**
- * @param {any} concept
+ * @param {Concept} concept
  * @param {any} progress
  */
 function conceptFill(concept, progress) {
-  const lastCard = concept.cards.at(-1);
+  // A Concept always has at least two Cards.
+  const lastCard = concept.cards[concept.cards.length - 1];
   if (
     progress.learnedConcepts.has(concept.id) ||
     progress.cardsSeen.has(lastCard.id)
@@ -286,7 +291,7 @@ function railSegment(fill, label) {
 /**
  * Segmented rail for a drill run: one segment per Concept, filled by how many of its Questions
  * this run has answered. Learning progress is not shown, because drill does not change it.
- * @param {any} lesson
+ * @param {Lesson} lesson
  * @param {ReturnType<typeof import("../../shared/learning/drill.js").reduceDrill>} outcomes
  */
 export function drillRailView(lesson, outcomes) {
@@ -304,7 +309,7 @@ export function drillRailView(lesson, outcomes) {
 
 /**
  * Segmented Concept rail, with one extra segment during the Wrap-up.
- * @param {any} lesson
+ * @param {Lesson} lesson
  * @param {any} flow
  * @param {any} progress
  */

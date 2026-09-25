@@ -1,12 +1,11 @@
 // Answer key for the demo lesson, keyed by a distinctive fragment of each stem, plus page helpers
 // shared by the phone-viewport tests.
-import { expect } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 
-export interface Answer {
-  fragment: string;
-  option?: string;
-  text?: string;
-}
+/** How to answer the Question whose stem contains `fragment`: tap an option, or type text. */
+export type Answer =
+  | { fragment: string; option: string }
+  | { fragment: string; text: string };
 
 export const ANSWERS: Answer[] = [
   {
@@ -52,7 +51,7 @@ export function answerFor(stem: string): Answer {
   return answer;
 }
 
-export async function openFirstCard(page: any, origin: string) {
+export async function openFirstCard(page: Page, origin: string) {
   await page.goto(`${origin}/`);
   await page.getByRole("button", { name: /How browser HTTP caching works/ })
     .click();
@@ -62,21 +61,21 @@ export async function openFirstCard(page: any, origin: string) {
   );
 }
 
-export async function readCards(page: any, count: number) {
+export async function readCards(page: Page, count: number) {
   for (let index = 0; index < count; index++) {
     await page.getByRole("button", { name: "Continue", exact: true }).click();
     await page.waitForTimeout(40);
   }
 }
 
-export async function stem(page: any): Promise<string> {
+export async function stem(page: Page): Promise<string> {
   return (await page.locator(".qhead").textContent()) ?? "";
 }
 
-export async function answerCorrectly(page: any): Promise<string> {
+export async function answerCorrectly(page: Page): Promise<string> {
   const text = await stem(page);
   const answer = answerFor(text);
-  if (answer.option) {
+  if ("option" in answer) {
     await page.getByRole("button", { name: answer.option, exact: true })
       .click();
   } else {
@@ -87,10 +86,10 @@ export async function answerCorrectly(page: any): Promise<string> {
   return text;
 }
 
-export async function answerWrong(page: any): Promise<string> {
+export async function answerWrong(page: Page): Promise<string> {
   const text = await stem(page);
   const answer = answerFor(text);
-  if (answer.option) {
+  if ("option" in answer) {
     await page.locator(".opt").filter({ hasNotText: answer.option }).first()
       .click();
   } else {
@@ -101,7 +100,7 @@ export async function answerWrong(page: any): Promise<string> {
   return text;
 }
 
-export async function clearProjections(page: any) {
+export async function clearProjections(page: Page) {
   await page.evaluate(() =>
     new Promise((resolve, reject) => {
       const request = indexedDB.open("learn-local-v1");

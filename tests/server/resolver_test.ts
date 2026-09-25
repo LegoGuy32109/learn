@@ -1,7 +1,5 @@
-import { assert, assertEquals } from "jsr:@std/assert";
-import lesson from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+import { assert, assertEquals } from "@std/assert";
+import { DEMO_LESSON as lesson } from "../support/demo-lesson.ts";
 import manifest from "../../fixtures/authoring/manifest.json" with {
   type: "json",
 };
@@ -27,12 +25,14 @@ Deno.test("lesson/v1 resolver is deterministic and write-free", async () => {
 });
 
 Deno.test("the fingerprint ignores object key order and provenance but follows authored array order", async () => {
-  const reordered = structuredClone(lesson) as any;
-  reordered.concepts = reordered.concepts.map((concept: any) =>
-    Object.fromEntries(Object.entries(concept).reverse())
-  );
-  reordered.provenance = { status: "declined" };
-  const swapped = structuredClone(lesson) as any;
+  const reordered = {
+    ...structuredClone(lesson),
+    concepts: lesson.concepts.map((concept) =>
+      Object.fromEntries(Object.entries(concept).reverse())
+    ),
+    provenance: { status: "declined" },
+  };
+  const swapped = structuredClone(lesson);
   swapped.concepts.reverse();
   const base = await resolveLesson(lesson);
   assertEquals((await resolveLesson(reordered)).fingerprint, base.fingerprint);
@@ -40,8 +40,7 @@ Deno.test("the fingerprint ignores object key order and provenance but follows a
 });
 
 Deno.test("resolver requires explicit provenance", async () => {
-  const input = structuredClone(lesson) as any;
-  delete input.provenance;
+  const { provenance: _provenance, ...input } = structuredClone(lesson);
   const result = await resolveLesson(input);
   assertEquals(result.valid, false);
   assert(
@@ -52,7 +51,7 @@ Deno.test("resolver requires explicit provenance", async () => {
 });
 
 Deno.test("declined provenance is explicit and valid", async () => {
-  const input = structuredClone(lesson) as any;
+  const input = structuredClone(lesson);
   input.provenance = { status: "declined" };
   assert((await resolveLesson(input)).valid);
 });
@@ -129,14 +128,15 @@ Deno.test("a lesson with only warnings resolves valid and includes them", async 
 });
 
 Deno.test("diagnostics are ordered by path, then code, whatever the input order", async () => {
-  const input = structuredClone(lesson) as any;
+  const { title: _title, ...input } = structuredClone(lesson);
   input.questions[9].stem =
     "Compared with the previous one, what does no-store mean?";
-  input.questions[1].tolerance = 0;
-  input.questions[1].answer = 181;
+  const numeric = input.questions[1];
+  assert(numeric.type === "numeric");
+  numeric.tolerance = 0;
+  numeric.answer = 181;
   input.concepts[0].misconceptions[0].correctingCardId =
     input.concepts[1].cards[0].id;
-  delete input.title;
   const result = await resolveLesson(input);
   const pairs = result.diagnostics.map((diagnostic) =>
     `${diagnostic.path} ${diagnostic.code}`
@@ -151,7 +151,7 @@ Deno.test("diagnostics are ordered by path, then code, whatever the input order"
 });
 
 Deno.test("numeric segments sort numerically so /questions/10 follows /questions/9", async () => {
-  const input = structuredClone(lesson) as any;
+  const input = structuredClone(lesson);
   input.questions[10].stem =
     "As mentioned before, which directive means store nothing?";
   input.questions[9].stem =
@@ -164,7 +164,7 @@ Deno.test("numeric segments sort numerically so /questions/10 follows /questions
 });
 
 Deno.test("card word counts strip inline HTML before counting", async () => {
-  const input = structuredClone(lesson) as any;
+  const input = structuredClone(lesson);
   const card = input.concepts[0].cards[0];
   const words =
     card.body.join(" ").replace(/<[^>]+>/g, "").trim().split(/\s+/).length;
@@ -179,7 +179,7 @@ Deno.test("card word counts strip inline HTML before counting", async () => {
     "card.paragraphs.single",
     "card.words",
   ]);
-  const tagged = structuredClone(lesson) as any;
+  const tagged = structuredClone(lesson);
   tagged.concepts[0].cards[0].body = tagged.concepts[0].cards[0].body.map((
     paragraph: string,
   ) => `<em class="x">${paragraph}</em>`);
@@ -187,13 +187,19 @@ Deno.test("card word counts strip inline HTML before counting", async () => {
 });
 
 Deno.test("the normalized lesson keeps only contract fields and trims text", async () => {
-  const input = structuredClone(lesson) as any;
-  input.title = "  padded  ";
-  input.unknownField = { nested: [1, 2, 3] };
-  input.concepts[0].surprise = "ignored";
+  const base = structuredClone(lesson);
+  const input = {
+    ...base,
+    title: "  padded  ",
+    unknownField: { nested: [1, 2, 3] },
+    concepts: [
+      { ...base.concepts[0], surprise: "ignored" },
+      ...base.concepts.slice(1),
+    ],
+  };
   const result = await resolveLesson(input);
   assert(result.valid, JSON.stringify(result.diagnostics));
-  const normalized = result.normalizedLesson as any;
+  const normalized = result.normalizedLesson;
   assertEquals(normalized.title, "padded");
   assertEquals("unknownField" in normalized, false);
   assertEquals("surprise" in normalized.concepts[0], false);
@@ -216,7 +222,7 @@ Deno.test("adversarial documents are rejected without a crash or a hang", async 
     "document.nesting",
   ]);
 
-  const huge = structuredClone(lesson) as any;
+  const huge = structuredClone(lesson);
   huge.assumedKnowledge = "x".repeat(MAX_DOCUMENT_BYTES + 1);
   const oversized = await resolveLesson(huge);
   assertEquals(oversized.diagnostics.map((diagnostic) => diagnostic.code), [
@@ -237,5 +243,5 @@ Deno.test("adversarial documents are rejected without a crash or a hang", async 
   );
   const result = await resolveLesson(polluted);
   assertEquals(result.valid, false);
-  assertEquals(({} as any).valid, undefined);
+  assertEquals(({} as { valid?: unknown }).valid, undefined);
 });

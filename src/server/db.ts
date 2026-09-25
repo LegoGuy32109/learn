@@ -2,6 +2,9 @@ import { type Client, createClient } from "@tursodatabase/serverless/compat";
 
 export type { Client };
 
+/** One result row, indexed by column name. */
+export type Row = Awaited<ReturnType<Client["execute"]>>["rows"][number];
+
 export function createDb(): Client {
   const url = Deno.env.get("TURSO_DB_URL");
   const authToken = Deno.env.get("TURSO_DB_TOKEN");

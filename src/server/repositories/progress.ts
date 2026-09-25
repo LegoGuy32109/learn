@@ -276,11 +276,13 @@ export class MemoryProgressRepository implements ProgressRepository {
   > = { learning: [], navigation: [] };
   private seq = 0;
 
-  async stream(
+  stream(
     accountId: string,
     lessonId: string,
   ): Promise<ProgressStream | null> {
-    return this.streams.get(`${accountId}/${lessonId}`) ?? null;
+    return Promise.resolve(
+      this.streams.get(`${accountId}/${lessonId}`) ?? null,
+    );
   }
 
   async push(
@@ -321,7 +323,7 @@ export class MemoryProgressRepository implements ProgressRepository {
     };
   }
 
-  async pull(
+  pull(
     accountId: string,
     stream: StreamName,
     scope: Omit<StreamScope, "lessonId">,
@@ -334,17 +336,18 @@ export class MemoryProgressRepository implements ProgressRepository {
     const events = matching.slice(0, limit).map((
       { accountId: _account, ...row },
     ) => structuredClone(row));
-    return { events, hasMore: matching.length > limit };
+    return Promise.resolve({ events, hasMore: matching.length > limit });
   }
 
-  async all(
+  all(
     accountId: string,
     stream: StreamName,
     scope: Omit<StreamScope, "lessonId">,
   ): Promise<StoredSyncEvent[]> {
-    return this.tables[stream].filter((row) =>
-      this.inScope(row, accountId, scope)
-    ).map(({ accountId: _account, ...row }) => structuredClone(row));
+    return Promise.resolve(
+      this.tables[stream].filter((row) => this.inScope(row, accountId, scope))
+        .map(({ accountId: _account, ...row }) => structuredClone(row)),
+    );
   }
 
   private inScope(

@@ -1,7 +1,7 @@
 // Ticket 26: every HTTPS response carries Strict-Transport-Security; a plain
 // http://localhost request never does, so a browser does not remember HSTS for
 // the port-less development host.
-import { assert, assertEquals } from "jsr:@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import {
   createApp,
   fixtureDependencies,

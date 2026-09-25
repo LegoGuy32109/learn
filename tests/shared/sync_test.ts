@@ -1,9 +1,7 @@
 // The shared sync rules: union by ID, frontier-first checkpoint selection, and the tie breaker for
 // equal frontiers. Pure, so the browser and the server agree on every answer here.
-import { assert, assertEquals } from "jsr:@std/assert";
-import lesson from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+import { assert, assertEquals } from "@std/assert";
+import { DEMO_LESSON as lesson } from "../support/demo-lesson.ts";
 import { reduceProgress } from "../../src/shared/learning/progress.js";
 import {
   compareCheckpointEvents,
@@ -19,7 +17,13 @@ function learning(
   id: string,
   type: string,
   data: Record<string, unknown> = {},
-) {
+): Record<string, unknown> & {
+  id: string;
+  type: string;
+  lessonRevisionId: string;
+  epoch: number;
+  occurredAt: string;
+} {
   return {
     id,
     type,
@@ -57,7 +61,7 @@ Deno.test("union by id keeps one copy of each event and the first copy seen", ()
   ];
   const union = unionById(local, remote);
   assertEquals(union.map((event) => event.id), ["a", "b", "c"]);
-  assertEquals((union[1] as any).from, "local");
+  assertEquals(union[1].from, "local");
   assertEquals(missingFrom(local, remote).map((event) => event.id), ["c"]);
 });
 

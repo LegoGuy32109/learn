@@ -1,9 +1,14 @@
-import type { Client } from "../db.ts";
+import type { Client, Row } from "../db.ts";
+import type {
+  Lesson,
+  NormalizedLesson,
+  Source,
+} from "../../shared/lessons/types.d.ts";
 
 export interface ResolvedLesson {
   schemaVersion: number;
   fingerprint: string;
-  normalizedLesson: Record<string, any>;
+  normalizedLesson: NormalizedLesson;
 }
 
 export interface StoredRevision {
@@ -12,7 +17,7 @@ export interface StoredRevision {
   revisionNumber: number;
   status: "draft" | "published" | "superseded" | "withdrawn";
   fingerprint: string;
-  content: Record<string, any>;
+  content: Lesson;
   createdAt: number;
 }
 
@@ -30,7 +35,7 @@ export interface ShelfLesson {
 }
 
 export interface LessonRepository {
-  featured(): Promise<Record<string, any>>;
+  featured(): Promise<Lesson>;
   createLesson(
     accountId: string,
     resolved: ResolvedLesson,
@@ -65,11 +70,12 @@ export interface LessonRepository {
 
 /** Concept and Question counts from a normalized lesson document. */
 function counts(
-  content: Record<string, any>,
+  content: Pick<NormalizedLesson, "concepts" | "questions">,
 ): { conceptCount: number; questionCount: number } {
-  const concepts = Array.isArray(content.concepts) ? content.concepts : [];
-  const questions = Array.isArray(content.questions) ? content.questions : [];
-  return { conceptCount: concepts.length, questionCount: questions.length };
+  return {
+    conceptCount: content.concepts.length,
+    questionCount: content.questions.length,
+  };
 }
 
 function shelfLesson(stored: StoredRevision): ShelfLesson {
@@ -84,12 +90,17 @@ function shelfLesson(stored: StoredRevision): ShelfLesson {
   };
 }
 
+/** What `content_json` holds: the lesson without the separately stored sources and provenance. */
+type StoredContent = Omit<NormalizedLesson, "sources" | "provenance">;
+
 function rowRevision(
-  row: Record<string, any>,
-  sources: Array<Record<string, unknown>> = [],
+  row: Row,
+  sources: Source[] = [],
 ): StoredRevision {
-  const content = JSON.parse(String(row.content_json));
-  const provenance = JSON.parse(String(row.provenance_json));
+  const content: StoredContent = JSON.parse(String(row.content_json));
+  const provenance: NormalizedLesson["provenance"] = JSON.parse(
+    String(row.provenance_json),
+  );
   return {
     lessonId: String(row.lesson_id),
     revisionId: String(row.id),
@@ -110,14 +121,14 @@ function rowRevision(
 export class TursoLessonRepository implements LessonRepository {
   constructor(private db: Client) {}
 
-  async featured(): Promise<Record<string, any>> {
+  async featured(): Promise<Lesson> {
     const result = await this.db.execute(
       "SELECT * FROM lesson_revisions WHERE status = 'published' ORDER BY published_at DESC LIMIT 1",
     );
     if (!result.rows.length) {
       throw new Error("No published lesson revision is available");
     }
-    return (await this.hydrate(result.rows[0] as Record<string, any>)).content;
+    return (await this.hydrate(result.rows[0])).content;
   }
 
   async createLesson(
@@ -166,9 +177,7 @@ export class TursoLessonRepository implements LessonRepository {
         "SELECT r.* FROM lesson_revisions r JOIN lessons l ON l.id = r.lesson_id WHERE r.id = ? AND r.lesson_id = ? AND l.owner_account_id = ?",
       args: [revisionId, lessonId, accountId],
     });
-    return result.rows.length
-      ? await this.hydrate(result.rows[0] as Record<string, any>)
-      : null;
+    return result.rows.length ? await this.hydrate(result.rows[0]) : null;
   }
 
   async latestRevision(
@@ -180,9 +189,7 @@ export class TursoLessonRepository implements LessonRepository {
         "SELECT r.* FROM lesson_revisions r JOIN lessons l ON l.id = r.lesson_id WHERE r.lesson_id = ? AND l.owner_account_id = ? ORDER BY r.revision_number DESC LIMIT 1",
       args: [lessonId, accountId],
     });
-    return result.rows.length
-      ? await this.hydrate(result.rows[0] as Record<string, any>)
-      : null;
+    return result.rows.length ? await this.hydrate(result.rows[0]) : null;
   }
 
   async shelf(accountId: string): Promise<ShelfLesson[]> {
@@ -211,9 +218,7 @@ export class TursoLessonRepository implements LessonRepository {
         "SELECT r.* FROM lesson_revisions r JOIN lessons l ON l.id = r.lesson_id WHERE r.id = ? AND (r.status = 'published' OR l.owner_account_id = ?)",
       args: [revisionId, accountId],
     });
-    return result.rows.length
-      ? await this.hydrate(result.rows[0] as Record<string, any>)
-      : null;
+    return result.rows.length ? await this.hydrate(result.rows[0]) : null;
   }
 
   async listMine(accountId: string): Promise<Array<Record<string, unknown>>> {
@@ -242,9 +247,7 @@ export class TursoLessonRepository implements LessonRepository {
         "SELECT * FROM lesson_revisions WHERE author_account_id = ? AND fingerprint = ?",
       args: [accountId, fingerprint],
     });
-    return result.rows.length
-      ? await this.hydrate(result.rows[0] as Record<string, any>)
-      : null;
+    return result.rows.length ? await this.hydrate(result.rows[0]) : null;
   }
 
   private async insert(
@@ -286,7 +289,7 @@ export class TursoLessonRepository implements LessonRepository {
       ],
     });
     for (
-      const [index, source] of (sources as Array<Record<string, any>>).entries()
+      const [index, source] of sources.entries()
     ) {
       statements.push({
         sql:
@@ -314,7 +317,7 @@ export class TursoLessonRepository implements LessonRepository {
     };
   }
 
-  private async hydrate(row: Record<string, any>): Promise<StoredRevision> {
+  private async hydrate(row: Row): Promise<StoredRevision> {
     const result = await this.db.execute({
       sql:
         "SELECT type, title, locator, captured_text FROM lesson_sources WHERE lesson_revision_id = ? ORDER BY source_order",
@@ -346,7 +349,7 @@ export class FixtureLessonRepository implements LessonRepository {
   private clock: () => number;
 
   constructor(
-    lesson: Record<string, any>,
+    lesson: Lesson,
     ownerAccountId = FIXTURE_OWNER_ID,
     clock: () => number = Date.now,
   ) {
@@ -364,104 +367,112 @@ export class FixtureLessonRepository implements LessonRepository {
     });
   }
 
-  async featured(): Promise<Record<string, any>> {
+  featured(): Promise<Lesson> {
     const published = this.revisions.filter((revision) =>
       revision.status === "published"
     );
-    return published.at(-1)!.content;
+    return Promise.resolve(published.at(-1)!.content);
   }
 
-  async createLesson(
+  createLesson(
     accountId: string,
     resolved: ResolvedLesson,
   ): Promise<StoredRevision> {
     const duplicate = this.byFingerprint(accountId, resolved.fingerprint);
-    if (duplicate) return duplicate;
+    if (duplicate) return Promise.resolve(duplicate);
     const lessonId = crypto.randomUUID();
     this.owners.set(lessonId, accountId);
-    return this.insert(lessonId, 1, resolved);
+    return Promise.resolve(this.insert(lessonId, 1, resolved));
   }
 
-  async createRevision(
+  createRevision(
     accountId: string,
     lessonId: string,
     resolved: ResolvedLesson,
   ): Promise<StoredRevision> {
     const duplicate = this.byFingerprint(accountId, resolved.fingerprint);
-    if (duplicate) return duplicate;
+    if (duplicate) return Promise.resolve(duplicate);
     if (this.owners.get(lessonId) !== accountId) {
-      throw new Deno.errors.NotFound("Lesson not found");
+      return Promise.reject(new Deno.errors.NotFound("Lesson not found"));
     }
     const numbers = this.revisions.filter((revision) =>
       revision.lessonId === lessonId
     ).map((revision) => revision.revisionNumber);
-    return this.insert(lessonId, Math.max(0, ...numbers) + 1, resolved);
+    return Promise.resolve(
+      this.insert(lessonId, Math.max(0, ...numbers) + 1, resolved),
+    );
   }
 
-  async getRevision(
+  getRevision(
     accountId: string,
     lessonId: string,
     revisionId: string,
   ): Promise<StoredRevision | null> {
-    if (this.owners.get(lessonId) !== accountId) return null;
-    return this.revisions.find((revision) =>
-      revision.lessonId === lessonId && revision.revisionId === revisionId
-    ) ?? null;
+    if (this.owners.get(lessonId) !== accountId) return Promise.resolve(null);
+    return Promise.resolve(
+      this.revisions.find((revision) =>
+        revision.lessonId === lessonId && revision.revisionId === revisionId
+      ) ?? null,
+    );
   }
 
-  async latestRevision(
+  latestRevision(
     accountId: string,
     lessonId: string,
   ): Promise<StoredRevision | null> {
-    if (this.owners.get(lessonId) !== accountId) return null;
-    return this.newest(lessonId);
+    if (this.owners.get(lessonId) !== accountId) return Promise.resolve(null);
+    return Promise.resolve(this.newest(lessonId));
   }
 
-  async listMine(accountId: string): Promise<Array<Record<string, unknown>>> {
-    return this.owned(accountId)
-      .sort((a, b) => b.createdAt - a.createdAt)
-      .map((
-        {
+  listMine(accountId: string): Promise<Array<Record<string, unknown>>> {
+    return Promise.resolve(
+      this.owned(accountId)
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .map((
+          {
+            lessonId,
+            revisionId,
+            revisionNumber,
+            status,
+            content,
+            fingerprint,
+            createdAt,
+          },
+        ) => ({
           lessonId,
           revisionId,
           revisionNumber,
           status,
-          content,
+          title: String(content.title),
           fingerprint,
           createdAt,
-        },
-      ) => ({
-        lessonId,
-        revisionId,
-        revisionNumber,
-        status,
-        title: String(content.title),
-        fingerprint,
-        createdAt,
-      }));
+        })),
+    );
   }
 
-  async shelf(accountId: string): Promise<ShelfLesson[]> {
+  shelf(accountId: string): Promise<ShelfLesson[]> {
     const lessonIds = [
       ...new Set(this.owned(accountId).map((revision) => revision.lessonId)),
     ];
-    return lessonIds.map((lessonId) => shelfLesson(this.newest(lessonId)!))
-      .sort((a, b) => b.updatedAt - a.updatedAt);
+    return Promise.resolve(
+      lessonIds.map((lessonId) => shelfLesson(this.newest(lessonId)!))
+        .sort((a, b) => b.updatedAt - a.updatedAt),
+    );
   }
 
-  async learnableRevision(
+  learnableRevision(
     accountId: string,
     revisionId: string,
   ): Promise<StoredRevision | null> {
     const revision = this.revisions.find((candidate) =>
       candidate.revisionId === revisionId
     );
-    if (!revision) return null;
+    if (!revision) return Promise.resolve(null);
     if (
       revision.status !== "published" &&
       this.owners.get(revision.lessonId) !== accountId
-    ) return null;
-    return revision;
+    ) return Promise.resolve(null);
+    return Promise.resolve(revision);
   }
 
   private owned(accountId: string): StoredRevision[] {

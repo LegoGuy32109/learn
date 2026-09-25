@@ -1,6 +1,12 @@
 // @ts-check
+/** @typedef {import("./types.d.ts").Lesson} Lesson */
+/** @typedef {import("./types.d.ts").Question} Question */
+/** @typedef {import("./types.d.ts").Card} Card */
 
-/** @param {any} lesson */
+/**
+ * Structural invariants of the bundled demo.
+ * @param {Lesson} lesson
+ */
 export function validateLesson(lesson) {
   const errors = [];
   if (lesson.concepts?.length !== 3) {
@@ -35,7 +41,7 @@ export function validateLesson(lesson) {
     }
   }
   const types = new Set(questions.map((question) => question.type));
-  for (const type of ["mcq", "numeric", "short"]) {
+  for (const type of /** @type {const} */ (["mcq", "numeric", "short"])) {
     if (!types.has(type)) errors.push(`missing ${type}`);
   }
   return errors;
@@ -43,13 +49,13 @@ export function validateLesson(lesson) {
 
 /**
  * Questions in one Concept's Pool. Reserved Questions are never drawn by a Check.
- * @param {any} lesson
+ * @param {Lesson} lesson
  * @param {string} conceptId
  * @param {"drawable" | "reserved" | "all"} kind
- * @returns {any[]}
+ * @returns {Question[]}
  */
 export function poolQuestions(lesson, conceptId, kind) {
-  return lesson.questions.filter((/** @type {any} */ question) => {
+  return lesson.questions.filter((question) => {
     if (question.conceptId !== conceptId) return false;
     if (kind === "all") return true;
     return kind === "reserved"
@@ -59,15 +65,17 @@ export function poolQuestions(lesson, conceptId, kind) {
 }
 
 /**
- * @param {any} lesson
+ * @param {Lesson} lesson
  * @param {string} id
+ * @returns {Question | undefined}
  */
 export const question = (lesson, id) =>
   lesson.questions.find((q) => q.id === id);
 
 /**
- * @param {any} lesson
+ * @param {Lesson} lesson
  * @param {string} id
+ * @returns {Card | undefined}
  */
 export const card = (lesson, id) =>
   lesson.concepts.flatMap((c) => c.cards).find((c) => c.id === id);

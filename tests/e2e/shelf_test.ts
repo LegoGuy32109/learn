@@ -3,10 +3,12 @@
 // offline, opens the learning URL as owner and as guest, sees Outdated after a second revision,
 // keeps the old revision, then discards with confirmation and starts the new one from Not started.
 // A guest with no network and nothing cached sees an empty shelf with an explanation.
-import { chromium, expect } from "@playwright/test";
-import fixture from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+import type { StoreName, Stores } from "../support/stores.ts";
+import { chromium, expect, type Page } from "@playwright/test";
+import {
+  authoredLesson,
+  DEMO_LESSON as fixture,
+} from "../support/demo-lesson.ts";
 import {
   createApp,
   FIXTURE_ACCOUNT,
@@ -27,17 +29,16 @@ const PHONE = {
 
 /** What the agent on the laptop sends: the fixture with another title and no server-assigned IDs. */
 function document(title: string) {
-  const lesson = structuredClone(fixture) as Record<string, unknown>;
-  delete lesson.lessonId;
-  delete lesson.revisionId;
-  lesson.title = title;
-  return JSON.stringify(lesson);
+  return JSON.stringify(authoredLesson(title));
 }
 
-async function readStore(page: any, store: string): Promise<any[]> {
+async function readStore<S extends StoreName>(
+  page: Page,
+  store: S,
+): Promise<Stores[S][]> {
   return await page.evaluate(
     (name: string) =>
-      new Promise((resolve, reject) => {
+      new Promise<Stores[S][]>((resolve, reject) => {
         const request = indexedDB.open("learn-local-v1");
         request.onsuccess = () => {
           const all = request.result.transaction(name, "readonly").objectStore(

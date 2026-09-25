@@ -1,4 +1,5 @@
 // @ts-check
+/** @typedef {import("../../shared/lessons/types.d.ts").Lesson} Lesson */
 // IndexedDB adapter. UI modules never issue raw IndexedDB operations; they call this repository.
 //
 // Stores: `lessons` holds cached Lesson Revisions keyed by revision ID; `learning_events` and
@@ -90,7 +91,7 @@ function done(request) {
 }
 
 export const localRepository = {
-  /** Store a Lesson Revision once; an existing copy is never replaced. @param {any} lesson */
+  /** Store a Lesson Revision once; an existing copy is never replaced. @param {Lesson} lesson */
   async seed(lesson) {
     const db = await open();
     const found = await done(

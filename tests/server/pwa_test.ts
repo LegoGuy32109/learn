@@ -3,10 +3,8 @@ import {
   assertEquals,
   assertNotEquals,
   assertStringIncludes,
-} from "jsr:@std/assert";
-import lesson from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+} from "@std/assert";
+import { DEMO_LESSON as lesson } from "../support/demo-lesson.ts";
 import { createApp, fixtureDependencies } from "../../src/app.ts";
 import { FixtureLessonRepository } from "../../src/server/repositories/lessons.ts";
 import {
@@ -20,8 +18,11 @@ const app = createApp({
   ...await fixtureDependencies(),
   lessons: new FixtureLessonRepository(lesson),
   auth: {
-    async authenticate() {
-      return { ok: false as const, reason: "unauthenticated" as const };
+    authenticate() {
+      return Promise.resolve({
+        ok: false as const,
+        reason: "unauthenticated" as const,
+      });
     },
   },
 });

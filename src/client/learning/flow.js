@@ -1,4 +1,8 @@
 // @ts-check
+/** @typedef {import("../../shared/lessons/types.d.ts").Card} Card */
+/** @typedef {import("../../shared/lessons/types.d.ts").Concept} Concept */
+/** @typedef {import("../../shared/lessons/types.d.ts").Lesson} Lesson */
+/** @typedef {import("../../shared/lessons/types.d.ts").Question} Question */
 // Flow controller: pure transitions over the learner's position in one Lesson Revision.
 // Randomness (seeds, attempt IDs) is passed in so every function is deterministic and testable.
 import { shuffled } from "../../shared/learning/shuffle.js";
@@ -20,11 +24,21 @@ import { poolQuestions } from "../../shared/lessons/lesson.js";
  * @property {string[]} queue  Remaining Question IDs; the head is the visible Question
  * @property {number} [wrapTotal]
  * @property {Feedback|null} feedback  Submitted feedback, or null while a Question is unanswered
- * @property {any} detour  The flow to return to from a correcting Card
+ * @property {Flow|null} detour  The flow to return to from a correcting Card
  * @property {string[]} [learningEventFrontier]
  */
 
 /** @typedef {{ seed: number, attemptId: string }} Attempt */
+
+/**
+ * What the screen functions read, so the learning flow and the drill flow share them.
+ * @typedef {object} Position
+ * @property {string} screen
+ * @property {number} conceptIndex
+ * @property {number} cardIndex
+ * @property {string[]} queue
+ * @property {Feedback|null} feedback
+ */
 
 /**
  * Feedback for one submitted answer. `belief` is the misconception behind a chosen MCQ distractor.
@@ -62,7 +76,7 @@ export function initialFlow() {
   return cardsFlow(0);
 }
 
-/** @param {Flow} flow */
+/** @param {{ screen: string }} flow */
 export function isCardScreen(flow) {
   return flow.screen === "card" || flow.screen === "corrective";
 }
@@ -74,9 +88,24 @@ export function atFirstCard(flow) {
 }
 
 /**
- * The Card or Question the learner is looking at.
- * @param {any} lesson
- * @param {Flow} flow
+ * A lookup the Lesson Revision guarantees. A miss means the flow and the lesson disagree.
+ * @template T
+ * @param {T | undefined} value
+ * @param {string} what
+ * @returns {T}
+ */
+function found(value, what) {
+  if (value === undefined) {
+    throw new Error(`${what} is not in this Lesson Revision`);
+  }
+  return value;
+}
+
+/**
+ * The Card or Question the learner is looking at. The summary shows neither.
+ * @param {Lesson} lesson
+ * @param {Position} flow
+ * @returns {Card | Question | undefined}
  */
 export function current(lesson, flow) {
   if (isCardScreen(flow)) {
@@ -86,26 +115,39 @@ export function current(lesson, flow) {
 }
 
 /**
+ * The Question at the head of the queue, on a question or feedback screen.
+ * @param {Lesson} lesson
+ * @param {Position} flow
+ * @returns {Question}
+ */
+export function currentQuestion(lesson, flow) {
+  return found(
+    lesson.questions.find((question) => question.id === flow.queue[0]),
+    `Question ${flow.queue[0]}`,
+  );
+}
+
+/**
  * The Concept the current surface belongs to.
- * @param {any} lesson
+ * @param {Lesson} lesson
  * @param {Flow} flow
  */
 export function activeConcept(lesson, flow) {
   const item = current(lesson, flow);
   let concept;
-  if (!isCardScreen(flow) && item?.conceptId) {
+  if (!isCardScreen(flow) && item && "conceptId" in item) {
     concept = lesson.concepts.find((candidate) =>
       candidate.id === item.conceptId
     );
   } else {
     concept = lesson.concepts[flow.conceptIndex];
   }
-  return concept || lesson.concepts.at(-1);
+  return found(concept ?? lesson.concepts.at(-1), "The active Concept");
 }
 
 /**
- * @param {any} lesson
- * @param {any} concept
+ * @param {Lesson} lesson
+ * @param {Concept} concept
  * @param {"drawable" | "reserved" | "all"} kind
  * @returns {string[]}
  */
@@ -116,7 +158,7 @@ function questionIds(lesson, concept, kind) {
 /**
  * Begin the formative Check for the Concept the learner just finished reading.
  * A Check never draws a reserved Question; those are kept back for the Wrap-up.
- * @param {any} lesson
+ * @param {Lesson} lesson
  * @param {Flow} flow
  * @param {Attempt} attempt
  * @returns {Flow}
@@ -141,8 +183,8 @@ export function startCheck(lesson, flow, attempt) {
 /**
  * The Question the Wrap-up asks for one Concept: a reserved Question first, so the learner
  * meets one the Checks never showed. Only a Pool without a reserved Question falls back to any.
- * @param {any} lesson
- * @param {any} concept
+ * @param {Lesson} lesson
+ * @param {Concept} concept
  * @param {number} seed
  */
 export function wrapUpQuestionId(lesson, concept, seed) {
@@ -155,7 +197,7 @@ export function wrapUpQuestionId(lesson, concept, seed) {
 
 /**
  * Begin the Wrap-up: one Question per Concept in authored Concept order.
- * @param {any} lesson
+ * @param {Lesson} lesson
  * @param {Attempt} attempt
  * @returns {Flow}
  */
@@ -184,7 +226,7 @@ export function startWrapUp(lesson, attempt) {
  * Continue from a Card: the next Card, or the Concept Check after the last one. While the learner
  * is looking back at Cards they already read (a `detour` is set), the last Card returns to the
  * Question or Card the look-back started from instead of opening a new Check.
- * @param {any} lesson
+ * @param {Lesson} lesson
  * @param {Flow} flow
  * @param {Attempt} attempt
  * @returns {Flow}
@@ -200,12 +242,13 @@ export function continueFromCard(lesson, flow, attempt) {
 
 /**
  * The Concept that owns a Question.
- * @param {any} lesson
- * @param {any} question
+ * @param {Lesson} lesson
+ * @param {Question} question
  */
 function conceptOf(lesson, question) {
-  return lesson.concepts.find((/** @type {any} */ concept) =>
-    concept.id === question.conceptId
+  return found(
+    lesson.concepts.find((concept) => concept.id === question.conceptId),
+    `Concept ${question.conceptId}`,
   );
 }
 
@@ -213,8 +256,8 @@ function conceptOf(lesson, question) {
  * Feedback for one submitted answer, following the plugin's pedagogy: every option has its own
  * feedback, a chosen distractor names the belief behind it, and every wrong or unknown answer
  * points at the Card that corrects it.
- * @param {any} lesson
- * @param {any} question
+ * @param {Lesson} lesson
+ * @param {Question} question
  * @param {unknown} answer
  * @param {boolean} idk
  * @param {boolean} correct
@@ -225,7 +268,7 @@ export function buildFeedback(lesson, question, answer, idk, correct) {
   if (question.type !== "mcq") {
     const text = idk
       ? `The answer is ${question.answer}${
-        question.unit ? ` ${question.unit}` : ""
+        question.type === "numeric" && question.unit ? ` ${question.unit}` : ""
       }. ${question.feedback}`
       : question.feedback;
     return {
@@ -237,9 +280,7 @@ export function buildFeedback(lesson, question, answer, idk, correct) {
     };
   }
   const keyText =
-    concept.options.find((/** @type {any} */ option) =>
-      option.id === question.key
-    )?.text ?? "";
+    concept.options.find((option) => option.id === question.key)?.text ?? "";
   if (idk) {
     return {
       correct: false,
@@ -260,9 +301,9 @@ export function buildFeedback(lesson, question, answer, idk, correct) {
   const misconceptionId = Object.hasOwn(question.map, chosen)
     ? question.map[chosen]
     : null;
-  const misconception = concept.misconceptions.find((
-    /** @type {any} */ candidate,
-  ) => candidate.id === misconceptionId);
+  const misconception = concept.misconceptions.find((candidate) =>
+    candidate.id === misconceptionId
+  );
   return {
     correct: false,
     idk: false,
@@ -274,14 +315,15 @@ export function buildFeedback(lesson, question, answer, idk, correct) {
 
 /**
  * Evaluate an answer and attach feedback. Feedback never auto-advances.
- * @param {any} lesson
- * @param {Flow} flow
+ * @template {Position} F
+ * @param {Lesson} lesson
+ * @param {F} flow
  * @param {unknown} answer
  * @param {boolean} idk
- * @returns {{ question: any, correct: boolean, flow: Flow }}
+ * @returns {{ question: Question, correct: boolean, flow: F }}
  */
 export function submitAnswer(lesson, flow, answer, idk) {
-  const question = current(lesson, flow);
+  const question = currentQuestion(lesson, flow);
   const correct = !idk && evaluateAnswer(lesson, question, answer);
   const feedback = buildFeedback(lesson, question, answer, idk, correct);
   return { question, correct, flow: { ...flow, feedback } };
@@ -289,7 +331,7 @@ export function submitAnswer(lesson, flow, answer, idk) {
 
 /**
  * Leave feedback: retry from the Concept, move to the next Concept, start the Wrap-up, or finish.
- * @param {any} lesson
+ * @param {Lesson} lesson
  * @param {Flow} flow
  * @param {Attempt} attempt
  * @returns {Flow}
@@ -319,15 +361,16 @@ export function advance(lesson, flow, attempt) {
 
 /**
  * Open the correcting Card as a detour that remembers where to return.
- * @param {any} lesson
- * @param {Flow} flow
- * @returns {Flow}
+ * @param {Lesson} lesson
+ * @template {Position & { detour: F | null }} F
+ * @param {F} flow
+ * @returns {F}
  */
 export function enterCorrective(lesson, flow) {
-  const question = current(lesson, flow);
+  const question = currentQuestion(lesson, flow);
   const cardId = flow.feedback?.cardId ?? question.correctingCardId;
-  const owns = (/** @type {any} */ card) => card.id === cardId;
-  const conceptIndex = lesson.concepts.findIndex((/** @type {any} */ concept) =>
+  const owns = (/** @type {Card} */ card) => card.id === cardId;
+  const conceptIndex = lesson.concepts.findIndex((concept) =>
     concept.cards.some(owns)
   );
   const cardIndex = lesson.concepts[conceptIndex].cards.findIndex(owns);
@@ -342,10 +385,12 @@ export function enterCorrective(lesson, flow) {
 
 /**
  * Return from the correcting Card to the Question it interrupted.
- * @param {Flow} flow
- * @returns {Flow}
+ * @template {Position & { detour: F | null }} F
+ * @param {F} flow
+ * @returns {F}
  */
 export function leaveCorrective(flow) {
+  if (!flow.detour) throw new Error("No detour to return from");
   return { ...flow.detour, detour: null };
 }
 
@@ -353,7 +398,7 @@ export function leaveCorrective(flow) {
  * Look back at the last Card of a Concept from a Question or from the first Card of the next
  * Concept. The look-back is a detour like the correcting Card: it remembers the flow it started
  * from, and Continue on that last Card returns there. An open detour is kept, never nested.
- * @param {any} lesson
+ * @param {Lesson} lesson
  * @param {Flow} flow
  * @param {number} conceptIndex  The Concept whose Cards to look back at
  * @returns {Flow}
@@ -372,7 +417,7 @@ function lookBack(lesson, flow, conceptIndex) {
  *   Card. Looking back never reverses progress: Continue on the last Card of a look-back returns to
  *   where the look-back started rather than opening a Check.
  * - The very first Card and the Learned summary stay put; the shell leaves for the overview there.
- * @param {any} lesson
+ * @param {Lesson} lesson
  * @param {Flow} flow
  * @returns {Flow}
  */

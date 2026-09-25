@@ -10,7 +10,7 @@ export function pluginRoutes(): Route[] {
     route(
       "GET",
       PLUGIN_PATH,
-      async (request) => html(pluginPage(new URL(request.url).origin)),
+      (request) => html(pluginPage(new URL(request.url).origin)),
     ),
   ];
 }

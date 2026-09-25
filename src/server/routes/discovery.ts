@@ -12,7 +12,7 @@ function origin(request: Request): string {
 }
 
 export function discoveryRoutes(): Route[] {
-  const capabilities = async (request: Request) =>
+  const capabilities = (request: Request) =>
     json(capabilitiesFor(origin(request)));
   return [
     route("GET", "/.well-known/learn-joshhale.json", capabilities),
@@ -20,9 +20,9 @@ export function discoveryRoutes(): Route[] {
     route(
       "GET",
       "/openapi.json",
-      async (request) => json(openapiDocument(origin(request))),
+      (request) => json(openapiDocument(origin(request))),
     ),
-    route("GET", "/api/v1/schemas/lesson/v1", async () => json(lessonSchema)),
-    route("GET", "/api/v1/diagnostics", async () => json(diagnosticsReference)),
+    route("GET", "/api/v1/schemas/lesson/v1", () => json(lessonSchema)),
+    route("GET", "/api/v1/diagnostics", () => json(diagnosticsReference)),
   ];
 }

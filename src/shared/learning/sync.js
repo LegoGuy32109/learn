@@ -26,11 +26,17 @@ export function unionById(...lists) {
  * How much accepted learning evidence a checkpoint depends on: the number of IDs in its
  * `learningEventFrontier` that are present in `accepted`. IDs the union has never seen do not count,
  * so a checkpoint cannot claim evidence nobody else can replay.
- * @param {any} checkpointEvent  A `navigation_checkpointed` event
+ * @param {object | null | undefined} checkpointEvent  A `navigation_checkpointed` event
  * @param {Set<string>} accepted  IDs of the learning events in the union
  */
 export function frontierCount(checkpointEvent, accepted) {
-  const frontier = checkpointEvent?.checkpoint?.learningEventFrontier;
+  const checkpoint = checkpointEvent && "checkpoint" in checkpointEvent
+    ? checkpointEvent.checkpoint
+    : undefined;
+  const frontier = typeof checkpoint === "object" && checkpoint !== null &&
+      "learningEventFrontier" in checkpoint
+    ? checkpoint.learningEventFrontier
+    : undefined;
   if (!Array.isArray(frontier)) return 0;
   let count = 0;
   for (const id of frontier) {
@@ -38,6 +44,12 @@ export function frontierCount(checkpointEvent, accepted) {
   }
   return count;
 }
+
+/**
+ * What the checkpoint rules read from a navigation or drill event. The checkpoint itself is opaque
+ * here except for its `learningEventFrontier`.
+ * @typedef {{ id: string, type: string, occurredAt?: string, checkpoint?: unknown }} CheckpointCandidate
+ */
 
 /**
  * Total order over checkpoint events. Positive when `a` should replace `b`.
@@ -48,8 +60,8 @@ export function frontierCount(checkpointEvent, accepted) {
  *    consulted, and only between checkpoints that saw the same amount of evidence.
  * 3. Equal `occurredAt` too: the greater event ID wins. This is a deterministic last resort so every
  *    device and the server agree; it says nothing about when either event happened.
- * @param {any} a
- * @param {any} b
+ * @param {CheckpointCandidate} a
+ * @param {CheckpointCandidate} b
  * @param {Set<string>} accepted
  */
 export function compareCheckpointEvents(a, b, accepted) {
@@ -65,9 +77,11 @@ export function compareCheckpointEvents(a, b, accepted) {
 /**
  * The canonical resume position for one revision and epoch: the checkpoint event that depends on the
  * most accepted learning evidence, with the tie breaker above. Null when no checkpoint exists.
- * @param {any[]} navigationEvents
- * @param {any[]} learningEvents  The learning events in the union; only their IDs matter
+ * @template Checkpoint
+ * @param {ReadonlyArray<CheckpointCandidate & { checkpoint?: Checkpoint | null }>} navigationEvents
+ * @param {ReadonlyArray<{ id: string }>} learningEvents  The learning events in the union; only their IDs matter
  * @param {string} [type]
+ * @returns {Checkpoint | null}
  */
 export function selectCheckpoint(
   navigationEvents,
@@ -75,6 +89,7 @@ export function selectCheckpoint(
   type = "navigation_checkpointed",
 ) {
   const accepted = new Set(learningEvents.map((event) => event.id));
+  /** @type {(typeof navigationEvents)[number] | null} */
   let best = null;
   for (const event of navigationEvents) {
     if (event.type !== type) continue;

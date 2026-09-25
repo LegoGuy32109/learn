@@ -4,10 +4,13 @@
 // Concepts learned with no event duplicated or lost. A stale checkpoint pushed late never moves a
 // device backward. A third device learns with every sync request failing: learning completes, every
 // event stays in the outbox, and the four sync states show as the network changes.
-import { chromium, expect } from "@playwright/test";
-import fixture from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+import type {
+  LearningEvent,
+  QuestionAnswered,
+} from "../../src/shared/learning/types.d.ts";
+import type { StoreName, Stores } from "../support/stores.ts";
+import { chromium, expect, type Page } from "@playwright/test";
+import { DEMO_LESSON as fixture } from "../support/demo-lesson.ts";
 import {
   createApp,
   FIXTURE_ACCOUNT,
@@ -24,10 +27,13 @@ const PHONE = {
 const LESSON = fixture.lessonId;
 const REVISION = fixture.revisionId;
 
-async function readStore(page: any, store: string): Promise<any[]> {
+async function readStore<S extends StoreName>(
+  page: Page,
+  store: S,
+): Promise<Stores[S][]> {
   return await page.evaluate(
     (name: string) =>
-      new Promise((resolve, reject) => {
+      new Promise<Stores[S][]>((resolve, reject) => {
         const request = indexedDB.open("learn-local-v1");
         request.onsuccess = () => {
           const all = request.result.transaction(name, "readonly").objectStore(
@@ -43,13 +49,13 @@ async function readStore(page: any, store: string): Promise<any[]> {
 }
 
 /** The Concepts a device shows as Learned, from its own union of learning events. */
-async function learnedConcepts(page: any): Promise<string[]> {
+async function learnedConcepts(page: Page): Promise<string[]> {
   const events = await readStore(page, "learning_events");
   const ids = new Set(events.map((event) => event.id));
   expect(ids.size).toBe(events.length);
   return [
     ...new Set(
-      events.filter((event) =>
+      events.filter((event): event is QuestionAnswered =>
         event.type === "question_answered" && event.flowKind === "wrap_up" &&
         event.correct
       ).map((event) => event.conceptId),
@@ -57,17 +63,17 @@ async function learnedConcepts(page: any): Promise<string[]> {
   ].sort();
 }
 
-function status(page: any) {
+function status(page: Page) {
   return page.locator("#sync-status");
 }
 
-async function continueOn(page: any) {
+async function continueOn(page: Page) {
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.waitForTimeout(40);
 }
 
 /** Read every Card and pass every Check, arriving at the first Wrap-up Question. */
-async function reachWrapUp(page: any) {
+async function reachWrapUp(page: Page) {
   for (const concept of fixture.concepts) {
     await expect(page.locator(".cardbody h2")).toHaveText(
       concept.cards[0].heading,
@@ -348,7 +354,7 @@ Deno.test({
     page.on("pageerror", (error: Error) => errors.push(error.message));
     let requests = 0;
     try {
-      await page.route("**/api/v1/progress/**", (route: any) => {
+      await page.route("**/api/v1/progress/**", (route) => {
         requests += 1;
         return route.fulfill({
           status: 500,
@@ -393,14 +399,18 @@ Deno.test({
       await expect(status(page)).toHaveText("Synced", { timeout: 15000 });
       expect(await readStore(page, "outbox")).toEqual([]);
       const cookie = `learn_session=${sessionCookie.value}`;
-      const pulled: any[] = [];
+      const pulled: LearningEvent[] = [];
       let cursor = "";
       for (let pages = 0; pages < 20; pages++) {
         const response = await fetch(
           `${origin}/api/v1/progress/learning-events?revision=${REVISION}&epoch=0&limit=3&cursor=${cursor}`,
           { headers: { cookie } },
         );
-        const body = await response.json();
+        const body: {
+          events: LearningEvent[];
+          cursor: string;
+          hasMore: boolean;
+        } = await response.json();
         pulled.push(...body.events);
         cursor = body.cursor;
         if (!body.hasMore) break;

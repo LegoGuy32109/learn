@@ -2,7 +2,7 @@
 // canonical checkpoint rebuilt from the navigation stream by the shared selection rule. Every route
 // resolves the account through the one current-account resolver, so the browser session cookie and
 // a bearer token both work. Pushes are idempotent: an event is stored once however often it arrives.
-import { selectCheckpoint } from "../../shared/learning/sync.js";
+import { frontierCount, selectCheckpoint } from "../../shared/learning/sync.js";
 import type { Dependencies } from "../dependencies.ts";
 import { json, jsonBody, problem } from "../http.ts";
 import { base64Url, fromBase64Url } from "../identity/encoding.ts";
@@ -356,11 +356,10 @@ export function progressRoutes(dependencies: Dependencies): Route[] {
         navigation.map((stored) => stored.event),
         learningEvents,
       );
-      const frontier = Array.isArray(checkpoint?.learningEventFrontier)
-        ? checkpoint.learningEventFrontier.filter((id: string) =>
-          learningEvents.some((event) => event.id === id)
-        ).length
-        : 0;
+      const frontier = frontierCount(
+        { checkpoint },
+        new Set(learningEvents.map((event) => event.id)),
+      );
       return privateJson({
         checkpoint,
         frontier,

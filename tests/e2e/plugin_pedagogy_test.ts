@@ -1,9 +1,8 @@
 // The plugin's pedagogy in the learning shell: a wrong option names the belief behind it and shows
 // the correcting Card clamped to its first paragraph under the action row; reload restores it all.
+import { assert } from "@std/assert";
 import { chromium, expect } from "@playwright/test";
-import lesson from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+import { DEMO_LESSON as lesson } from "../support/demo-lesson.ts";
 import { app } from "../../src/app.ts";
 import {
   answerFor,
@@ -46,21 +45,26 @@ Deno.test({
       }
       await expect(page.locator(".opt")).toHaveCount(3);
       const asked = await stem(page);
-      const question = (lesson.questions as any[]).find((candidate) =>
+      const question = lesson.questions.find((candidate) =>
         asked.includes(answerFor(asked).fragment) && candidate.stem === asked
       );
-      const concept = (lesson.concepts as any[]).find((candidate) =>
+      assert(question?.type === "mcq", `an MCQ is on screen: ${asked}`);
+      const concept = lesson.concepts.find((candidate) =>
         candidate.id === question.conceptId
       );
-      const distractor = concept.options.find((option: any) =>
+      assert(concept, `a Concept owns ${question.id}`);
+      const distractor = concept.options.find((option) =>
         option.id !== question.key
       );
-      const misconception = concept.misconceptions.find((candidate: any) =>
+      assert(distractor, `${question.id} has a distractor`);
+      const misconception = concept.misconceptions.find((candidate) =>
         candidate.id === question.map[distractor.id]
       );
-      const card = concept.cards.find((candidate: any) =>
+      assert(misconception, `${distractor.id} maps to a misconception`);
+      const card = concept.cards.find((candidate) =>
         candidate.id === misconception.correctingCardId
       );
+      assert(card, `the correcting Card is in ${concept.title}`);
 
       await page.getByRole("button", { name: distractor.text, exact: true })
         .click();

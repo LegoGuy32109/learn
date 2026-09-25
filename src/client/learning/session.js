@@ -1,4 +1,5 @@
 // @ts-check
+/** @typedef {import("../../shared/lessons/types.d.ts").Lesson} Lesson */
 // Learner session: holds the loaded evidence for one Lesson Revision and appends new evidence
 // through the storage repository. Progress and checkpoints are projections rebuilt by shared reducers.
 // Drill evidence is a separate stream with its own checkpoint; it never feeds the progress reducer.
@@ -55,7 +56,7 @@ export function evidenceFor(events, revisionId, epoch) {
  */
 
 /**
- * @param {any} lesson
+ * @param {Lesson} lesson
  * @param {number} epoch
  * @param {string} type
  * @param {Record<string, unknown>} data
@@ -72,7 +73,7 @@ function event(lesson, epoch, type, data) {
 }
 
 /**
- * @param {any} lesson
+ * @param {Lesson} lesson
  * @param {{ epoch: number }} [stream]  The Lesson's progress stream; new evidence is written under its epoch.
  * @param {{ onEvidence?: () => void }} [hooks]  `onEvidence` runs after each learning or navigation event is stored and queued.
  * @returns {Session}

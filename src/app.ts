@@ -1,5 +1,6 @@
 // Composition point: wires the domain route groups into one request handler.
 // Bootstrap (main.ts) chooses the adapters; this file only composes.
+import type { Lesson } from "./shared/lessons/types.d.ts";
 import type { Dependencies } from "./server/dependencies.ts";
 import { RejectingAuthenticator } from "./server/auth.ts";
 import {
@@ -133,7 +134,7 @@ export const FIXTURE_ACCOUNT = { id: FIXTURE_OWNER_ID, displayName: "Josh" };
  * storage. Tests override members, for example `auth`, to exercise one route group.
  */
 export async function fixtureDependencies(): Promise<Dependencies> {
-  const fixture = JSON.parse(
+  const fixture: Lesson = JSON.parse(
     await Deno.readTextFile(
       new URL("../fixtures/lessons/browser-http-cache.json", import.meta.url),
     ),

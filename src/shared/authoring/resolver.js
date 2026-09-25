@@ -32,6 +32,13 @@ const UNBOUND_REFERENCE =
   /\b(the (second|third|other|above|former|latter)|besides the|other than the|this approach|as mentioned|that same|the previous)\b/i;
 
 /** @typedef {{ severity: "error" | "warning", code: string, path: string, message: string }} Diagnostic */
+/**
+ * @typedef {{ valid: true, schemaVersion: 1, fingerprint: string, diagnostics: Diagnostic[],
+ *   normalizedLesson: import("../lessons/types.d.ts").NormalizedLesson }} AcceptedLesson
+ * @typedef {{ valid: false, schemaVersion: 1, fingerprint: null, diagnostics: Diagnostic[],
+ *   normalizedLesson: null }} RejectedLesson
+ * @typedef {AcceptedLesson | RejectedLesson} Resolution
+ */
 
 /** @param {unknown} value */
 function object(value) {
@@ -703,7 +710,11 @@ function normalizeSource(source) {
   };
 }
 
-/** @param {Report} report @param {Diagnostic[]} diagnostics */
+/**
+ * @param {Report} report
+ * @param {Diagnostic[]} diagnostics
+ * @returns {RejectedLesson}
+ */
 function rejected(report, diagnostics = report.sorted()) {
   return {
     valid: false,
@@ -717,6 +728,7 @@ function rejected(report, diagnostics = report.sorted()) {
 /**
  * Resolve one JSON lesson document without persistence or outside services.
  * @param {unknown} input
+ * @returns {Promise<Resolution>}
  */
 export async function resolveLesson(input) {
   const report = new Report();
@@ -890,6 +902,7 @@ export async function resolveLesson(input) {
       ["status", "provided"],
       ...PROVENANCE_FIELDS.map((field) => [field, provenance[field].trim()]),
     ]);
+  /** @type {import("../lessons/types.d.ts").NormalizedLesson} */
   const normalizedLesson = {
     schemaVersion: 1,
     title: source.title.trim(),

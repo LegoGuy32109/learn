@@ -1,10 +1,9 @@
 // The reads the phone shelf needs: the account's lessons newest first with each newest revision,
 // the revision content to cache, and the page shell that inlines the owner's lesson at a learning
 // URL. Every read accepts the browser session cookie or a `lessons:read` bearer token.
-import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert";
-import fixture from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+import type { ShelfLesson } from "../../src/server/repositories/lessons.ts";
+import { assert, assertEquals, assertStringIncludes } from "@std/assert";
+import { DEMO_LESSON as fixture } from "../support/demo-lesson.ts";
 import { resolveLesson } from "../../src/shared/authoring/resolver.js";
 import {
   createApp,
@@ -115,8 +114,8 @@ Deno.test("the shelf lists the account's lessons newest first with each newest r
     const response = await h.call("/api/v1/shelf", { headers });
     assertEquals(response.status, 200);
     assertEquals(response.headers.get("cache-control"), "private, no-store");
-    const { lessons } = await response.json();
-    assertEquals(lessons.map((lesson: any) => lesson.title), [
+    const { lessons }: { lessons: ShelfLesson[] } = await response.json();
+    assertEquals(lessons.map((lesson) => lesson.title), [
       "A lesson from the laptop, revised",
       "Another lesson",
       fixture.title,
@@ -129,7 +128,7 @@ Deno.test("the shelf lists the account's lessons newest first with each newest r
     assertEquals(lessons[0].questionCount, fixture.questions.length);
     assertEquals(lessons[2].status, "published");
     assert(
-      lessons.every((lesson: any) => !("content" in lesson)),
+      lessons.every((lesson) => !("content" in lesson)),
       "the shelf never carries content",
     );
   }
@@ -167,9 +166,8 @@ Deno.test("a revision and a lesson's newest revision are readable with the cooki
   const listed = await h.call("/api/v1/lessons", { headers: cookie });
   assertEquals(listed.status, 200);
   assert(
-    (await listed.json()).revisions.some((entry: any) =>
-      entry.revisionId === created.revisionId
-    ),
+    ((await listed.json()) as { revisions: Array<{ revisionId: string }> })
+      .revisions.some((entry) => entry.revisionId === created.revisionId),
   );
 });
 
@@ -200,9 +198,9 @@ Deno.test("the in-memory repository behaves like the database one: idempotent fi
     ...structuredClone(fixture),
     title: "Memory",
   });
-  assert(resolved.valid && resolved.normalizedLesson && resolved.fingerprint);
-  const first = await repository.createLesson("owner", resolved as any);
-  const again = await repository.createLesson("owner", resolved as any);
+  assert(resolved.valid);
+  const first = await repository.createLesson("owner", resolved);
+  const again = await repository.createLesson("owner", resolved);
   assertEquals(again.revisionId, first.revisionId);
   assertEquals(
     (await repository.shelf("owner")).map((lesson) => lesson.title),

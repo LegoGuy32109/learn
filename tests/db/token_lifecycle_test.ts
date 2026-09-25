@@ -2,10 +2,9 @@
 // real-process smoke through main.ts and scripts/tokens.ts.
 // Every assertion message and log line goes through redaction.
 
-import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert";
-import lesson from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+import type { Client, Row } from "../../src/server/db.ts";
+import { assert, assertEquals, assertStringIncludes } from "@std/assert";
+import { DEMO_LESSON as lesson } from "../support/demo-lesson.ts";
 import { createApp } from "../../src/app.ts";
 import {
   TokenAdmin,
@@ -38,14 +37,14 @@ async function status(response: Response): Promise<number> {
 }
 
 async function rows(
-  db: { execute: (query: any) => Promise<any> },
+  db: Client,
   prefix: string,
-): Promise<Record<string, unknown>> {
+): Promise<Row> {
   const result = await db.execute({
     sql: "SELECT * FROM api_tokens WHERE token_prefix = ?",
     args: [prefix],
   });
-  return result.rows[0] as Record<string, unknown>;
+  return result.rows[0];
 }
 
 Deno.test("token lifecycle in an ephemeral database", async (t) => {

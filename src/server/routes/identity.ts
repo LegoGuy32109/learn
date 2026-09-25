@@ -208,7 +208,7 @@ export function identityRoutes(dependencies: Dependencies): Route[] {
       );
     }),
 
-    route("DELETE", "/api/v1/session", async (request) => {
+    route("DELETE", "/api/v1/session", (request) => {
       const refused = crossSite(request);
       if (refused) return refused;
       return json({ signedIn: false, displayName: null }, 200, {

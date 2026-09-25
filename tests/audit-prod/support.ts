@@ -4,11 +4,11 @@
 // `.env` would otherwise hand this suite the local token. LEARN_OWNER_TOKEN in the environment is
 // the fallback when the file is absent. No token, cookie or invite link is ever printed; every
 // piece of evidence goes through `redact` first.
-import { parse } from "jsr:@std/dotenv@0.225.8/parse";
+import type { StoreName, Stores } from "../support/stores.ts";
+import type { Page } from "@playwright/test";
+import { parse } from "@std/dotenv/parse";
 import { redactBearerTokens } from "../../src/server/identity/redaction.ts";
-import fixture from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+import { authoredLesson } from "../support/demo-lesson.ts";
 import { check, observe } from "../audit/support.ts";
 
 export const BASE = (Deno.env.get("LEARN_BASE_URL") ??
@@ -95,11 +95,7 @@ export function auditTitle(suffix: string): string {
 
 /** What the agent on the laptop sends: the fixture under another title and with no server-assigned IDs. */
 export function lessonDocument(title: string): string {
-  const lesson = structuredClone(fixture) as Record<string, unknown>;
-  delete lesson.lessonId;
-  delete lesson.revisionId;
-  lesson.title = title;
-  return JSON.stringify(lesson);
+  return JSON.stringify(authoredLesson(title));
 }
 
 /** Everything this run created on production, listed in the report. Nothing is deleted. */
@@ -192,8 +188,8 @@ export function recordBody(source: string, status: number, text: string) {
 }
 
 /** Attach a body recorder to a Playwright page: every same-origin text response is kept for the scan. */
-export function recordPageBodies(page: any, label: string) {
-  page.on("response", async (response: any) => {
+export function recordPageBodies(page: Page, label: string) {
+  page.on("response", async (response) => {
     try {
       const url = new URL(response.url());
       if (url.origin !== BASE) return;
@@ -254,7 +250,7 @@ export function scanBodies(known: string[]): string[] {
 let shot = 0;
 
 /** Screenshot the page into the production screenshots directory and return the path for evidence. */
-export async function snap(page: any, name: string): Promise<string> {
+export async function snap(page: Page, name: string): Promise<string> {
   shot += 1;
   const file = `${SCREENSHOTS}${String(shot).padStart(2, "0")}-${
     name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()
@@ -269,10 +265,13 @@ export async function snap(page: any, name: string): Promise<string> {
 }
 
 /** A page's IndexedDB store, read whole. */
-export async function readStore(page: any, store: string): Promise<any[]> {
+export async function readStore<S extends StoreName>(
+  page: Page,
+  store: S,
+): Promise<Stores[S][]> {
   return await page.evaluate(
     (name: string) =>
-      new Promise((resolve, reject) => {
+      new Promise<Stores[S][]>((resolve, reject) => {
         const request = indexedDB.open("learn-local-v1");
         request.onsuccess = () => {
           const db = request.result;

@@ -8,7 +8,7 @@ const fixture = JSON.parse(
   ),
 );
 const resolved = await resolveLesson(fixture);
-if (!resolved.valid || !resolved.fingerprint || !resolved.normalizedLesson) {
+if (!resolved.valid) {
   console.error(JSON.stringify(resolved.diagnostics, null, 2));
   throw new Error("Demo lesson did not resolve");
 }
@@ -23,7 +23,7 @@ if (!account.rows.length) {
 const repository = new TursoLessonRepository(db);
 const stored = await repository.createLesson(
   String(account.rows[0].id),
-  resolved as any,
+  resolved,
 );
 await db.execute({
   sql:

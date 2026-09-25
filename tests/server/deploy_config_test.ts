@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "jsr:@std/assert";
+import { assert, assertEquals } from "@std/assert";
 
 const config = JSON.parse(
   await Deno.readTextFile(new URL("../../deno.json", import.meta.url)),

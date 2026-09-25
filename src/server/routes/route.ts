@@ -5,7 +5,8 @@ export type Params = Record<string, string>;
 export interface Route {
   method: string;
   pattern: URLPattern;
-  handle(request: Request, params: Params): Promise<Response>;
+  /** Synchronous handlers return the Response itself; `dispatch` awaits either. */
+  handle(request: Request, params: Params): Response | Promise<Response>;
 }
 
 export function route(

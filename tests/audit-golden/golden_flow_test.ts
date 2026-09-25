@@ -15,18 +15,24 @@
 // with `audit-`, deletes nothing, and lists what it created in tests/audit-golden/last-run.md.
 //
 // Run: deno task audit:golden          (LEARN_BASE_URL optional; the owner token is read from .env.prod)
-import { chromium, expect } from "@playwright/test";
+import {
+  type Browser,
+  type BrowserContext,
+  chromium,
+  expect,
+  type Page,
+} from "@playwright/test";
 import {
   answer,
   attachListeners,
   check,
-  idk,
   observe,
   readStore,
   report,
   results,
   setScreenshotDirectory,
   settle,
+  type Signature,
   signature,
   tap,
   useLesson,
@@ -37,9 +43,7 @@ import {
   BASE,
   created,
   lessonDocument,
-  looksLikeStackTrace,
   mintInviteWithTask,
-  probe,
   productionSecrets,
   recordPageBodies,
   redact,
@@ -54,7 +58,7 @@ const REPORT_PATH = new URL("./last-run.md", HERE).pathname;
 let shot = 0;
 
 /** Screenshot the page into this suite's own screenshots directory and return the path for evidence. */
-async function snap(page: any, name: string): Promise<string> {
+async function snap(page: Page, name: string): Promise<string> {
   shot += 1;
   const file = `${SCREENSHOTS}${String(shot).padStart(2, "0")}-${
     name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()
@@ -147,12 +151,15 @@ Deno.test({
 // ---------------------------------------------------------------------------------------------
 // Setup: invite, passkey, home-screen-equivalent session.
 
+/** The browser state a signed-in context carries to the next one. */
+type StorageState = Awaited<ReturnType<BrowserContext["storageState"]>>;
+
 interface SignedIn {
-  storageState: any;
+  storageState: StorageState | null;
   displayName: string;
 }
 
-async function signIn(browser: any): Promise<SignedIn> {
+async function signIn(browser: Browser): Promise<SignedIn> {
   const outcome: SignedIn = { storageState: null, displayName: "Josh" };
   let invite: { url: string; path: string; expiresAt: number } | null = null;
   await check(
@@ -237,7 +244,7 @@ async function signIn(browser: any): Promise<SignedIn> {
 // ---------------------------------------------------------------------------------------------
 // Shelf, overview, and the full learning loop to Learned, as the signed-in owner.
 
-async function shelfAndLearningLoop(browser: any, signedIn: SignedIn) {
+async function shelfAndLearningLoop(browser: Browser, signedIn: SignedIn) {
   const { ownerToken } = await productionSecrets();
   // A fresh title every run (the offline scenario below already does this) changes the fingerprint,
   // so this always gets its own Lesson Revision with no progress: identical content dedupes to the
@@ -271,7 +278,10 @@ async function shelfAndLearningLoop(browser: any, signedIn: SignedIn) {
   );
   if (!lessonId) return;
   const lessonPath = `/learn/${lessonId}`;
-  const context = { ...PHONE, storageState: signedIn.storageState };
+  const context = {
+    ...PHONE,
+    storageState: signedIn.storageState ?? undefined,
+  };
 
   const shelfContext = await browser.newContext(context);
   const shelfPage = await shelfContext.newPage();
@@ -323,7 +333,7 @@ async function shelfAndLearningLoop(browser: any, signedIn: SignedIn) {
 // Offline: close, reopen from the icon, resume at the exact Card, finish a Concept offline, sync.
 // Second device: a second signed-in context sees the same progress and the same resume point.
 
-async function offlineAndSecondDevice(browser: any, signedIn: SignedIn) {
+async function offlineAndSecondDevice(browser: Browser, signedIn: SignedIn) {
   const { ownerToken } = await productionSecrets();
   const title = auditTitle("-golden-offline");
   let lessonId = "";
@@ -352,7 +362,10 @@ async function offlineAndSecondDevice(browser: any, signedIn: SignedIn) {
   );
   if (!lessonId) return;
   const lessonPath = `/learn/${lessonId}`;
-  const contextOptions = { ...PHONE, storageState: signedIn.storageState };
+  const contextOptions = {
+    ...PHONE,
+    storageState: signedIn.storageState ?? undefined,
+  };
 
   const orderContext = await browser.newContext(contextOptions);
   const orderPage = await orderContext.newPage();
@@ -385,7 +398,7 @@ async function offlineAndSecondDevice(browser: any, signedIn: SignedIn) {
   page.setDefaultTimeout(10000);
   attachListeners(page, errors, consoleMessages);
   recordPageBodies(page, "offline");
-  let resumeSignature: any = null;
+  let resumeSignature: Signature | null = null;
   try {
     await page.goto(`${BASE}${lessonPath}`);
     await page.waitForFunction(
@@ -399,10 +412,10 @@ async function offlineAndSecondDevice(browser: any, signedIn: SignedIn) {
     await check(
       "offline · Card 2 of Concept 1 is on screen before going offline",
       () => {
-        expect(resumeSignature.surface).toBe("learn");
-        expect(resumeSignature.cardHeading).toBeTruthy();
-        return `surface=${resumeSignature.surface} card=${
-          JSON.stringify(resumeSignature.cardHeading)
+        expect(resumeSignature?.surface).toBe("learn");
+        expect(resumeSignature?.cardHeading).toBeTruthy();
+        return `surface=${resumeSignature?.surface} card=${
+          JSON.stringify(resumeSignature?.cardHeading)
         }`;
       },
     );
@@ -432,7 +445,7 @@ async function offlineAndSecondDevice(browser: any, signedIn: SignedIn) {
             JSON.stringify(afterReopen)
           } instead of the Card left off on`,
         ).toBe("learn");
-        expect(afterReopen.cardHeading).toBe(resumeSignature.cardHeading);
+        expect(afterReopen.cardHeading).toBe(resumeSignature?.cardHeading);
         return `resumed at card=${
           JSON.stringify(afterReopen.cardHeading)
         }; ${await snap(
@@ -488,7 +501,8 @@ async function offlineAndSecondDevice(browser: any, signedIn: SignedIn) {
               `/api/v1/progress/checkpoint?revision=${revisionId}&epoch=0`,
             );
             const text = await response.text();
-            let body: any = null;
+            let body: { learningEvents?: number; checkpoint?: unknown } | null =
+              null;
             try {
               body = JSON.parse(text);
             } catch {
@@ -504,8 +518,8 @@ async function offlineAndSecondDevice(browser: any, signedIn: SignedIn) {
             checkpoint.text.slice(0, 500)
           }`,
         ).toBe(200);
-        expect(checkpoint.body.learningEvents).toBeGreaterThanOrEqual(3); // lesson_started, 2 card_seen, 1 question_answered at minimum
-        expect(checkpoint.body.checkpoint).toBeTruthy();
+        expect(checkpoint.body?.learningEvents).toBeGreaterThanOrEqual(3); // lesson_started, 2 card_seen, 1 question_answered at minimum
+        expect(checkpoint.body?.checkpoint).toBeTruthy();
         return `GET /api/v1/progress/checkpoint -> ${
           JSON.stringify(checkpoint.body)
         }`;

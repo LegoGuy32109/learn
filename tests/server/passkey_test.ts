@@ -7,7 +7,7 @@ import {
   assertEquals,
   assertMatch,
   assertStringIncludes,
-} from "jsr:@std/assert";
+} from "@std/assert";
 import {
   createApp,
   FIXTURE_ACCOUNT,

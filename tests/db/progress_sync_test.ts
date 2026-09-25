@@ -3,10 +3,15 @@
 // that is rebuilt from the raw rows alone. The database is deleted in `finally`, including on
 // failure. Nothing here prints a token.
 
-import { assert, assertEquals } from "jsr:@std/assert";
-import fixture from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+import type {
+  EventRejection,
+  SyncEvent,
+} from "../../src/server/progress/validation.ts";
+import { assert, assertEquals } from "@std/assert";
+import {
+  authoredLesson,
+  DEMO_LESSON as fixture,
+} from "../support/demo-lesson.ts";
 import { reduceProgress } from "../../src/shared/learning/progress.js";
 import { selectCheckpoint } from "../../src/shared/learning/sync.js";
 import { resolveLesson } from "../../src/shared/authoring/resolver.js";
@@ -58,16 +63,13 @@ Deno.test("progress sync in an ephemeral database", async (t) => {
     const bearer = (token: string) => ({ authorization: `Bearer ${token}` });
 
     // The demo lesson as this account's private draft: the revision progress is recorded against.
-    const document = { ...structuredClone(fixture) } as Record<string, unknown>;
-    delete document.lessonId;
-    delete document.revisionId;
-    const resolved = await resolveLesson(document);
-    assert(resolved.valid && resolved.normalizedLesson);
+    const resolved = await resolveLesson(authoredLesson(fixture.title));
+    assert(resolved.valid);
     const stored = await new TursoLessonRepository(db).createLesson(
       accountId,
-      resolved as any,
+      resolved,
     );
-    const lesson = stored.content as any;
+    const lesson = stored.content;
     const REVISION = stored.revisionId;
 
     const event = (
@@ -101,7 +103,7 @@ Deno.test("progress sync in an ephemeral database", async (t) => {
       headers: Record<string, string> = cookieHeader,
       limit = 3,
     ) => {
-      const events: any[] = [];
+      const events: SyncEvent[] = [];
       let cursor = "";
       for (let pages = 0; pages < 100; pages++) {
         const response = await call(
@@ -109,7 +111,8 @@ Deno.test("progress sync in an ephemeral database", async (t) => {
           { headers },
         );
         assertEquals(response.status, 200);
-        const page = await response.json();
+        const page: { events: SyncEvent[]; cursor: string; hasMore: boolean } =
+          await response.json();
         events.push(...page.events);
         cursor = page.cursor;
         if (!page.hasMore) break;
@@ -158,13 +161,14 @@ Deno.test("progress sync in an ephemeral database", async (t) => {
     const concept = lesson.concepts[0];
     const evidence = [
       event("lesson_started"),
-      ...concept.cards.map((card: any) =>
+      ...concept.cards.map((card) =>
         event("card_seen", { cardId: card.id, conceptId: concept.id })
       ),
     ];
-    const short = lesson.questions.find((question: any) =>
+    const short = lesson.questions.find((question) =>
       question.type === "short"
     );
+    assert(short, "the demo has a short-answer Question");
     const typed = "  If-None-Match\u00a0« typed » 🙂 ";
     const shortAnswer = event("question_answered", {
       flowKind: "check",
@@ -307,7 +311,8 @@ Deno.test("progress sync in an ephemeral database", async (t) => {
         ]);
         assertEquals(rejected.status, 422);
         assertEquals(
-          (await rejected.json()).rejections.map((entry: any) => entry.code),
+          ((await rejected.json()) as { rejections: EventRejection[] })
+            .rejections.map((entry) => entry.code),
           ["question.unknown"],
         );
         assertEquals(await count(), before);

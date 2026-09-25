@@ -50,7 +50,7 @@ const sync = createSyncClient({
   }),
 });
 sync.setEnabled(account.signedIn);
-window.addEventListener("online", () => sync.wake());
+globalThis.addEventListener("online", () => sync.wake());
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") sync.wake();
 });
@@ -350,7 +350,7 @@ async function render() {
 }
 
 /** Browser Back or Forward: the entry we land on says which surface it showed. */
-window.addEventListener("popstate", async (event) => {
+globalThis.addEventListener("popstate", async (event) => {
   await restoreFromLocation(event.state?.surface);
   await render();
 });

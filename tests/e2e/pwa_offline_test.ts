@@ -2,9 +2,7 @@
 // IndexedDB, no /api/ response is ever served from the cache, and a new build waits behind an
 // "Update ready" affordance that never interrupts a Question and sweeps the old cache on activation.
 import { chromium, expect } from "@playwright/test";
-import lesson from "../../fixtures/lessons/browser-http-cache.json" with {
-  type: "json",
-};
+import { DEMO_LESSON as lesson } from "../support/demo-lesson.ts";
 import { createApp, fixtureDependencies } from "../../src/app.ts";
 import { RejectingAuthenticator } from "../../src/server/auth.ts";
 import {
@@ -52,7 +50,13 @@ Deno.test({
       const parsed = await cdp.send("Page.getAppManifest") as {
         url: string;
         errors: unknown[];
-        manifest: any;
+        manifest: {
+          name: string;
+          display: string;
+          startUrl: string;
+          themeColor: string;
+          icons: Array<{ sizes: string }>;
+        };
       };
       await cdp.detach();
       expect(parsed.url).toBe(`${origin}/manifest.webmanifest`);
