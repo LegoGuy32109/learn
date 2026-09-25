@@ -64,3 +64,18 @@ export function page(lesson: unknown | null, session: PageSession): string {
   ].join("");
   return document(body);
 }
+
+/**
+ * What a closed site shows a visitor who is not signed in: no lesson and no app, only a passkey
+ * sign-in for a device that already registered one. A new device registers through an invite link.
+ */
+export function closedPage(): string {
+  const body = [
+    '<main id="app" class="page invite"><div class="libhead"><div><p class="eyebrow">Private</p><h1 class="libtitle">learn</h1></div></div>',
+    '<div class="notice"><span>This site is private.</span></div>',
+    '<p id="sign-in-status" class="state" aria-live="polite"></p>',
+    '<div class="actions"><button class="go quiet" id="sign-in" type="button">Sign in with a passkey</button></div></main>',
+    '<script type="module" src="/js/closed.js"></script>',
+  ].join("");
+  return document(body, { title: "learn" });
+}

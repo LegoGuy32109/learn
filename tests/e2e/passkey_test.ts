@@ -119,3 +119,73 @@ Deno.test({
     }
   },
 });
+
+Deno.test({
+  name:
+    "a closed site shows a signed-out phone only the private page, which signs it back in with its passkey",
+  sanitizeOps: false,
+  sanitizeResources: false,
+  fn: async () => {
+    const port = 8006;
+    const base = `http://localhost:${port}`;
+    const dependencies = await fixtureDependencies();
+    dependencies.guests = "closed";
+    dependencies.auth = stubAuthenticator({
+      [OWNER]: { accountId: FIXTURE_ACCOUNT.id, scopes: ["account:owner"] },
+    });
+    const server = Deno.serve(
+      { port, onListen() {} },
+      createApp(dependencies),
+    );
+    const browser = await chromium.launch({ headless: true });
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+    });
+    const page = await context.newPage();
+    page.setDefaultTimeout(5000);
+    const cdp = await context.newCDPSession(page);
+    try {
+      await cdp.send("WebAuthn.enable");
+      await cdp.send("WebAuthn.addVirtualAuthenticator", {
+        options: {
+          protocol: "ctap2",
+          transport: "internal",
+          hasResidentKey: true,
+          hasUserVerification: true,
+          isUserVerified: true,
+        },
+      });
+
+      await page.goto(`${base}/`);
+      await expect(page.getByText("This site is private.")).toBeVisible();
+      await expect(page.locator("#account-status")).toHaveCount(0);
+
+      const minted = await fetch(`${base}/api/v1/sign-in-invites`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${OWNER}` },
+      });
+      const invite = await readJson<InviteReply>(minted);
+      await page.goto(invite.url);
+      await page.getByRole("button", { name: "Register a passkey" }).click();
+      await page.waitForURL(`${base}/`);
+      await expect(page.locator("#account-status")).toHaveText(
+        "Signed in as Josh",
+      );
+
+      await page.getByRole("button", { name: "Sign out" }).click();
+      await page.reload();
+      await expect(page.getByText("This site is private.")).toBeVisible();
+
+      await page.getByRole("button", { name: "Sign in with a passkey" })
+        .click();
+      await expect(page.locator("#account-status")).toHaveText(
+        "Signed in as Josh",
+      );
+    } finally {
+      await browser.close();
+      await server.shutdown();
+    }
+  },
+});

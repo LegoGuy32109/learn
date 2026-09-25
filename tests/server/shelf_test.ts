@@ -27,7 +27,7 @@ const OWNER = "owner-token";
 const WRITER_ONLY = "writer-token";
 const STRANGER = "stranger-token";
 
-async function harness() {
+async function harness(guests?: "demo" | "closed") {
   let now = Date.parse("2026-09-21T12:00:00Z");
   const dependencies = {
     ...await fixtureDependencies(),
@@ -50,6 +50,7 @@ async function harness() {
         scopes: ["lessons:read", "lessons:write"],
       },
     }),
+    guests,
   };
   const app = createApp(dependencies);
   const call = (path: string, init: RequestInit = {}) =>
@@ -200,6 +201,28 @@ Deno.test("the learning URL inlines the owner's newest revision for the signed-i
 
   const home = await h.call("/", { headers: await h.cookie() });
   assertStringIncludes(await home.text(), fixture.title);
+});
+
+Deno.test("a closed site shows a visitor who is not signed in no lesson, and the owner their lessons", async () => {
+  const h = await harness("closed");
+  const created = await h.create("Only the owner sees this inlined");
+  for (const path of ["/", `/learn/${created.lessonId}`]) {
+    const guest = await h.call(path);
+    assertEquals(guest.status, 200);
+    const guestHtml = await guest.text();
+    assertStringIncludes(guestHtml, "This site is private.");
+    assertStringIncludes(guestHtml, "/js/closed.js");
+    assertEquals(guestHtml.includes("__LESSON__"), false);
+    assertEquals(guestHtml.includes(fixture.title), false);
+    assertEquals(guestHtml.includes("Only the owner sees this inlined"), false);
+  }
+  const owner = await h.call(`/learn/${created.lessonId}`, {
+    headers: await h.cookie(),
+  });
+  assertStringIncludes(await owner.text(), "Only the owner sees this inlined");
+  const shelf = await h.call("/api/v1/shelf");
+  assertEquals(shelf.status, 401);
+  await shelf.body?.cancel();
 });
 
 Deno.test("the in-memory repository behaves like the database one: idempotent fingerprints and owned revisions", async () => {

@@ -20,4 +20,10 @@ export interface Dependencies {
   relyingParty: RelyingParty | null;
   /** Names the serving revision in the `x-learn-revision` response header. Omitted, the header says `local`. */
   revision?: string;
+  /**
+   * What a visitor who is not signed in gets at `/` and `/learn/*`: the featured lesson (`demo`), or a
+   * private page with only a passkey sign-in (`closed`). Omitted, it is `demo`; main.ts closes the
+   * deployed site unless LEARN_GUESTS=demo.
+   */
+  guests?: "demo" | "closed";
 }

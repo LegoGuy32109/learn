@@ -33,7 +33,7 @@ export function invitePage(lookup: InviteLookup, token: string): string {
       escapeHtml(explanation.title)
     }.</strong> ${
       escapeHtml(explanation.detail)
-    }</span></div><div class="actions"><a class="go quiet" href="/">Open the shelf as a guest</a></div>`;
+    }</span></div><div class="actions"><a class="go quiet" href="/">Open learn</a></div>`;
     return document(shell(inner), { title: explanation.title });
   }
   const name = escapeHtml(lookup.account.displayName);

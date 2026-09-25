@@ -183,10 +183,9 @@ async function handle(action, nav) {
     return;
   }
   if (action === "sign-out") {
-    const done = await signOut();
-    nav.account = done
-      ? { signedIn: false, displayName: null }
-      : { ...nav.account, message: "Could not sign out. Try again." };
-    return nav.reloadShelf();
+    // A fresh load after signing out, so a closed site shows its private page instead of the shelf.
+    if (await signOut()) return location.replace("/");
+    nav.account = { ...nav.account, message: "Could not sign out. Try again." };
+    return nav.refresh();
   }
 }

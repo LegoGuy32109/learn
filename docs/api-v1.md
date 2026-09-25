@@ -271,7 +271,10 @@ lesson Outdated when progress exists on an older revision than
 old evidence is kept but never read again.
 
 The page shell at `/learn/{lesson_id}` inlines the newest revision of that
-lesson for its signed-in owner, and the featured lesson for anyone else.
+lesson for its signed-in owner. A visitor who is not signed in gets the
+featured lesson only where `LEARN_GUESTS=demo`; everywhere else, including the
+deployed site, they get a private page with nothing but a passkey sign-in. A new
+device joins through an invite link.
 
 ## Phone sign-in: invites, passkeys and the browser session
 

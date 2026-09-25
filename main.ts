@@ -45,6 +45,9 @@ const app = createApp({
     origins: Deno.env.get("WEBAUTHN_ORIGINS"),
   }),
   revision: servingRevision(),
+  // Closed unless explicitly opened: a visitor who is not signed in must never see the featured
+  // lesson by accident, because it is the owner's newest published revision.
+  guests: Deno.env.get("LEARN_GUESTS") === "demo" ? "demo" : "closed",
 });
 const port = Number(Deno.env.get("PORT") ?? 8000);
 Deno.serve({ port }, app);
