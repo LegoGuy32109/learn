@@ -2,6 +2,7 @@
 // Passkey registration and sign-in in the browser, with no client dependency.
 // The server issues the options and verifies the credential; this module only
 // runs the WebAuthn ceremony between the two calls and reports a plain outcome.
+import { apiFetch } from "../api.js";
 import { isRecord } from "../../shared/json.js";
 
 /** @typedef {{ ok: true, displayName: string } | { ok: false, message: string }} Outcome */
@@ -146,7 +147,7 @@ function friendlyError(error, verb) {
  * @returns {Promise<Posted<unknown>>}
  */
 async function post(path, payload) {
-  const response = await fetch(path, {
+  const response = await apiFetch(path, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(payload),
@@ -266,7 +267,7 @@ export async function signInWithPasskey() {
  * @returns {Promise<boolean>}
  */
 export async function signOut() {
-  const response = await fetch("/api/v1/session", { method: "DELETE" });
+  const response = await apiFetch("/api/v1/session", { method: "DELETE" });
   await response.body?.cancel();
   return response.ok;
 }

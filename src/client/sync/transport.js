@@ -17,6 +17,7 @@
 /** @typedef {import("../learning/session.js").RecordedEvent} RecordedEvent */
 /** @typedef {{ ok: true, events: RecordedEvent[], cursor: string, hasMore: boolean, stream: StreamState|null }} Pulled */
 
+import { apiFetch } from "../api.js";
 import { field, isRecord } from "../../shared/json.js";
 
 /**
@@ -81,7 +82,7 @@ function unreachable() {
  * @param {typeof fetch} [fetchImpl]
  */
 export function createTransport(
-  fetchImpl = (input, init) => fetch(input, init),
+  fetchImpl = (input, init) => apiFetch(input, init),
 ) {
   return {
     /**

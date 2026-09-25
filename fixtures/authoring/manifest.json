@@ -30,30 +30,46 @@
     "valid": false,
     "schemaRejects": true,
     "codes": [
-      "concept.options.count"
+      "concept.options.count",
+      "mcq.feedback.shape",
+      "mcq.map.shape",
+      "mcq.feedback.shape",
+      "mcq.map.shape"
     ],
     "exact": true,
-    "note": ""
+    "note": "Four options in the Concept also give each of its MCQs four feedback entries and three map entries, which the schema rejects too.",
+    "implied": [
+      "mcq.feedback.shape",
+      "mcq.map.shape"
+    ]
   },
   {
     "file": "authoring/invalid/mcq-key-not-in-set.json",
     "valid": false,
-    "schemaRejects": true,
+    "schemaRejects": false,
     "codes": [
-      "mcq.key"
+      "mcq.key",
+      "mcq.map.missing"
     ],
     "exact": true,
-    "note": ""
+    "note": "map keeps the two entries the schema requires; with the key outside the set, the Concept's third option has no entry, so mcq.map.missing follows.",
+    "implied": [
+      "mcq.map.missing"
+    ]
   },
   {
     "file": "authoring/invalid/mcq-distractor-without-misconception.json",
     "valid": false,
     "schemaRejects": true,
     "codes": [
+      "mcq.map.shape",
       "mcq.map.missing"
     ],
     "exact": true,
-    "note": ""
+    "note": "Dropping a distractor's map entry also leaves map one entry short of the schema's count.",
+    "implied": [
+      "mcq.map.shape"
+    ]
   },
   {
     "file": "authoring/invalid/mcq-misconception-unknown.json",
@@ -70,10 +86,14 @@
     "valid": false,
     "schemaRejects": true,
     "codes": [
+      "mcq.feedback.shape",
       "mcq.feedback.missing"
     ],
     "exact": true,
-    "note": ""
+    "note": "Dropping an option's feedback also leaves feedback one entry short of the schema's count.",
+    "implied": [
+      "mcq.feedback.shape"
+    ]
   },
   {
     "file": "authoring/invalid/misconception-card-outside-concept.json",

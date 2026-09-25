@@ -313,6 +313,22 @@
       "fix": "Set key to the id of the correct option in the Concept's options."
     },
     {
+      "code": "mcq.map.shape",
+      "severity": "error",
+      "path": "/questions/<i>/map",
+      "schema": true,
+      "meaning": "map is missing or is not an object of exactly two entries whose keys and values are local IDs.",
+      "fix": "Give map one entry per distractor: its option ID mapped to a misconception ID."
+    },
+    {
+      "code": "mcq.feedback.shape",
+      "severity": "error",
+      "path": "/questions/<i>/feedback",
+      "schema": true,
+      "meaning": "feedback is missing or is not an object of exactly three entries with local-ID keys and non-empty text.",
+      "fix": "Give feedback one entry per option ID, including the key, each a sentence or two."
+    },
+    {
       "code": "mcq.feedback.missing",
       "severity": "error",
       "path": "/questions/<i>/feedback/<optionId>",

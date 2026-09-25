@@ -39,6 +39,8 @@ export type DiagnosticCode =
   | "question.correctingCard"
   | "question.feedback"
   | "mcq.key"
+  | "mcq.map.shape"
+  | "mcq.feedback.shape"
   | "mcq.feedback.missing"
   | "mcq.feedback.extra"
   | "mcq.map.missing"

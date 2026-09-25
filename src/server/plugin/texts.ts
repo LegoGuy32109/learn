@@ -529,9 +529,9 @@ function countableRules(): string {
 interface Schema {
   $ref?: string;
   $defs?: Record<string, Schema>;
-  type?: string | string[];
+  type?: string | readonly string[];
   const?: unknown;
-  enum?: unknown[];
+  enum?: readonly unknown[];
   description?: string;
   pattern?: string;
   minLength?: number;
@@ -540,13 +540,13 @@ interface Schema {
   minItems?: number;
   maxItems?: number;
   properties?: Record<string, Schema>;
-  required?: string[];
+  required?: readonly string[];
   additionalProperties?: boolean | Schema;
   propertyNames?: Schema;
   minProperties?: number;
   maxProperties?: number;
-  oneOf?: Schema[];
-  allOf?: Schema[];
+  oneOf?: readonly Schema[];
+  allOf?: readonly Schema[];
   not?: Schema;
   unevaluatedProperties?: boolean;
 }
@@ -595,7 +595,7 @@ function describeType(schema: Schema): string {
   return `${schema.type ?? "any"}${constraints ? ` (${constraints})` : ""}`;
 }
 
-function propertyRows(schema: Schema, required: string[]): string {
+function propertyRows(schema: Schema, required: readonly string[]): string {
   const rows = Object.entries(schema.properties ?? {}).map(
     ([name, property]) => {
       const value = property as Schema;

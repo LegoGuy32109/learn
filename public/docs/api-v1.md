@@ -143,7 +143,8 @@ the resolver no longer emits; another resolves documents that trigger every
 code and fails on any unlisted code or mismatched severity or path shape.
 
 Structural codes include `concept.options.count`, `concept.option.id`,
-`mcq.key`, `mcq.map.missing`, `mcq.map.unknown`, `mcq.feedback.missing`,
+`mcq.key`, `mcq.map.shape`, `mcq.map.missing`, `mcq.map.unknown`,
+`mcq.feedback.shape`, `mcq.feedback.missing`,
 `misconception.card`, `misconception.unused`, `pool.reserved.missing`,
 `numeric.reserved` and `card.body.paragraphs`.
 
@@ -387,6 +388,51 @@ Current status meanings:
 
 Every response, success or error, carries `x-learn-revision` naming the
 deployment revision that served it (`local` outside Deno Deploy).
+
+## Compatibility
+
+The server redeploys within a minute of a change. An installed phone runs its cached copy of the
+application until the learner accepts "Update ready", which can be days or weeks later. Every
+change to `/api/v1` therefore has to work for every copy still installed, and for every agent that
+already calls the API.
+
+Within `/api/v1`, a change follows these rules:
+
+- Add a reply field freely. Readers ignore fields they do not know.
+- Never rename, remove or retype a reply field, and never change what a value means.
+- Add a request field only as optional, and never make an optional request field required.
+- Never refuse a request shape the server accepted before. An outbox can hold events an old copy
+  wrote weeks ago.
+- Add a diagnostic code freely; never rename one. Codes are stable identifiers.
+
+The reply shapes are typed in `src/shared/api/v1.d.ts`, and the routes check what they send
+against those types, so a renamed or retyped field fails the type check.
+
+### A breaking change
+
+A change that breaks these rules for the browser application raises `API_REVISION` in
+`src/shared/api/revision.js` by one, in the same commit. The browser sends its own revision on
+every API call in the `learn-api-revision` header. The server refuses a lower revision on every
+`/api/` path except `DELETE /api/v1/session` with `409` and this problem document:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Application outdated",
+  "status": 409,
+  "detail": "This copy of the application is older than the server supports. It resets and reloads.",
+  "code": "client.outdated",
+  "revision": 2
+}
+```
+
+A copy that receives it resets the device: it signs out, deletes its local database, its shell
+caches and its service worker, and loads the shelf from the network. Progress this device has not
+synced is lost, and the learner signs in again. That cost is accepted: it is paid once per breaking
+change, and only by copies older than it.
+
+A request without the header is never refused. Agents, scripts and `curl` do not send it, so a
+breaking change for them is a new `/api/v2`, served alongside `/api/v1`.
 
 ## Alpha limitations
 

@@ -142,3 +142,10 @@ export interface RegistrationOptionsReply {
 export interface AuthenticationOptionsReply {
   options: PublicKeyCredentialRequestOptionsJSON;
 }
+
+/** Any API request from a copy of the application older than the server's API revision. */
+export interface OutdatedClientReply extends Problem {
+  code: "client.outdated";
+  /** The API revision the server speaks. */
+  revision: number;
+}

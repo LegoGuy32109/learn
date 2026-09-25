@@ -16,6 +16,8 @@ import {
 } from "./server/identity/sessions.ts";
 import { redactedErrorText } from "./server/identity/redaction.ts";
 import { problem } from "./server/http.ts";
+import { API_REVISION, API_REVISION_HEADER } from "./shared/api/revision.js";
+import type { OutdatedClientReply } from "./shared/api/v1.d.ts";
 import { dispatch } from "./server/routes/route.ts";
 import { pageRoutes } from "./server/routes/pages.ts";
 import { discoveryRoutes } from "./server/routes/discovery.ts";
@@ -96,10 +98,45 @@ function withHeaders(
   }
 }
 
+/**
+ * The refusal for a copy of the application older than this server's API revision, or null. Only
+ * the browser application sends the revision header: an agent, a script or curl never does, and is
+ * never refused. Signing out is always allowed, so a refused copy can finish resetting itself.
+ */
+export function outdatedClient(request: Request): Response | null {
+  const url = new URL(request.url);
+  if (!url.pathname.startsWith("/api/")) return null;
+  if (request.method === "DELETE" && url.pathname === "/api/v1/session") {
+    return null;
+  }
+  const sent = request.headers.get(API_REVISION_HEADER);
+  if (sent === null) return null;
+  const revision = Number(sent);
+  if (Number.isSafeInteger(revision) && revision >= API_REVISION) return null;
+  const body: OutdatedClientReply = {
+    type: "about:blank",
+    title: "Application outdated",
+    status: 409,
+    detail:
+      "This copy of the application is older than the server supports. It resets and reloads.",
+    code: "client.outdated",
+    revision: API_REVISION,
+  };
+  return new Response(JSON.stringify(body), {
+    status: 409,
+    headers: {
+      "content-type": "application/problem+json; charset=utf-8",
+      "cache-control": "no-store",
+    },
+  });
+}
+
 export function createApp(dependencies: Dependencies) {
   const revision = dependencies.revision ?? "local";
   const routes = composeRoutes(dependencies);
   async function respond(request: Request): Promise<Response> {
+    const outdated = outdatedClient(request);
+    if (outdated) return outdated;
     try {
       const response = await dispatch(routes, request);
       return response ??

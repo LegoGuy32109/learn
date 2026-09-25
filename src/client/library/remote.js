@@ -2,6 +2,7 @@
 // The shelf's reads from the server. The browser session cookie travels with every request, so a
 // signed-in phone needs no token. Every failure, including no network, is reported as a plain
 // outcome; nothing here throws into a surface.
+import { apiFetch } from "../api.js";
 import { field } from "../../shared/json.js";
 
 /**
@@ -18,7 +19,7 @@ import { field } from "../../shared/json.js";
 async function read(path) {
   let response;
   try {
-    response = await fetch(path, {
+    response = await apiFetch(path, {
       headers: { accept: "application/json" },
       cache: "no-store",
     });

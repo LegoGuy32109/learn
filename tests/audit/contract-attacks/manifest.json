@@ -404,10 +404,11 @@
     "group": "reference-validator",
     "valid": false,
     "codes": [
-      "mcq.feedback.missing"
+      "mcq.feedback.missing",
+      "mcq.feedback.shape"
     ],
     "exact": true,
-    "note": ""
+    "note": "Dropping an entry also leaves feedback short of the schema's count."
   },
   {
     "file": "ref-mcq-key-not-in-set.json",
@@ -424,10 +425,11 @@
     "group": "reference-validator",
     "valid": false,
     "codes": [
-      "mcq.map.missing"
+      "mcq.map.missing",
+      "mcq.map.shape"
     ],
     "exact": true,
-    "note": ""
+    "note": "Dropping an entry also leaves map short of the schema's count."
   },
   {
     "file": "ref-mcq-map-unknown.json",
@@ -612,20 +614,22 @@
     "group": "reserved-names",
     "valid": false,
     "codes": [
-      "mcq.feedback.extra"
+      "mcq.feedback.extra",
+      "mcq.feedback.shape"
     ],
     "exact": true,
-    "note": ""
+    "note": "A reserved name is not a local ID, which the schema rejects as a key."
   },
   {
     "file": "reserved-name-map-key.json",
     "group": "reserved-names",
     "valid": false,
     "codes": [
-      "mcq.map.extra"
+      "mcq.map.extra",
+      "mcq.map.shape"
     ],
     "exact": true,
-    "note": ""
+    "note": "A reserved name is not a local ID, which the schema rejects as a key."
   },
   {
     "file": "reserved-name-misconception-__proto__.json",

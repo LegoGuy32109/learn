@@ -10,6 +10,7 @@
 // client know. Drill evidence stays on the device. The resume checkpoint is the one that depends on
 // the most learning evidence, so a stale checkpoint from another device never moves this one back.
 import { localRepository } from "../storage/repository.js";
+import { isCheckpoint, isDrillCheckpoint } from "../storage/records.js";
 import { reduceProgress } from "../../shared/learning/progress.js";
 import { selectCheckpoint } from "../../shared/learning/sync.js";
 import {
@@ -112,14 +113,20 @@ function event(lesson, epoch, type, data) {
 export function createSession(lesson, stream = { epoch: 0 }, hooks = {}) {
   const EPOCH = stream.epoch;
   const onEvidence = hooks.onEvidence ?? (() => {});
-  /** The canonical resume position from this device's navigation evidence. */
+  /**
+   * The canonical resume position from this device's navigation evidence, or null. A checkpoint an
+   * older build wrote in a shape this one cannot resume is no position: the lesson starts again
+   * from its first Card, and Seen and Learned, which come from the learning events, are kept.
+   * @returns {Promise<Checkpoint | null>}
+   */
   async function rebuildCheckpoint() {
     const navigation = evidenceFor(
       await localRepository.events("navigation_events"),
       lesson.revisionId,
       EPOCH,
     );
-    return selectCheckpoint(navigation, session.learningEvents);
+    const selected = selectCheckpoint(navigation, session.learningEvents);
+    return isCheckpoint(selected) ? selected : null;
   }
   const progressKey = `progress:${lesson.revisionId}:${EPOCH}`;
   const checkpointKey = `checkpoint:${lesson.revisionId}:${EPOCH}`;
@@ -147,10 +154,10 @@ export function createSession(lesson, stream = { epoch: 0 }, hooks = {}) {
         lesson.revisionId,
         EPOCH,
       );
-      // This key holds the learning checkpoint this session wrote.
-      session.savedCheckpoint = /** @type {Checkpoint | null} */ (
-        (await localRepository.projection(checkpointKey)) ?? null
-      );
+      const storedCheckpoint = await localRepository.projection(checkpointKey);
+      session.savedCheckpoint = isCheckpoint(storedCheckpoint)
+        ? storedCheckpoint
+        : null;
       if (!session.savedCheckpoint) {
         session.savedCheckpoint = await rebuildCheckpoint();
         if (session.savedCheckpoint) {
@@ -160,14 +167,15 @@ export function createSession(lesson, stream = { epoch: 0 }, hooks = {}) {
           );
         }
       }
-      // This key holds the drill checkpoint this session wrote.
-      session.savedDrillCheckpoint = /** @type {DrillCheckpoint | null} */ (
-        (await localRepository.projection(drillCheckpointKey)) ?? null
-      );
+      const storedDrill = await localRepository.projection(drillCheckpointKey);
+      session.savedDrillCheckpoint = isDrillCheckpoint(storedDrill)
+        ? storedDrill
+        : null;
       if (!session.savedDrillCheckpoint) {
-        session.savedDrillCheckpoint = reduceDrillCheckpoint(
-          session.drillEvents,
-        );
+        const replayed = reduceDrillCheckpoint(session.drillEvents);
+        session.savedDrillCheckpoint = isDrillCheckpoint(replayed)
+          ? replayed
+          : null;
         if (session.savedDrillCheckpoint) {
           await localRepository.projection(
             drillCheckpointKey,

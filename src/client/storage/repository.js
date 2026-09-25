@@ -9,7 +9,18 @@
 // this device created and the server has not yet acknowledged; `sync_cursors` holds the opaque
 // server cursor per stream, revision and epoch.
 
-const DB = "learn-local-v1";
+import { isRecord } from "../../shared/json.js";
+import {
+  isLessonRecord,
+  isProgressStream,
+  PROJECTION_VERSION,
+  readable,
+  upcastEvent,
+  upcastOutboxEntry,
+} from "./records.js";
+
+/** The device's database. Resetting the application deletes it whole. */
+export const DB = "learn-local-v1";
 // Version 2 added `drill_events` (the drill's own evidence and checkpoint stream) and
 // `progress_streams` (the revision and epoch each Lesson is pinned to).
 // Version 3 added `outbox` (events awaiting upload) and `sync_cursors` (where each pull left off).
@@ -116,18 +127,18 @@ export const localRepository = {
   /** Every cached Lesson Revision, for a launch with no network and no inlined lesson. @returns {Promise<Lesson[]>} */
   async lessons() {
     const db = await open();
-    const records = /** @type {LessonRecord[]} */ (await done(
+    const records = /** @type {unknown[]} */ (await done(
       objectStore(db, "lessons", "readonly").getAll(),
     ));
-    return records.map((record) => record.lesson);
+    return records.filter(isLessonRecord).map((record) => record.lesson);
   },
   /** Every cached Lesson Revision with when this device stored it. @returns {Promise<CachedRevision[]>} */
   async revisions() {
     const db = await open();
-    const records = /** @type {LessonRecord[]} */ (await done(
+    const records = /** @type {unknown[]} */ (await done(
       objectStore(db, "lessons", "readonly").getAll(),
     ));
-    return records.map((record) => ({
+    return records.filter(isLessonRecord).map((record) => ({
       lesson: record.lesson,
       cachedAt: record.cachedAt ?? "",
     }));
@@ -135,17 +146,16 @@ export const localRepository = {
   /** @param {string} id @returns {Promise<Lesson | undefined>} */
   async lesson(id) {
     const db = await open();
-    const record = /** @type {LessonRecord | undefined} */ (await done(
-      objectStore(db, "lessons", "readonly").get(id),
-    ));
-    return record?.lesson;
+    const record = await done(objectStore(db, "lessons", "readonly").get(id));
+    return isLessonRecord(record) ? record.lesson : undefined;
   },
   /** @param {string} store @returns {Promise<RecordedEvent[]>} */
   async events(store) {
     const db = await open();
-    return /** @type {RecordedEvent[]} */ (await done(
+    const records = /** @type {unknown[]} */ (await done(
       objectStore(db, store, "readonly").getAll(),
     ));
+    return readable(records, upcastEvent, store);
   },
   /** @param {string} store @param {RecordedEvent} event */
   async append(store, event) {
@@ -185,10 +195,12 @@ export const localRepository = {
   /** Every event awaiting upload, oldest first. @returns {Promise<OutboxEntry[]>} */
   async outbox() {
     const db = await open();
-    const entries = /** @type {OutboxEntry[]} */ (await done(
+    const records = /** @type {unknown[]} */ (await done(
       objectStore(db, "outbox", "readonly").getAll(),
     ));
-    return entries.sort((a, b) => a.queuedAt.localeCompare(b.queuedAt));
+    return readable(records, upcastOutboxEntry, "outbox").sort((a, b) =>
+      a.queuedAt.localeCompare(b.queuedAt)
+    );
   },
   /** Leave the outbox once the server acknowledged the events. @param {string[]} ids */
   async acknowledge(ids) {
@@ -216,8 +228,9 @@ export const localRepository = {
     );
   },
   /**
-   * Read a projection when `value` is omitted; otherwise write it. A read is `unknown`: the caller
-   * knows what it stored under its key.
+   * Read a projection when `value` is omitted; otherwise write it, stamped with PROJECTION_VERSION.
+   * A projection from another version reads as missing, so it is rebuilt. A read is `unknown`: the
+   * caller checks it against what it stores under that key.
    * @param {string} id
    * @param {unknown} [value]
    * @returns {Promise<unknown>}
@@ -225,13 +238,20 @@ export const localRepository = {
   async projection(id, value) {
     const db = await open();
     if (value === undefined) {
-      const record =
-        /** @type {{ id: string, value: unknown } | undefined} */ (await done(
-          objectStore(db, "projections", "readonly").get(id),
-        ));
-      return record?.value;
+      const record = await done(
+        objectStore(db, "projections", "readonly").get(id),
+      );
+      return isRecord(record) && record.v === PROJECTION_VERSION
+        ? record.value
+        : undefined;
     }
-    await done(objectStore(db, "projections", "readwrite").put({ id, value }));
+    await done(
+      objectStore(db, "projections", "readwrite").put({
+        id,
+        value,
+        v: PROJECTION_VERSION,
+      }),
+    );
   },
   async clearProjections() {
     const db = await open();
@@ -240,9 +260,10 @@ export const localRepository = {
   /** Every Lesson's pinned revision and epoch. @returns {Promise<ProgressStream[]>} */
   async streams() {
     const db = await open();
-    return /** @type {ProgressStream[]} */ (await done(
+    const records = /** @type {unknown[]} */ (await done(
       objectStore(db, "progress_streams", "readonly").getAll(),
     ));
+    return records.filter(isProgressStream);
   },
   /** Pin a Lesson to a revision and epoch. Discarding progress writes a higher epoch here. @param {ProgressStream} stream */
   async saveStream(stream) {

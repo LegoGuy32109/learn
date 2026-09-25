@@ -264,11 +264,13 @@ await fixture("ref-mcq-key-not-in-set", "reference-validator", {
 }, (lesson) => mcqAt(lesson, 0).key = "nope");
 await fixture("ref-mcq-feedback-missing", "reference-validator", {
   valid: false,
-  codes: ["mcq.feedback.missing"],
+  codes: ["mcq.feedback.missing", "mcq.feedback.shape"],
+  note: "Dropping an entry also leaves feedback short of the schema's count.",
 }, (lesson) => delete mcqAt(lesson, 0).feedback.bump);
 await fixture("ref-mcq-map-missing", "reference-validator", {
   valid: false,
-  codes: ["mcq.map.missing"],
+  codes: ["mcq.map.missing", "mcq.map.shape"],
+  note: "Dropping an entry also leaves map short of the schema's count.",
 }, (lesson) => delete mcqAt(lesson, 0).map.remint);
 await fixture("ref-mcq-map-unknown", "reference-validator", {
   valid: false,
@@ -556,14 +558,17 @@ for (const name of ["__proto__", "constructor", "prototype"]) {
 }
 await fixture("reserved-name-feedback-key", "reserved-names", {
   valid: false,
-  codes: ["mcq.feedback.extra"],
+  codes: ["mcq.feedback.extra", "mcq.feedback.shape"],
+  note: "A reserved name is not a local ID, which the schema rejects as a key.",
 }, (lesson) => mcqAt(lesson, 0).feedback.__proto__ = "polluted");
 await fixture(
   "reserved-name-map-key",
   "reserved-names",
   {
     valid: false,
-    codes: ["mcq.map.extra"],
+    codes: ["mcq.map.extra", "mcq.map.shape"],
+    note:
+      "A reserved name is not a local ID, which the schema rejects as a key.",
   },
   (lesson) =>
     Object.assign(mcqAt(lesson, 0).map, { constructor: "only_this_device" }),

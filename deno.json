@@ -27,6 +27,7 @@
     "audit:prod": "deno test --allow-all tests/audit-prod",
     "audit:golden": "deno test --allow-all tests/audit-golden",
     "audit:contract": "deno test --allow-read --allow-write --allow-run=deno --allow-net --allow-env=LEARN_TOKEN,LEARN_OWNER_TOKEN,LEARN_BASE_URL tests/audit/contract-attacks/contract_attacks_test.ts",
+    "audit:contract:local": "LEARN_BASE_URL=local deno test --allow-read --allow-write --allow-run=deno --allow-net --allow-env=LEARN_TOKEN,LEARN_OWNER_TOKEN,LEARN_BASE_URL tests/audit/contract-attacks/contract_attacks_test.ts",
     "db:provision": "deno run --env-file=.env --allow-env=TURSO_API_KEY,TURSO_ORG_SLUG --allow-net --allow-read --allow-write scripts/provision-databases.ts",
     "db:migrate": "deno run --env-file=.env --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN --allow-net --allow-read scripts/migrate.ts",
     "db:owner": "deno run --env-file=.env --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN --allow-net --allow-read --allow-write scripts/bootstrap-owner.ts",
@@ -50,6 +51,7 @@
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1.0.19",
+    "json-schema-to-ts": "npm:json-schema-to-ts@3.1.1",
     "@std/dotenv/parse": "jsr:@std/dotenv@0.225.8/parse",
     "@playwright/test": "npm:@playwright/test@1.63.0",
     "@simplewebauthn/server": "npm:@simplewebauthn/server@13.3.2",

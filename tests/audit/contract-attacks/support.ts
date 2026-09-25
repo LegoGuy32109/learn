@@ -3,8 +3,28 @@
 // independent draft 2020-12 validator. The project's resolver is imported only as one of the
 // three implementations under comparison.
 
-export const ORIGIN = (Deno.env.get("LEARN_BASE_URL") ??
-  "https://learn-joshhale.legoguy32109.deno.net").replace(/\/$/, "");
+/**
+ * The site under attack. `LEARN_BASE_URL=local` serves the database-free application in this
+ * process, so CI compares the resolver, the downloaded validator and the schema without touching
+ * a deployment. Anything else is an origin; the default is the deployed site.
+ */
+function siteUnderAttack(): string {
+  const configured = Deno.env.get("LEARN_BASE_URL");
+  if (configured !== "local") {
+    return (configured ?? "https://learn-joshhale.legoguy32109.deno.net")
+      .replace(/\/$/, "");
+  }
+  // The application loads on the first request: importing it here, while the test module that
+  // imports this one is still initializing, would be a cycle.
+  const server = Deno.serve(
+    { hostname: "127.0.0.1", port: 0, onListen() {} },
+    async (request) => (await import("../../../src/app.ts")).app(request),
+  );
+  server.unref();
+  return `http://127.0.0.1:${server.addr.port}`;
+}
+
+export const ORIGIN = siteUnderAttack();
 
 export interface Result {
   name: string;

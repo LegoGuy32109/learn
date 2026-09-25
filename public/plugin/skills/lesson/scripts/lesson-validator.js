@@ -81,6 +81,21 @@ function uuid(value) {
 }
 
 /**
+ * The shape the JSON Schema gives an MCQ's `map` and `feedback`: an object of exactly `count`
+ * entries, each keyed by a local ID, each value passing `entry`. Membership is checked separately.
+ * @param {unknown} value
+ * @param {number} count
+ * @param {(entry: unknown) => boolean} entry
+ */
+function shaped(value, count, entry) {
+  const record = object(value);
+  if (!record) return false;
+  const keys = Object.keys(record);
+  return keys.length === count &&
+    keys.every((key) => localId(key) && entry(record[key]));
+}
+
+/**
  * @param {unknown} value
  * @returns {value is string}
  */
@@ -502,6 +517,24 @@ function resolveQuestion(report, raw, index, concepts, questionIds) {
   if (question.type === "mcq") {
     result.mcq = true;
     const options = concept ? concept.options : new Map();
+    // Shape first: the JSON Schema's own rule for map and feedback, reported with its own code so
+    // schema-catchable problems never hide under the identity codes below.
+    if (!shaped(question.map, OPTION_COUNT - 1, localId)) {
+      report.error(
+        "mcq.map.shape",
+        `${path}/map`,
+        `map must be an object of exactly ${
+          OPTION_COUNT - 1
+        } entries whose keys and values are local IDs.`,
+      );
+    }
+    if (!shaped(question.feedback, OPTION_COUNT, text)) {
+      report.error(
+        "mcq.feedback.shape",
+        `${path}/feedback`,
+        `feedback must be an object of exactly ${OPTION_COUNT} entries whose keys are local IDs and whose values are non-empty text.`,
+      );
+    }
     const feedback = object(question.feedback) ?? {};
     const map = object(question.map) ?? {};
     const key = typeof question.key === "string" ? question.key : "";
@@ -710,6 +743,8 @@ function normalizeQuestion(question) {
     const numeric = {
       ...base,
       type: question.type,
+      // Validation refuses a reserved numeric Question (numeric.reserved).
+      reserved: /** @type {false} */ (false),
       answer: question.answer,
       tolerance: question.tolerance,
       feedback: question.feedback.trim(),
@@ -787,7 +822,8 @@ export async function resolveLesson(input) {
     return rejected(report);
   }
 
-  if (source.schema !== "lesson/v1" && source.schemaVersion !== 1) {
+  // The published JSON Schema requires `schema`; `schemaVersion` alone does not name the contract.
+  if (source.schema !== "lesson/v1") {
     report.error("schema.unsupported", "/schema", "Use schema lesson/v1.");
   }
   if (!text(source.title)) {
@@ -938,9 +974,13 @@ export async function resolveLesson(input) {
     : /** @type {import("../lessons/types.d.ts").Provenance} */ (
       Object.fromEntries([
         ["status", "provided"],
-        ...PROVENANCE_FIELDS.map((
+        // PROVENANCE_FIELDS are the schema's provided-provenance fields; validation required each.
+        ...PROVENANCE_FIELDS.map((field) => [
           field,
-        ) => [field, authoredProvenance[field].trim()]),
+          authoredProvenance[
+            /** @type {keyof typeof authoredProvenance} */ (field)
+          ].trim(),
+        ]),
       ])
     );
   /** @type {import("../lessons/types.d.ts").NormalizedLesson} */
@@ -978,7 +1018,11 @@ export async function resolveLesson(input) {
   };
 }
 
-export const lessonSchema = {
+/**
+ * The lesson/v1 contract. It is the one definition of the document's structure: the lesson types
+ * in src/shared/lessons/types.d.ts are derived from it, so it keeps its literal types.
+ */
+export const lessonSchema = /** @type {const} */ ({
   $schema: "https://json-schema.org/draft/2020-12/schema",
   $id: "https://learn.joshhale.me/api/v1/schemas/lesson/v1",
   title: "learn.joshhale.me lesson/v1",
@@ -1348,4 +1392,4 @@ export const lessonSchema = {
       ],
     },
   },
-};
+});

@@ -214,8 +214,7 @@
       "key": "nope",
       "map": {
         "revalidate": "validate_every_time",
-        "refetch": "fresh_means_newest",
-        "reuse": "validate_every_time"
+        "refetch": "fresh_means_newest"
       },
       "feedback": {
         "reuse": "Correct. At 20 seconds of a 60-second lifetime the response is fresh, and freshness is permission to reuse without asking.",

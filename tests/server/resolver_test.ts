@@ -87,10 +87,15 @@ Deno.test("every authoring fixture resolves to its manifest outcome", async () =
 });
 
 Deno.test("each rule has a fixture that triggers only that rule", () => {
+  // A code the fixture's one mistake necessarily causes is listed as `implied` and does not count.
+  const own = (entry: (typeof manifest)[number]) =>
+    entry.codes.filter((code) =>
+      !(("implied" in entry ? entry.implied : []) as string[]).includes(code)
+    );
   const isolated = new Set(
-    manifest.filter((entry) => entry.exact && entry.codes.length === 1).map((
+    manifest.filter((entry) => entry.exact && own(entry).length === 1).map((
       entry,
-    ) => entry.codes[0]),
+    ) => own(entry)[0]),
   );
   const required = [
     "concept.options.count",
@@ -276,4 +281,16 @@ Deno.test("an ID must be a string: an array holding a valid UUID is rejected, no
       `${code} is reported for an array-wrapped ID`,
     );
   }
+});
+
+Deno.test("a document must name its schema: schemaVersion alone is not lesson/v1", async () => {
+  const { schema: _schema, ...unnamed } = authoredLesson(lesson.title) as
+    & AuthoredLesson
+    & { schema?: string };
+  const result = await resolveLesson({ ...unnamed, schemaVersion: 1 });
+  assertEquals(result.valid, false);
+  assertEquals(
+    result.diagnostics.map((diagnostic) => diagnostic.code),
+    ["schema.unsupported"],
+  );
 });

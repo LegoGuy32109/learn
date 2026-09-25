@@ -24,7 +24,7 @@ schema is necessary, not sufficient.
 In paths, `<i>` and `<j>` stand for array indexes and `<optionId>` for an option
 ID of the Concept.
 
-## Errors (63)
+## Errors (65)
 
 | Code | Severity | Path | Caught by | Meaning | Fix |
 | --- | --- | --- | --- | --- | --- |
@@ -65,6 +65,8 @@ ID of the Concept.
 | `question.correctingCard` | error | `/questions/<i>/correctingCardId` | resolver only | correctingCardId is not the ID of a Card in the Question's Concept. | Name the Card of this Concept shown after I don't know or a wrong numeric or short answer. |
 | `question.feedback` | error | `/questions/<i>/feedback` | schema and resolver | A numeric or short Question has no feedback string. | Write one or two sentences shown after any answer. |
 | `mcq.key` | error | `/questions/<i>/key` | resolver only | key is not one option ID of the Concept's shared option set. | Set key to the id of the correct option in the Concept's options. |
+| `mcq.map.shape` | error | `/questions/<i>/map` | schema and resolver | map is missing or is not an object of exactly two entries whose keys and values are local IDs. | Give map one entry per distractor: its option ID mapped to a misconception ID. |
+| `mcq.feedback.shape` | error | `/questions/<i>/feedback` | schema and resolver | feedback is missing or is not an object of exactly three entries with local-ID keys and non-empty text. | Give feedback one entry per option ID, including the key, each a sentence or two. |
 | `mcq.feedback.missing` | error | `/questions/<i>/feedback/<optionId>` | resolver only | An option of the Concept, possibly the key, has no feedback entry. | Add feedback for every option ID in the Concept's set, including the key. |
 | `mcq.feedback.extra` | error | `/questions/<i>/feedback/<optionId>` | resolver only | feedback has a key that is not an option ID of the Concept. | Remove the entry or correct the option ID. |
 | `mcq.map.missing` | error | `/questions/<i>/map/<optionId>` | resolver only | A distractor option has no map entry. | Map every non-key option ID to a misconception ID in the Concept. |
