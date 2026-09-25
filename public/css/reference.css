@@ -298,7 +298,18 @@ code{font-family:var(--a-mono);font-size:.87em;background:var(--a-codebg);
 .pub span{font-size:calc(var(--a-fs)*.86);color:var(--a-ink-3);line-height:1.5}
 .pub:has(input:checked){border-color:var(--a-acc)}
 
-/* --- segmented rail --- */
-.rail{display:flex;gap:4px}
-.rail i{flex:1;height:3px;border-radius:2px;background:var(--a-line);overflow:hidden}
-.rail i b{display:block;height:100%;background:var(--a-acc);border-radius:2px}
+/* --- segmented rail ---
+   One definition, and the only one: app.css used to re-declare this block with a
+   different gap, radius and fake divider, and the override won silently.
+   Two things have to stay visible, so they are carried separately: the full extent
+   of the rail (how many Concepts are left) by the segment edge, and the value
+   inside each segment by the fill. --a-line was doing neither, at 1.36:1 on
+   --a-bg. The edge draws over the fill so boundaries stay continuous at any value. */
+.rail{display:flex;gap:var(--a-rail-gap)}
+.rail i{position:relative;flex:1;height:var(--a-rail-h);border-radius:999px;
+  background:var(--a-track);overflow:hidden}
+.rail i::after{content:"";position:absolute;inset:0;border-radius:inherit;
+  box-shadow:inset 0 0 0 1px var(--a-track-edge);pointer-events:none}
+.rail i b{display:block;height:100%;background:var(--a-acc);border-radius:999px;
+  transition:width .28s ease}
+@media (prefers-reduced-motion:reduce){.rail i b{transition:none}}

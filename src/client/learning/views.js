@@ -181,6 +181,9 @@ export function footerView(flow) {
   return `<div class="actions">${back}<button class="idk" data-action="idk">I don't know</button></div>`;
 }
 
+/** Fill shown once a Concept is opened but not yet read through. Enough to read as started. */
+const STARTED_FILL = 40;
+
 /**
  * @param {any} concept
  * @param {any} progress
@@ -188,7 +191,7 @@ export function footerView(flow) {
 function conceptFill(concept, progress) {
   const lastCard = concept.cards.at(-1);
   if (progress.learnedConcepts.has(concept.id) || progress.cardsSeen.has(lastCard.id)) return 100;
-  if (progress.cardsSeen.has(concept.cards[0].id)) return 40;
+  if (progress.cardsSeen.has(concept.cards[0].id)) return STARTED_FILL;
   return 0;
 }
 
@@ -197,6 +200,19 @@ function wrapUpFill(flow) {
   const total = flow.wrapTotal || 1;
   const answered = flow.wrapTotal - flow.queue.length + (flow.feedback?.correct ? 1 : 0);
   return Math.min(100, Math.round(100 * (answered / total)));
+}
+
+/**
+ * One rail segment. The segment, not the rail, carries the role: a bare `<i>` under an
+ * `aria-label`led `<div>` announced nothing at all, and the Concept title the schema calls
+ * "shown on the rail" was never exposed. The `<i>`/`<b>` tags stay so the stylesheet and the
+ * audit selectors keep working; the progressbar role is what assistive tech reads.
+ * @param {number} fill percentage, 0-100
+ * @param {string} label what this segment measures
+ */
+function railSegment(fill, label) {
+  return `<i role="progressbar" aria-label="${escape(label)}" aria-valuemin="0" aria-valuemax="100"` +
+    ` aria-valuenow="${fill}" aria-valuetext="${fill}% complete"><b style="width:${fill}%"></b></i>`;
 }
 
 /**
@@ -209,9 +225,9 @@ export function drillRailView(lesson, outcomes) {
   const segments = lesson.concepts.map((concept) => {
     const outcome = outcomes.find((candidate) => candidate.id === concept.id);
     const fill = outcome && outcome.questions ? Math.round(100 * (outcome.asked / outcome.questions)) : 0;
-    return `<i><b style="width:${fill}%"></b></i>`;
+    return railSegment(fill, concept.title);
   });
-  return `<div class="rail" aria-label="Drill progress">${segments.join("")}</div>`;
+  return `<div class="rail" role="group" aria-label="Drill progress">${segments.join("")}</div>`;
 }
 
 /**
@@ -221,7 +237,7 @@ export function drillRailView(lesson, outcomes) {
  * @param {any} progress
  */
 export function railView(lesson, flow, progress) {
-  const segments = lesson.concepts.map((concept) => `<i><b style="width:${conceptFill(concept, progress)}%"></b></i>`);
-  const wrapUp = flow?.flowKind === "wrap_up" ? `<i aria-label="Wrap-up progress"><b style="width:${wrapUpFill(flow)}%"></b></i>` : "";
-  return `<div class="rail" aria-label="Concept progress">${segments.join("")}${wrapUp}</div>`;
+  const segments = lesson.concepts.map((concept) => railSegment(conceptFill(concept, progress), concept.title));
+  const wrapUp = flow?.flowKind === "wrap_up" ? railSegment(wrapUpFill(flow), "Wrap-up") : "";
+  return `<div class="rail" role="group" aria-label="Concept progress">${segments.join("")}${wrapUp}</div>`;
 }

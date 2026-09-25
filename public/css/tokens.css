@@ -25,12 +25,22 @@
   --a-codeink: #563a10;
   --a-award: #a8201a;
 
+  /* rail: the segment interior, and the hairline that makes a segment's full
+     extent visible. --a-line is only 1.36:1 on --a-bg, so an unfilled rail
+     disappeared; the edge carries the extent instead (3.47:1 on --a-bg,
+     3.85:1 on --a-surface) and the fill carries the value (5.50:1 on the
+     interior). Both are neutral, so every accent inherits them unchanged. */
+  --a-track: #ded5c4;
+  --a-track-edge: #8a7d61;
+
   --a-body: "Instrument Sans", system-ui, -apple-system, sans-serif;
   --a-display: var(--a-body);
   --a-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --a-dw: 600;
 
   --a-r: 10px;    /* corner radius */
+  --a-rail-h: 6px;   /* rail height; tall enough to carry a 1px edge */
+  --a-rail-gap: 3px; /* space between rail segments */
   --a-pad: 18px;  /* density */
   --a-fs: 17px;   /* base size; 16px is the iOS input-zoom floor */
 
@@ -54,6 +64,8 @@
     --a-codebg: #272118;
     --a-codeink: #e4bd75;
     --a-award: #f5705a;
+  --a-track: #332c22;
+  --a-track-edge: #786b56;  /* 3.53:1 on --a-bg, 3.25:1 on --a-surface */
   }
 }
 
@@ -73,6 +85,8 @@
   --a-codebg: #272118;
   --a-codeink: #e4bd75;
   --a-award: #f5705a;
+  --a-track: #332c22;
+  --a-track-edge: #786b56;  /* 3.53:1 on --a-bg, 3.25:1 on --a-surface */
 }
 
 /* ---------------------------------------------------------------- accents
