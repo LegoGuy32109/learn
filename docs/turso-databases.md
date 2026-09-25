@@ -59,9 +59,7 @@ deno task invite:mint:prod  # The same against https://learn.joshhale.me with th
 or `--base-url <url>`. The serving application also reads `LEARN_SESSION_KEY`
 (browser session signing; without it sessions end at restart), and
 `WEBAUTHN_RP_ID` plus `WEBAUTHN_ORIGINS` (the pinned passkey relying party; unset
-means plain localhost only), and `LEARN_GUESTS`: unset, the site shows a
-visitor who is not signed in only a private page; `demo` shows them the featured
-lesson. Migration `002_passkeys_and_invites.sql` adds
+means plain localhost only). Migration `002_passkeys_and_invites.sql` adds
 `passkey_credentials`, `sign_in_invites` and `webauthn_challenges`. Migration
 `003_progress_sync.sql` adds `progress_streams`, `progress_events` and
 `navigation_events`. Run `deno task db:migrate` before serving code that needs

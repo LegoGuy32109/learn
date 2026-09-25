@@ -22,8 +22,8 @@ export interface Dependencies {
   revision?: string;
   /**
    * What a visitor who is not signed in gets at `/` and `/learn/*`: the featured lesson (`demo`), or a
-   * private page with only a passkey sign-in (`closed`). Omitted, it is `demo`; main.ts closes the
-   * deployed site unless LEARN_GUESTS=demo.
+   * private page with only a passkey sign-in (`closed`). Omitted, it is `demo`, which tests use;
+   * main.ts always closes the site.
    */
   guests?: "demo" | "closed";
 }

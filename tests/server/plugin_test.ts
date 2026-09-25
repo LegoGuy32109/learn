@@ -579,7 +579,7 @@ class MemoryLessons implements LessonRepository {
 
 async function draftApp() {
   const dependencies = await fixtureDependencies();
-  const lessons = new MemoryLessons(await dependencies.lessons.featured());
+  const lessons = new MemoryLessons((await dependencies.lessons.featured())!);
   const application = createApp({
     ...dependencies,
     lessons,

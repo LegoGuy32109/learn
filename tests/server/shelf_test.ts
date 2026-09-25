@@ -244,5 +244,5 @@ Deno.test("the in-memory repository behaves like the database one: idempotent fi
     (await repository.latestRevision("owner", first.lessonId))?.revisionId,
     first.revisionId,
   );
-  assertEquals((await repository.featured()).title, fixture.title);
+  assertEquals((await repository.featured())?.title, fixture.title);
 });

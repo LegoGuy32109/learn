@@ -30,7 +30,8 @@ export interface StoredRevision {
 export type ShelfLesson = ShelfLessonReply;
 
 export interface LessonRepository {
-  featured(): Promise<Lesson>;
+  /** The newest published revision, or null when nothing is published yet. */
+  featured(): Promise<Lesson | null>;
   createLesson(
     accountId: string,
     resolved: ResolvedLesson,
@@ -117,13 +118,11 @@ function rowRevision(
 export class TursoLessonRepository implements LessonRepository {
   constructor(private db: Client) {}
 
-  async featured(): Promise<Lesson> {
+  async featured(): Promise<Lesson | null> {
     const result = await this.db.execute(
       "SELECT * FROM lesson_revisions WHERE status = 'published' ORDER BY published_at DESC LIMIT 1",
     );
-    if (!result.rows.length) {
-      throw new Error("No published lesson revision is available");
-    }
+    if (!result.rows.length) return null;
     return (await this.hydrate(result.rows[0])).content;
   }
 
@@ -363,11 +362,11 @@ export class FixtureLessonRepository implements LessonRepository {
     });
   }
 
-  featured(): Promise<Lesson> {
+  featured(): Promise<Lesson | null> {
     const published = this.revisions.filter((revision) =>
       revision.status === "published"
     );
-    return Promise.resolve(published.at(-1)!.content);
+    return Promise.resolve(published.at(-1)?.content ?? null);
   }
 
   createLesson(
