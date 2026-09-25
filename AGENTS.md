@@ -29,7 +29,13 @@ Keep the application a modular monolith. Prefer layer-first top-level
 directories with domain subdivisions. Shared reducers and evaluators must be
 pure and usable in the browser and on the server.
 
-Run the checks in `docs/first-milestone.md` before you report completion. Do not
+Run the checks in `docs/first-milestone.md` before you report completion.
+
+A push to `main` deploys to production in about 20 seconds, and CI does not gate
+it. Before your first push from a clone, run `deno task hooks`; it points Git at
+`.githooks`, whose pre-push hook runs `deno task verify` (the same checks as
+CI). Claude Code does this on its own through `.claude/settings.json`. Never
+push with `--no-verify`. Do not
 implement deferred systems merely to make their future directories exist.
 
 ## Ticketed work

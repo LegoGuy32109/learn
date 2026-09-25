@@ -15,8 +15,11 @@ The application runs as one Deno Deploy application on the current
 The application slug `learn` was not available on Deno Deploy, so the
 application is named `learn-joshhale`. The custom domain hides the slug.
 
-Every deploy happens from this repository with a Deno task. There is no GitHub
-Action. `DENO_DEPLOY_TOKEN` in the ignored `.env` file authenticates the CLI.
+A push to `main` deploys through the GitHub integration (see "Deploying by
+pushing to GitHub"), and `deno task deploy` publishes from the working tree. No
+GitHub Action deploys, and CI does not gate either route: the pre-push hook in
+`.githooks` (enabled with `deno task hooks`) runs `deno task verify` before a
+push instead. `DENO_DEPLOY_TOKEN` in the ignored `.env` file authenticates the CLI.
 Never print it, and never paste it into a prompt.
 
 ## Contexts and environment variables

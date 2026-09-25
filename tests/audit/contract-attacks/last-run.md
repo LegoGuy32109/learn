@@ -1,41 +1,6 @@
 ## Contract attacks
 
-463 passed, 8 failed, 2 observations
-
-### Failed
-
-- reference-validator · ref-mcq-feedback-missing.json · the independent draft 2020-12 validator agrees with the resolver
-  ```
-  the JSON Schema rejected a document no schema-caught code applies to (["mcq.feedback.missing"]): [{"instancePath":"/questions/0/feedback","schemaPath":"#/properties/feedback/minProperties","keyword":"minProperties","params":{"limit":3},"message":"must NOT have fewer than 3 properties"},{"instancePath":"/questions/0","schemaPath":"#/required","keyword":"required","params":{"missingProperty":"answer"},"message":"must have required property 'answer'"},{"instancePath":"/questions/0","schemaPath":"#/required","keyword":"required","params":{"missingProperty":"tolerance"},"message":"must have required property 'tolerance'"},{"instancePath":"/questions/0/type","schemaPath":"#/properties/type/const","keyword":"const","params":{"allowedValue":"numeric"},"message":"must be equal to constant"}]
-  ```
-- reference-validator · ref-mcq-feedback-missing.json · schema-passing but resolver-rejected, as the contract claims
-  ```
-  the fixture must pass the schema and fail the resolver
-  ```
-- reference-validator · ref-mcq-map-missing.json · the independent draft 2020-12 validator agrees with the resolver
-  ```
-  the JSON Schema rejected a document no schema-caught code applies to (["mcq.map.missing"]): [{"instancePath":"/questions/0/map","schemaPath":"#/properties/map/minProperties","keyword":"minProperties","params":{"limit":2},"message":"must NOT have fewer than 2 properties"},{"instancePath":"/questions/0","schemaPath":"#/required","keyword":"required","params":{"missingProperty":"answer"},"message":"must have required property 'answer'"},{"instancePath":"/questions/0","schemaPath":"#/required","keyword":"required","params":{"missingProperty":"tolerance"},"message":"must have required property 'tolerance'"},{"instancePath":"/questions/0/type","schemaPath":"#/properties/type/const","keyword":"const","params":{"allowedValue":"numeric"},"message":"must be equal to constant"}]
-  ```
-- reference-validator · ref-mcq-map-missing.json · schema-passing but resolver-rejected, as the contract claims
-  ```
-  the fixture must pass the schema and fail the resolver
-  ```
-- reserved-names · reserved-name-feedback-key.json · the independent draft 2020-12 validator agrees with the resolver
-  ```
-  the JSON Schema rejected a document no schema-caught code applies to (["mcq.feedback.extra"]): [{"instancePath":"/questions/0/feedback","schemaPath":"#/properties/feedback/maxProperties","keyword":"maxProperties","params":{"limit":3},"message":"must NOT have more than 3 properties"},{"instancePath":"/questions/0/feedback","schemaPath":"#/$defs/localId/not","keyword":"not","params":{},"message":"must NOT be valid","propertyName":"__proto__"},{"instancePath":"/questions/0/feedback","schemaPath":"#/properties/feedback/propertyNames","keyword":"propertyNames","params":{"propertyName":"__proto__"},"message":"property name must be valid"},{"instancePath":"/questions/0","schemaPath":"#/required","keyword":"required","params":{"missingProperty":"answer"},"message":"must have required property 'answer'"}]
-  ```
-- reserved-names · reserved-name-feedback-key.json · schema-passing but resolver-rejected, as the contract claims
-  ```
-  the fixture must pass the schema and fail the resolver
-  ```
-- reserved-names · reserved-name-map-key.json · the independent draft 2020-12 validator agrees with the resolver
-  ```
-  the JSON Schema rejected a document no schema-caught code applies to (["mcq.map.extra"]): [{"instancePath":"/questions/0/map","schemaPath":"#/properties/map/maxProperties","keyword":"maxProperties","params":{"limit":2},"message":"must NOT have more than 2 properties"},{"instancePath":"/questions/0/map","schemaPath":"#/$defs/localId/not","keyword":"not","params":{},"message":"must NOT be valid","propertyName":"constructor"},{"instancePath":"/questions/0/map","schemaPath":"#/properties/map/propertyNames","keyword":"propertyNames","params":{"propertyName":"constructor"},"message":"property name must be valid"},{"instancePath":"/questions/0","schemaPath":"#/required","keyword":"required","params":{"missingProperty":"answer"},"message":"must have required property 'answer'"}]
-  ```
-- reserved-names · reserved-name-map-key.json · schema-passing but resolver-rejected, as the contract claims
-  ```
-  the fixture must pass the schema and fail the resolver
-  ```
+467 passed, 0 failed, 2 observations
 
 ### Observations
 
@@ -230,6 +195,7 @@
 - reference-validator · ref-mcq-feedback-missing.json · the API, the validator and the resolver return byte-identical JSON
 - reference-validator · ref-mcq-feedback-missing.json · the API answers 422
 - reference-validator · ref-mcq-feedback-missing.json · diagnostics match the committed expectation
+- reference-validator · ref-mcq-feedback-missing.json · the independent draft 2020-12 validator agrees with the resolver
 - reference-validator · ref-mcq-key-not-in-set.json · the API, the validator and the resolver return byte-identical JSON
 - reference-validator · ref-mcq-key-not-in-set.json · the API answers 422
 - reference-validator · ref-mcq-key-not-in-set.json · diagnostics match the committed expectation
@@ -238,6 +204,7 @@
 - reference-validator · ref-mcq-map-missing.json · the API, the validator and the resolver return byte-identical JSON
 - reference-validator · ref-mcq-map-missing.json · the API answers 422
 - reference-validator · ref-mcq-map-missing.json · diagnostics match the committed expectation
+- reference-validator · ref-mcq-map-missing.json · the independent draft 2020-12 validator agrees with the resolver
 - reference-validator · ref-mcq-map-unknown.json · the API, the validator and the resolver return byte-identical JSON
 - reference-validator · ref-mcq-map-unknown.json · the API answers 422
 - reference-validator · ref-mcq-map-unknown.json · diagnostics match the committed expectation
@@ -319,9 +286,11 @@
 - reserved-names · reserved-name-feedback-key.json · the API, the validator and the resolver return byte-identical JSON
 - reserved-names · reserved-name-feedback-key.json · the API answers 422
 - reserved-names · reserved-name-feedback-key.json · diagnostics match the committed expectation
+- reserved-names · reserved-name-feedback-key.json · the independent draft 2020-12 validator agrees with the resolver
 - reserved-names · reserved-name-map-key.json · the API, the validator and the resolver return byte-identical JSON
 - reserved-names · reserved-name-map-key.json · the API answers 422
 - reserved-names · reserved-name-map-key.json · diagnostics match the committed expectation
+- reserved-names · reserved-name-map-key.json · the independent draft 2020-12 validator agrees with the resolver
 - reserved-names · reserved-name-misconception-__proto__.json · the API, the validator and the resolver return byte-identical JSON
 - reserved-names · reserved-name-misconception-__proto__.json · the API answers 422
 - reserved-names · reserved-name-misconception-__proto__.json · diagnostics match the committed expectation

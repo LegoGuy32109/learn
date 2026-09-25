@@ -1,0 +1,5 @@
+#!/bin/sh
+# A push to main deploys to production within seconds, and CI reports only afterwards.
+# This runs the same checks as CI's static job first. Enable once per clone:
+#   git config core.hooksPath .githooks
+exec deno task verify
