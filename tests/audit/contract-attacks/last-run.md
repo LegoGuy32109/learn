@@ -14,20 +14,6 @@
 - download · GET /api/v1/diagnostics lists every code with a schema flag
 - validator · the downloaded validator runs offline, from a temporary directory, without hanging
 - validator · one result per document, in order
-- card-words · card-119-words-plus-tags.json · the API, the validator and the resolver return byte-identical JSON
-- card-words · card-119-words-plus-tags.json · the API answers 422
-- card-words · card-119-words-plus-tags.json · diagnostics match the committed expectation
-- card-words · card-119-words-plus-tags.json · the independent draft 2020-12 validator agrees with the resolver
-- card-words · card-119-words-plus-tags.json · schema-passing but resolver-rejected, as the contract claims
-- card-words · card-119-words.json · the API, the validator and the resolver return byte-identical JSON
-- card-words · card-119-words.json · the API answers 422
-- card-words · card-119-words.json · diagnostics match the committed expectation
-- card-words · card-119-words.json · the independent draft 2020-12 validator agrees with the resolver
-- card-words · card-119-words.json · schema-passing but resolver-rejected, as the contract claims
-- card-words · card-120-words.json · the API, the validator and the resolver return byte-identical JSON
-- card-words · card-120-words.json · the API answers 200
-- card-words · card-120-words.json · diagnostics match the committed expectation
-- card-words · card-120-words.json · the independent draft 2020-12 validator agrees with the resolver
 - card-words · card-200-words.json · the API, the validator and the resolver return byte-identical JSON
 - card-words · card-200-words.json · the API answers 200
 - card-words · card-200-words.json · diagnostics match the committed expectation
@@ -37,6 +23,20 @@
 - card-words · card-201-words.json · diagnostics match the committed expectation
 - card-words · card-201-words.json · the independent draft 2020-12 validator agrees with the resolver
 - card-words · card-201-words.json · schema-passing but resolver-rejected, as the contract claims
+- card-words · card-79-words-plus-tags.json · the API, the validator and the resolver return byte-identical JSON
+- card-words · card-79-words-plus-tags.json · the API answers 422
+- card-words · card-79-words-plus-tags.json · diagnostics match the committed expectation
+- card-words · card-79-words-plus-tags.json · the independent draft 2020-12 validator agrees with the resolver
+- card-words · card-79-words-plus-tags.json · schema-passing but resolver-rejected, as the contract claims
+- card-words · card-79-words.json · the API, the validator and the resolver return byte-identical JSON
+- card-words · card-79-words.json · the API answers 422
+- card-words · card-79-words.json · diagnostics match the committed expectation
+- card-words · card-79-words.json · the independent draft 2020-12 validator agrees with the resolver
+- card-words · card-79-words.json · schema-passing but resolver-rejected, as the contract claims
+- card-words · card-80-words.json · the API, the validator and the resolver return byte-identical JSON
+- card-words · card-80-words.json · the API answers 200
+- card-words · card-80-words.json · diagnostics match the committed expectation
+- card-words · card-80-words.json · the independent draft 2020-12 validator agrees with the resolver
 - deixis · deixis-as-mentioned.json · the API, the validator and the resolver return byte-identical JSON
 - deixis · deixis-as-mentioned.json · the API answers 422
 - deixis · deixis-as-mentioned.json · diagnostics match the committed expectation

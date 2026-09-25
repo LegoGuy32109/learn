@@ -46,7 +46,7 @@
     "db:migrate:prod": "deno run --env-file=.env.prod --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN --allow-net --allow-read scripts/migrate.ts",
     "db:owner:prod": "deno run --env-file=.env.prod --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN --allow-net --allow-read --allow-write scripts/bootstrap-owner.ts --env-path=.env.prod",
     "db:seed:prod": "deno run --env-file=.env.prod --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN --allow-net --allow-read scripts/seed-demo.ts",
-    "deploy:env": "deno run --env-file=.env -A --no-lock scripts/set-deploy-env.ts Production --from=.env.prod && deno run --env-file=.env -A --no-lock scripts/set-deploy-env.ts Local --from=.env",
+    "deploy:env": "deno run --env-file=.env -A --no-lock scripts/set-deploy-env.ts Production --from=.env.prod && deno run --env-file=.env -A --no-lock scripts/set-deploy-env.ts Preview --from=.env && deno run --env-file=.env -A --no-lock scripts/set-deploy-env.ts Local --from=.env",
     "deploy": "deno run --env-file=.env --allow-env --allow-run=deno --allow-read --allow-write=deno.json --allow-net scripts/deploy.ts",
     "smoke:prod": "deno run --env-file=.env.prod --allow-env=LEARN_BASE_URL,LEARN_OWNER_TOKEN --allow-net --allow-read scripts/smoke-prod.ts",
     "invite:mint": "deno run --env-file=.env --allow-env=LEARN_OWNER_TOKEN,LEARN_BASE_URL --allow-net scripts/invite.ts",
@@ -84,3 +84,4 @@
     ]
   }
 }
+

@@ -30,13 +30,15 @@ database from `docs/turso-databases.md`.
 | Context | When it applies | Database | Source file |
 | --- | --- | --- | --- |
 | `Production` | The production timeline at the default URL and the custom domain | `learn-prod` | `.env.prod` |
-| `Preview` | Any branch or ad-hoc preview deploy | none: left empty on purpose | none |
+| `Preview` | Every build's warm-up, including pushes to `main`, and any preview deploy | `learn-local` | `.env` |
 | `Local` | Running the application on your own machine through Deploy tooling | `learn-local` | `.env` |
 | `Build` | Only during the build step, not at runtime | unused | none |
 
-`Preview` has no variables. Nothing deploys from a branch, and a preview build
-that did appear would stop at startup with `TURSO_DB_URL and TURSO_DB_TOKEN must
-be set` instead of reaching a database.
+`Preview` must have database variables even though nothing deploys from a
+branch: Deploy warms every build up in `Preview` before it serves Production,
+and on 2026-09-25 a build with an empty `Preview` failed at that step with
+`TURSO_DB_URL and TURSO_DB_TOKEN must be set` while Production kept the previous
+build. It reads `learn-local`, so a preview can never reach production data.
 
 Two facts that the platform documentation does not make obvious:
 
@@ -53,7 +55,7 @@ all-contexts entry, and the backend then refuses a second entry for the same
 key. Use the script instead:
 
 ```bash
-deno task deploy:env   # Production <- .env.prod, Local <- .env
+deno task deploy:env   # Production <- .env.prod, Preview and Local <- .env
 ```
 
 The task runs `scripts/set-deploy-env.ts` once per context. The script reads
@@ -271,8 +273,8 @@ Production was set up on 2026-09-21 in this order:
    create --source local --runtime-mode dynamic --entrypoint main.ts --region us`.
    Its first revision failed at the warming step because no database
    variables existed yet.
-6. `deno task deploy:env` populated Production, Preview and Local. (Preview and
-   `learn-dev` were removed on 2026-09-25.)
+6. `deno task deploy:env` populated Production, Preview and Local. (`learn-dev`
+   was deleted on 2026-09-25; Preview now reads `learn-local`.)
 7. `deno task deploy` published a working revision and the smoke passed.
 
 ## Deploying by pushing to GitHub

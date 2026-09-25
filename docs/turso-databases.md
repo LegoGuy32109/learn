@@ -14,8 +14,9 @@ learning and navigation event streams with their progress streams.
 | `learn-prod` | Production data behind the Deno Deploy Production context | Persistent, created 2026-09-21 |
 
 There are two environments, local and production, and no development database:
-`learn-dev` and the Deploy `Preview` context it served were deleted on
-2026-09-25 because nothing deploys from a branch. Both named databases use the
+`learn-dev` was deleted on 2026-09-25 because nothing deploys from a branch;
+the Deploy `Preview` context, which every build warms up in, reads
+`learn-local`. Both named databases use the
 Turso database engine and have the full migration history, an owner account and
 an owner API token. `learn-prod` holds only content approved for production; its
 account was recreated empty on 2026-09-25. Which Deno
@@ -109,8 +110,9 @@ record and for any future rebuild:
    (`deno task db:owner:prod`).
 5. Seed only content approved for production (`deno task db:seed:prod`).
 6. Store the URL and database token in the Deno Deploy `Production` context.
-7. Store `learn-local` values in the `Local` context. Step 6 and this step are
-   one task: `deno task deploy:env`. The `Preview` context is left empty.
+7. Store `learn-local` values in the `Preview` and `Local` contexts. Step 6
+   and this step are one task: `deno task deploy:env`. Preview cannot be empty:
+   every build warms up in it.
 8. Run the API smoke (`deno task smoke:prod`) and the browser demo path against
    the default Deploy URL before attaching the custom domain.
 

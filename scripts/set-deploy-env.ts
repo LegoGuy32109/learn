@@ -12,7 +12,8 @@
 // The --from form reads TURSO_DB_URL and TURSO_DB_TOKEN from an ignored env
 // file, plus LEARN_SESSION_KEY, WEBAUTHN_RP_ID and WEBAUTHN_ORIGINS when the
 // file has them, and never places a secret on the command line. `deno task deploy:env`
-// runs it for Production (.env.prod) and Local (.env); Preview is left empty.
+// runs it for Production (.env.prod), and for Preview and Local (.env). Every build warms up in
+// Preview, so it must never be empty.
 //
 // Requires DENO_DEPLOY_TOKEN in the environment. Never print it. The CLI auth
 // module pulls in npm packages that probe the OS, so the task runs with -A.
