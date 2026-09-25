@@ -92,15 +92,13 @@ async function updateEnv(
   await Deno.chmod(path, 0o600);
 }
 
-for (const environment of ["local", "dev"] as const) {
-  const name = `learn-${environment}`;
-  const database = await ensureDatabase(name);
-  const hostname = database.Hostname ?? database.hostname;
-  if (!hostname) throw new Error(`Turso did not return a hostname for ${name}`);
-  const values = {
-    TURSO_DB_URL: `libsql://${hostname}`,
-    TURSO_DB_TOKEN: await token(name),
-  };
-  await updateEnv(environment === "local" ? ".env" : ".env.dev", values);
-  console.log(`${name}: ready`);
-}
+// Two environments exist: learn-local here, and learn-prod through scripts/provision-production.ts.
+const name = "learn-local";
+const database = await ensureDatabase(name);
+const hostname = database.Hostname ?? database.hostname;
+if (!hostname) throw new Error(`Turso did not return a hostname for ${name}`);
+await updateEnv(".env", {
+  TURSO_DB_URL: `libsql://${hostname}`,
+  TURSO_DB_TOKEN: await token(name),
+});
+console.log(`${name}: ready`);

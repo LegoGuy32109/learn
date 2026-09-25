@@ -1,7 +1,7 @@
 import { field, isRecord } from "../src/shared/json.js";
 // Creates the learn-prod Turso database once and writes its connection to the
 // ignored .env.prod file. The database uses the same engine setting as
-// learn-local and learn-dev. The token is minted only when .env.prod has none,
+// learn-local. The token is minted only when .env.prod has none,
 // so rerunning the script never rotates production credentials by accident.
 // Pass --rotate-token to mint a replacement token on purpose.
 //

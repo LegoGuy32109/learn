@@ -30,9 +30,13 @@ database from `docs/turso-databases.md`.
 | Context | When it applies | Database | Source file |
 | --- | --- | --- | --- |
 | `Production` | The production timeline at the default URL and the custom domain | `learn-prod` | `.env.prod` |
-| `Preview` | Any branch or ad-hoc preview deploy | `learn-dev` | `.env.dev` |
+| `Preview` | Any branch or ad-hoc preview deploy | none: left empty on purpose | none |
 | `Local` | Running the application on your own machine through Deploy tooling | `learn-local` | `.env` |
 | `Build` | Only during the build step, not at runtime | unused | none |
+
+`Preview` has no variables. Nothing deploys from a branch, and a preview build
+that did appear would stop at startup with `TURSO_DB_URL and TURSO_DB_TOKEN must
+be set` instead of reaching a database.
 
 Two facts that the platform documentation does not make obvious:
 
@@ -49,7 +53,7 @@ all-contexts entry, and the backend then refuses a second entry for the same
 key. Use the script instead:
 
 ```bash
-deno task deploy:env   # Production <- .env.prod, Preview <- .env.dev, Local <- .env
+deno task deploy:env   # Production <- .env.prod, Local <- .env
 ```
 
 The task runs `scripts/set-deploy-env.ts` once per context. The script reads
@@ -58,7 +62,7 @@ or in shell history. It marks `TURSO_DB_TOKEN` secret. For one variable in one
 context it also accepts an explicit value:
 
 ```bash
-deno run --env-file=.env -A --no-lock scripts/set-deploy-env.ts Preview SOME_KEY "value" [secret]
+deno run --env-file=.env -A --no-lock scripts/set-deploy-env.ts Production SOME_KEY "value" [secret]
 ```
 
 The script imports the CLI's own `createTrpcClient` and `tokenStorage` helpers
@@ -267,7 +271,8 @@ Production was set up on 2026-09-21 in this order:
    create --source local --runtime-mode dynamic --entrypoint main.ts --region us`.
    Its first revision failed at the warming step because no database
    variables existed yet.
-6. `deno task deploy:env` populated Production, Preview and Local.
+6. `deno task deploy:env` populated Production, Preview and Local. (Preview and
+   `learn-dev` were removed on 2026-09-25.)
 7. `deno task deploy` published a working revision and the smoke passed.
 
 ## Deploying by pushing to GitHub

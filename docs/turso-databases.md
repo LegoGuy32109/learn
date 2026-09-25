@@ -10,21 +10,21 @@ learning and navigation event streams with their progress streams.
 | Database | Purpose | Lifecycle |
 | --- | --- | --- |
 | `learn-local` | Local application and database integration tests | Persistent, developer-owned |
-| `learn-dev` | Development and preview deployments | Disposable before production |
 | `learn-test-<uuid>` | Isolated database integration and end-to-end runs | Create and delete in one test run |
 | `learn-prod` | Production data behind the Deno Deploy Production context | Persistent, created 2026-09-21 |
 
-All three named databases use the Turso database engine and have
-`001_initial.sql`, an owner account, an owner API token, and the demo Lesson
-Revision. `learn-prod` holds only content approved for production. Which Deno
+There are two environments, local and production, and no development database:
+`learn-dev` and the Deploy `Preview` context it served were deleted on
+2026-09-25 because nothing deploys from a branch. Both named databases use the
+Turso database engine and have the full migration history, an owner account and
+an owner API token. `learn-prod` holds only content approved for production; its
+account was recreated empty on 2026-09-25. Which Deno
 Deploy context reads which database is described in `docs/deno-deploy.md`.
 
 ## Credentials
 
 The ignored `.env` file contains management credentials, the Deno Deploy
-token, the `learn-local` connection, and the local owner token. The ignored
-`.env.dev` file contains the `learn-dev` connection and its separate owner
-token. The ignored `.env.prod` file contains the `learn-prod` connection and
+token, the `learn-local` connection, and the local owner token. The ignored `.env.prod` file contains the `learn-prod` connection and
 the production owner token.
 
 Never print, commit, or pass these values in an agent prompt:
@@ -42,7 +42,7 @@ either database credential. External agents use a scoped
 ## Commands
 
 ```bash
-deno task db:provision  # Ensure learn-local and learn-dev exist; rotate connection tokens
+deno task db:provision  # Ensure learn-local exists; rotate its connection token
 deno task db:migrate    # Apply pending migrations to learn-local
 deno task db:owner      # Ensure Josh's local account, owner API token (with account:owner) and LEARN_SESSION_KEY exist
 deno task db:seed       # Ensure the database-backed demo lesson exists
@@ -65,8 +65,8 @@ means plain localhost only). Migration `002_passkeys_and_invites.sql` adds
 `navigation_events`. Run `deno task db:migrate` before serving code that needs
 them.
 
-Every `token:*` task accepts `--help`. To operate on `learn-dev`, run
-`scripts/tokens.ts` with `--env-file=.env.dev` and the same permissions.
+Every `token:*` task accepts `--help`. To operate on `learn-prod`, run
+`scripts/tokens.ts` with `--env-file=.env.prod` and the same permissions.
 
 `deno task test:db` needs `TURSO_API_KEY` and `TURSO_ORG_SLUG` because the
 token lifecycle test creates `learn-test-<uuid>`, runs against it in one process
@@ -85,23 +85,9 @@ deno task db:seed:prod       # Ensure the demo lesson exists in learn-prod
 `--rotate-token` to the script to mint a replacement on purpose, then run
 `deno task deploy:env` so the Production context receives it.
 
-To operate on development, run the underlying script with `.env.dev`:
-
-```bash
-deno run --env-file=.env.dev --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN \
-  --allow-net --allow-read scripts/migrate.ts
-
-deno run --env-file=.env.dev --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN \
-  --allow-net --allow-read --allow-write scripts/bootstrap-owner.ts \
-  --env-path=.env.dev
-
-deno run --env-file=.env.dev --allow-env=TURSO_DB_URL,TURSO_DB_TOKEN \
-  --allow-net --allow-read scripts/seed-demo.ts
-```
-
 ## Migration rule
 
-`001_initial.sql` has run in `learn-local` and `learn-dev`. It is immutable.
+`001_initial.sql` has run in `learn-local` and `learn-prod`. It is immutable.
 The migration runner stores its checksum and rejects a changed applied file.
 Every schema change starts a new sequential file such as
 `002_progress_events.sql`.
@@ -123,9 +109,8 @@ record and for any future rebuild:
    (`deno task db:owner:prod`).
 5. Seed only content approved for production (`deno task db:seed:prod`).
 6. Store the URL and database token in the Deno Deploy `Production` context.
-7. Store `learn-dev` values in the `Preview` context and `learn-local` values
-   in the `Local` context. The platform has no `Development` context. Step 6
-   and this step are one task: `deno task deploy:env`.
+7. Store `learn-local` values in the `Local` context. Step 6 and this step are
+   one task: `deno task deploy:env`. The `Preview` context is left empty.
 8. Run the API smoke (`deno task smoke:prod`) and the browser demo path against
    the default Deploy URL before attaching the custom domain.
 

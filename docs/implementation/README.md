@@ -16,8 +16,9 @@ deno task test:db
 deno task e2e
 ```
 
-The baseline includes `learn-local` and `learn-dev`. It does not include a
-production database. `migrations/001_initial.sql` is immutable.
+The baseline included `learn-local` and `learn-dev`, and no production
+database. `learn-prod` was added on 2026-09-21 and `learn-dev` deleted on
+2026-09-25. `migrations/001_initial.sql` is immutable.
 
 Before starting parallel work, each agent reads:
 
