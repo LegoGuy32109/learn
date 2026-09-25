@@ -20,6 +20,8 @@
 // Usage: deno task smoke:prod
 // Environment: LEARN_BASE_URL (optional). File: .env.prod (LEARN_OWNER_TOKEN)
 
+import { field } from "../src/shared/json.js";
+import type { Lesson } from "../src/shared/lessons/types.d.ts";
 import { parse } from "@std/dotenv/parse";
 import { redactBearerTokens } from "../src/server/identity/redaction.ts";
 import { pendingProductionMigrations } from "./production-migrations.ts";
@@ -49,11 +51,12 @@ if (
   );
 }
 
+// The bundled demo fixture; tests/shared/learning_test.ts holds it to the Lesson shape.
 const fixture = JSON.parse(
   await Deno.readTextFile(
     new URL("../fixtures/lessons/browser-http-cache.json", import.meta.url),
   ),
-);
+) as Lesson;
 const failures: string[] = [];
 const revisions = new Set<string>();
 
@@ -181,14 +184,17 @@ await check("capabilities", "/api/v1/capabilities", {}, (response, text) => {
   if (status(200, response)) return status(200, response);
   if (hsts(response)) return hsts(response);
   const body = JSON.parse(text);
-  return body.apiVersion === "v1" && body.links?.validator
+  return field(body, "apiVersion") === "v1" &&
+      field(field(body, "links"), "validator")
     ? null
     : "capability document is incomplete";
 });
 
 await check("schema", "/api/v1/schemas/lesson/v1", {}, (response, text) => {
   if (status(200, response)) return status(200, response);
-  return JSON.parse(text).$schema ? null : "schema document has no $schema";
+  return field(JSON.parse(text), "$schema")
+    ? null
+    : "schema document has no $schema";
 });
 
 await check("validator", "/tools/lesson-validator.js", {}, (response, text) => {
@@ -206,7 +212,8 @@ await check("resolve", "/api/v1/lesson-resolutions", {
 }, (response, text) => {
   if (status(200, response)) return status(200, response);
   const body = JSON.parse(text);
-  return body.valid === true && typeof body.fingerprint === "string"
+  return field(body, "valid") === true &&
+      typeof field(body, "fingerprint") === "string"
     ? null
     : "demo fixture did not resolve as valid";
 });
@@ -215,11 +222,9 @@ await check("list lessons", "/api/v1/lessons", {
   headers: { authorization: `Bearer ${ownerToken}` },
 }, (response, text) => {
   if (status(200, response)) return status(200, response);
-  const body = JSON.parse(text);
-  if (!Array.isArray(body.revisions)) return "list has no revisions array";
-  return body.revisions.some((revision: { status?: unknown }) =>
-      revision.status === "published"
-    )
+  const revisions = field(JSON.parse(text), "revisions");
+  if (!Array.isArray(revisions)) return "list has no revisions array";
+  return revisions.some((revision) => field(revision, "status") === "published")
     ? null
     : "no published demo revision is listed";
 });

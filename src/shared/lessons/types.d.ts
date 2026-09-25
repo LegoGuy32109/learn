@@ -100,3 +100,40 @@ export interface Lesson extends NormalizedLesson {
   lessonId: string;
   revisionId: string;
 }
+
+// ------------------------------------------------------------------------------------------------
+// The authored document, as the resolver reads it once validation has passed. The optional fields
+// are exactly the ones normalization fills in.
+
+export interface ConceptInput extends Omit<Concept, "misconceptions"> {
+  misconceptions?: Misconception[];
+}
+
+export type QuestionInput =
+  | (Omit<McqQuestion, "reserved" | "map"> & {
+    reserved?: boolean;
+    map?: Record<string, string>;
+  })
+  | (Omit<NumericQuestion, "reserved"> & { reserved?: boolean })
+  | (Omit<ShortQuestion, "reserved" | "aliases"> & {
+    reserved?: boolean;
+    aliases?: string[];
+  });
+
+export interface SourceInput {
+  type: string;
+  title: string;
+  locator: string;
+  capturedText?: string | null;
+}
+
+export interface LessonInput {
+  title: string;
+  assumedKnowledge: string;
+  concepts: ConceptInput[];
+  questions: QuestionInput[];
+  sources: SourceInput[];
+  provenance:
+    | { status: "declined" }
+    | ({ status: "provided" } & Record<string, string>);
+}

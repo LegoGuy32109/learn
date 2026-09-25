@@ -32,9 +32,16 @@ const STORES = [
  * @property {number} epoch        Advanced only by an explicit discard; older epochs are never read
  */
 
+/** @typedef {import("../learning/session.js").RecordedEvent} RecordedEvent */
+
+/**
+ * A record of the `lessons` store: one cached Lesson Revision, keyed by revision ID.
+ * @typedef {{ id: string, lesson: Lesson, cachedAt?: string }} LessonRecord
+ */
+
 /**
  * @typedef {object} CachedRevision
- * @property {any} lesson
+ * @property {Lesson} lesson
  * @property {string} cachedAt  ISO time this device stored the revision
  */
 
@@ -43,7 +50,7 @@ const STORES = [
  * @typedef {object} OutboxEntry
  * @property {string} id       The event ID, so an acknowledged event leaves by ID
  * @property {string} store    `learning_events` or `navigation_events`
- * @property {any} event
+ * @property {RecordedEvent} event
  * @property {string} queuedAt ISO time it entered the outbox
  */
 
@@ -106,10 +113,10 @@ export const localRepository = {
       }),
     );
   },
-  /** Every cached Lesson Revision, for a launch with no network and no inlined lesson. */
+  /** Every cached Lesson Revision, for a launch with no network and no inlined lesson. @returns {Promise<Lesson[]>} */
   async lessons() {
     const db = await open();
-    const records = /** @type {any[]} */ (await done(
+    const records = /** @type {LessonRecord[]} */ (await done(
       objectStore(db, "lessons", "readonly").getAll(),
     ));
     return records.map((record) => record.lesson);
@@ -117,7 +124,7 @@ export const localRepository = {
   /** Every cached Lesson Revision with when this device stored it. @returns {Promise<CachedRevision[]>} */
   async revisions() {
     const db = await open();
-    const records = /** @type {any[]} */ (await done(
+    const records = /** @type {LessonRecord[]} */ (await done(
       objectStore(db, "lessons", "readonly").getAll(),
     ));
     return records.map((record) => ({
@@ -125,29 +132,29 @@ export const localRepository = {
       cachedAt: record.cachedAt ?? "",
     }));
   },
-  /** @param {string} id */
+  /** @param {string} id @returns {Promise<Lesson | undefined>} */
   async lesson(id) {
     const db = await open();
-    const record = /** @type {any} */ (await done(
+    const record = /** @type {LessonRecord | undefined} */ (await done(
       objectStore(db, "lessons", "readonly").get(id),
     ));
     return record?.lesson;
   },
-  /** @param {string} store */
+  /** @param {string} store @returns {Promise<RecordedEvent[]>} */
   async events(store) {
     const db = await open();
-    return /** @type {any[]} */ (await done(
+    return /** @type {RecordedEvent[]} */ (await done(
       objectStore(db, store, "readonly").getAll(),
     ));
   },
-  /** @param {string} store @param {any} event */
+  /** @param {string} store @param {RecordedEvent} event */
   async append(store, event) {
     const db = await open();
     await done(objectStore(db, store, "readwrite").put(event));
   },
   /**
    * Record an event this device created: it enters its store and the outbox in one transaction, so
-   * it is queued for upload before anything can read it back. @param {string} store @param {any} event
+   * it is queued for upload before anything can read it back. @param {string} store @param {RecordedEvent} event
    */
   async appendOutgoing(store, event) {
     const db = await open();
@@ -163,7 +170,7 @@ export const localRepository = {
   },
   /**
    * Store events that arrived from the server. They never enter the outbox; an event this device
-   * already holds is left as it is. @param {string} store @param {any[]} events
+   * already holds is left as it is. @param {string} store @param {RecordedEvent[]} events
    */
   async appendRemote(store, events) {
     if (!events.length) return;
@@ -195,9 +202,10 @@ export const localRepository = {
   /** The server cursor a pull left off at, or an empty string for the first page. @param {string} key */
   async cursor(key) {
     const db = await open();
-    const record = /** @type {any} */ (await done(
-      objectStore(db, "sync_cursors", "readonly").get(key),
-    ));
+    const record =
+      /** @type {{ id: string, cursor: unknown } | undefined} */ (await done(
+        objectStore(db, "sync_cursors", "readonly").get(key),
+      ));
     return typeof record?.cursor === "string" ? record.cursor : "";
   },
   /** @param {string} key @param {string} cursor */
@@ -207,13 +215,20 @@ export const localRepository = {
       objectStore(db, "sync_cursors", "readwrite").put({ id: key, cursor }),
     );
   },
-  /** Read a projection when `value` is omitted; otherwise write it. @param {string} id @param {any} [value] */
+  /**
+   * Read a projection when `value` is omitted; otherwise write it. A read is `unknown`: the caller
+   * knows what it stored under its key.
+   * @param {string} id
+   * @param {unknown} [value]
+   * @returns {Promise<unknown>}
+   */
   async projection(id, value) {
     const db = await open();
     if (value === undefined) {
-      const record = /** @type {any} */ (await done(
-        objectStore(db, "projections", "readonly").get(id),
-      ));
+      const record =
+        /** @type {{ id: string, value: unknown } | undefined} */ (await done(
+          objectStore(db, "projections", "readonly").get(id),
+        ));
       return record?.value;
     }
     await done(objectStore(db, "projections", "readwrite").put({ id, value }));

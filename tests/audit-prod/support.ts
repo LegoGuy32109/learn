@@ -4,6 +4,7 @@
 // `.env` would otherwise hand this suite the local token. LEARN_OWNER_TOKEN in the environment is
 // the fallback when the file is absent. No token, cookie or invite link is ever printed; every
 // piece of evidence goes through `redact` first.
+import { isRecord } from "../../src/shared/json.js";
 import type { StoreName, Stores } from "../support/stores.ts";
 import type { Page } from "@playwright/test";
 import { parse } from "@std/dotenv/parse";
@@ -317,11 +318,13 @@ export async function mintInviteWithTask(): Promise<
       `deno task invite:mint printed no JSON: ${redact(stdout.slice(0, 200))}`,
     );
   }
-  const minted = JSON.parse(line);
+  const minted: unknown = JSON.parse(line);
   if (
-    typeof minted.url !== "string" || !minted.url.startsWith(`${BASE}/sign-in/`)
+    !isRecord(minted) || typeof minted.url !== "string" ||
+    !minted.url.startsWith(`${BASE}/sign-in/`) ||
+    typeof minted.path !== "string" || typeof minted.expiresAt !== "number"
   ) throw new Error("invite:mint returned an unexpected link");
-  return minted;
+  return { url: minted.url, path: minted.path, expiresAt: minted.expiresAt };
 }
 
 /** True when a body looks like a stack trace or an unhandled server error rather than a designed page. */

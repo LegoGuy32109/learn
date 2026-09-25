@@ -1,12 +1,21 @@
 // Progress sync routes against the database-free application: idempotent push, order-insensitive
 // projection, epoch rejection, short-answer round trip, revision and Question validation, opaque
 // cursor paging, and frontier-first checkpoint selection with its tie breaker. Cookie or bearer.
+import type { MarkedCheckpointReply } from "../support/api.ts";
+import type {
+  Problem,
+  PullReply,
+  PushReply,
+  RejectedReply,
+  RevisionReply,
+  StaleEpochReply,
+} from "../../src/shared/api/v1.d.ts";
+import { readJson } from "../support/json.ts";
 import type {
   NumericQuestion,
   Question,
   ShortQuestion,
 } from "../../src/shared/lessons/types.d.ts";
-import type { EventRejection } from "../../src/server/progress/validation.ts";
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { DEMO_LESSON as fixture } from "../support/demo-lesson.ts";
 import { reduceProgress } from "../../src/shared/learning/progress.js";
@@ -28,12 +37,6 @@ const REVISION = fixture.revisionId;
 const lesson = fixture;
 
 type Event = Record<string, unknown> & { id: string; type: string };
-
-/** A refused push: which events were rejected, and why. */
-interface Refused {
-  code: string;
-  rejections: EventRejection[];
-}
 
 let clock = Date.parse("2026-09-22T10:00:00Z");
 function at(offsetSeconds = 0): string {
@@ -147,7 +150,8 @@ async function harness() {
       headers: { ...headers, "content-type": "application/json" },
       body: JSON.stringify({ lessonRevisionId: revision, epoch, events }),
     });
-  const pull = async (
+  /** One pull. The body is what the caller expects: a page by default, or a named problem. */
+  const pull = async <T = PullReply>(
     stream: string,
     query = "",
     headers: Record<string, string> = cookie,
@@ -156,7 +160,10 @@ async function harness() {
       `/api/v1/progress/${stream}?revision=${REVISION}&epoch=0${query}`,
       { headers },
     );
-    return { status: response.status, body: await response.json() };
+    return {
+      status: response.status,
+      body: await readJson<T>(response),
+    };
   };
   const pullAll = async (
     stream: string,
@@ -179,9 +186,11 @@ async function harness() {
     return events;
   };
   const checkpoint = async (headers: Record<string, string> = cookie) =>
-    (await call(`/api/v1/progress/checkpoint?revision=${REVISION}&epoch=0`, {
-      headers,
-    })).json();
+    await readJson<MarkedCheckpointReply>(
+      await call(`/api/v1/progress/checkpoint?revision=${REVISION}&epoch=0`, {
+        headers,
+      }),
+    );
   return { app, call, bearer, cookie, push, pull, pullAll, checkpoint };
 }
 
@@ -225,7 +234,7 @@ Deno.test("repeated upload of the same events is accepted once and returns succe
   ];
   const first = await h.push("learning-events", events);
   assertEquals(first.status, 200);
-  assertEquals(await first.json(), {
+  assertEquals(await readJson<PushReply>(first), {
     accepted: 2,
     duplicates: 0,
     stream: {
@@ -236,7 +245,7 @@ Deno.test("repeated upload of the same events is accepted once and returns succe
   });
   const again = await h.push("learning-events", events);
   assertEquals(again.status, 200);
-  assertEquals((await again.json()).duplicates, 2);
+  assertEquals((await readJson<PushReply>(again)).duplicates, 2);
   const partial = await h.push("learning-events", [
     events[1],
     event("card_seen", {
@@ -245,7 +254,10 @@ Deno.test("repeated upload of the same events is accepted once and returns succe
     }),
   ]);
   assertEquals(
-    await partial.json().then((body) => [body.accepted, body.duplicates]),
+    await readJson<PushReply>(partial).then((body) => [
+      body.accepted,
+      body.duplicates,
+    ]),
     [1, 1],
   );
   const stored = await h.pullAll("learning-events");
@@ -320,8 +332,11 @@ Deno.test("events arriving out of order produce the same progress and checkpoint
     seen: true,
     learned: true,
   });
-  assertEquals((await h.checkpoint()).checkpoint.marker, "late");
-  assertEquals((await h.checkpoint(h.bearer(OTHER))).checkpoint.marker, "late");
+  assertEquals((await h.checkpoint()).checkpoint?.marker, "late");
+  assertEquals(
+    (await h.checkpoint(h.bearer(OTHER))).checkpoint?.marker,
+    "late",
+  );
 });
 
 Deno.test("events from an epoch older than the stream's current epoch are rejected with a structured error, on push and on pull", async () => {
@@ -336,21 +351,21 @@ Deno.test("events from an epoch older than the stream's current epoch are reject
     h.cookie,
     2,
   );
-  assertEquals((await advanced.json()).stream.epoch, 2);
+  assertEquals((await readJson<PushReply>(advanced)).stream?.epoch, 2);
   const stale = await h.push("learning-events", [event("lesson_started")]);
   assertEquals(stale.status, 409);
   assertEquals(
     stale.headers.get("content-type"),
     "application/problem+json; charset=utf-8",
   );
-  const body = await stale.json();
+  const body = await readJson<StaleEpochReply>(stale);
   assertEquals(body.code, "epoch.stale");
   assertEquals(body.stream, {
     lessonId: fixture.lessonId,
     lessonRevisionId: REVISION,
     epoch: 2,
   });
-  const stalePull = await h.pull("learning-events");
+  const stalePull = await h.pull<StaleEpochReply>("learning-events");
   assertEquals(stalePull.status, 409);
   assertEquals(stalePull.body.code, "epoch.stale");
   const staleNavigation = await h.push("navigation-events", [
@@ -359,15 +374,17 @@ Deno.test("events from an epoch older than the stream's current epoch are reject
   assertEquals(staleNavigation.status, 409);
   await staleNavigation.body?.cancel();
   // The current epoch still reads, and the rejected event was never stored anywhere.
-  const current = await (await h.call(
-    `/api/v1/progress/learning-events?revision=${REVISION}&epoch=2`,
-    { headers: h.cookie },
-  )).json();
+  const current = await readJson<PullReply>(
+    await h.call(
+      `/api/v1/progress/learning-events?revision=${REVISION}&epoch=2`,
+      { headers: h.cookie },
+    ),
+  );
   assertEquals(current.events.length, 1);
-  assertEquals(current.stream.epoch, 2);
+  assertEquals(current.stream?.epoch, 2);
   // An empty push at a higher epoch announces a discard without any evidence.
   const announced = await h.push("learning-events", [], h.cookie, 3);
-  assertEquals((await announced.json()).stream.epoch, 3);
+  assertEquals((await readJson<PushReply>(announced)).stream?.epoch, 3);
 });
 
 Deno.test("short-answer text round-trips unchanged, and the shared evaluator decides correctness", async () => {
@@ -396,7 +413,7 @@ Deno.test("short-answer text round-trips unchanged, and the shared evaluator dec
     answered(short, "definitely wrong", true),
   ]);
   assertEquals(lying.status, 422);
-  const rejection = (await lying.json()).rejections[0];
+  const rejection = (await readJson<RejectedReply>(lying)).rejections[0];
   assertEquals(rejection.code, "answer.correctness");
   assertEquals(rejection.path, "/events/0/correct");
 });
@@ -411,7 +428,7 @@ Deno.test("an unknown Lesson Revision, a Question outside its revision and a mal
     "6f1c1c2a-3b1e-4b6f-9a1c-2f6d8e4b7a10",
   );
   assertEquals(unknown.status, 404);
-  assertEquals((await unknown.json()).code, "revision.unknown");
+  assertEquals((await readJson<Problem>(unknown)).code, "revision.unknown");
   const unknownPull = await h.call(
     "/api/v1/progress/learning-events?revision=nope&epoch=0",
     { headers: h.cookie },
@@ -436,7 +453,7 @@ Deno.test("an unknown Lesson Revision, a Question outside its revision and a mal
     wrongConcept,
   ]);
   assertEquals(rejected.status, 422);
-  const body: Refused = await rejected.json();
+  const body = await readJson<RejectedReply>(rejected);
   assertEquals(body.code, "events.rejected");
   assertEquals(
     body.rejections.map((entry) => [entry.index, entry.code, entry.path]),
@@ -458,9 +475,9 @@ Deno.test("an unknown Lesson Revision, a Question outside its revision and a mal
     epoch: 0,
     occurredAt: "yesterday",
   }, { ...event("lesson_started"), epoch: 4 }]);
-  const codes = ((await malformed.json()) as Refused).rejections.map((entry) =>
-    entry.code
-  ).sort();
+  const codes = (await readJson<RejectedReply>(malformed)).rejections.map((
+    entry,
+  ) => entry.code).sort();
   assertEquals(codes, ["event.epoch", "event.id", "event.occurredAt"]);
   const foreignCheckpoint = await h.push("navigation-events", [{
     ...checkpointed([], "bad"),
@@ -471,7 +488,7 @@ Deno.test("an unknown Lesson Revision, a Question outside its revision and a mal
     },
   }]);
   assertEquals(
-    ((await foreignCheckpoint.json()) as Refused).rejections.map((entry) =>
+    (await readJson<RejectedReply>(foreignCheckpoint)).rejections.map((entry) =>
       entry.code
     ),
     ["checkpoint.frontier"],
@@ -480,7 +497,10 @@ Deno.test("an unknown Lesson Revision, a Question outside its revision and a mal
     "learning-events",
     Array.from({ length: MAX_BATCH_EVENTS + 1 }, () => event("lesson_started")),
   );
-  assertEquals((await tooMany.json()).rejections[0].code, "events.count");
+  assertEquals(
+    (await readJson<RejectedReply>(tooMany)).rejections[0].code,
+    "events.count",
+  );
   const notJson = await h.call("/api/v1/progress/learning-events", {
     method: "POST",
     headers: { ...h.cookie, "content-type": "application/json" },
@@ -547,7 +567,7 @@ Deno.test("incremental pull pages with an opaque cursor and never skips or repea
   const next = await h.pull("learning-events", `&cursor=${latest.cursor}`);
   assertEquals(next.body.events.map((made: Event) => made.id), [added.id]);
   assertEquals(next.body.hasMore, false);
-  const bad = await h.pull("learning-events", "&cursor=not-a-cursor!");
+  const bad = await h.pull<Problem>("learning-events", "&cursor=not-a-cursor!");
   assertEquals(bad.status, 400);
   assertEquals(bad.body.code, "cursor.invalid");
 });
@@ -565,7 +585,7 @@ Deno.test("the checkpoint is rebuilt from the streams, a smaller frontier never 
   const ids = evidence.map((made) => made.id);
   const ahead = checkpointed(ids, "ahead", "2026-09-22T10:00:00.000Z");
   assertEquals((await h.push("navigation-events", [ahead])).status, 200);
-  assertEquals((await h.checkpoint()).checkpoint.marker, "ahead");
+  assertEquals((await h.checkpoint()).checkpoint?.marker, "ahead");
   // A stale checkpoint arriving later, with a later clock, depends on less accepted evidence.
   const stale = checkpointed(
     ids.slice(0, 1),
@@ -574,7 +594,7 @@ Deno.test("the checkpoint is rebuilt from the streams, a smaller frontier never 
   );
   assertEquals((await h.push("navigation-events", [stale])).status, 200);
   const afterStale = await h.checkpoint();
-  assertEquals(afterStale.checkpoint.marker, "ahead");
+  assertEquals(afterStale.checkpoint?.marker, "ahead");
   assertEquals(afterStale.frontier, ids.length);
   // A frontier naming evidence the server has not accepted counts for nothing.
   const bluff = checkpointed(
@@ -585,7 +605,7 @@ Deno.test("the checkpoint is rebuilt from the streams, a smaller frontier never 
   const bluffFrontier = ids.length; // only accepted ids count, so this ties with "ahead" on evidence
   assertEquals((await h.push("navigation-events", [bluff])).status, 200);
   assertEquals(
-    (await h.checkpoint()).checkpoint.marker,
+    (await h.checkpoint()).checkpoint?.marker,
     "bluff",
     "equal accepted frontier: the later client clock wins",
   );
@@ -604,9 +624,9 @@ Deno.test("the checkpoint is rebuilt from the streams, a smaller frontier never 
     "ffffffff-ffff-4fff-bfff-ffffffffffff",
   );
   assertEquals((await h.push("navigation-events", [high])).status, 200);
-  assertEquals((await h.checkpoint()).checkpoint.marker, "high");
+  assertEquals((await h.checkpoint()).checkpoint?.marker, "high");
   assertEquals((await h.push("navigation-events", [low])).status, 200);
-  assertEquals((await h.checkpoint()).checkpoint.marker, "high");
+  assertEquals((await h.checkpoint()).checkpoint?.marker, "high");
   // Replaying the pulled streams through the shared rule reproduces the served checkpoint exactly.
   const navigation = await h.pullAll("navigation-events");
   const learning = await h.pullAll("learning-events");
@@ -632,7 +652,7 @@ Deno.test("the checkpoint is rebuilt from the streams, a smaller frontier never 
   await (await h.push("navigation-events", [further])).body?.cancel();
   const final = await h.checkpoint();
   assertEquals(
-    final.checkpoint.marker,
+    final.checkpoint?.marker,
     "further",
     "a larger frontier wins even with an earlier client clock",
   );
@@ -653,7 +673,7 @@ Deno.test("progress on a revision the account cannot learn is unknown to it", as
     }),
   });
   assertEquals(draft.status, 201);
-  const created = await draft.json();
+  const created = await readJson<RevisionReply>(draft);
   const mine = await h.push(
     "learning-events",
     [{ ...event("lesson_started"), lessonRevisionId: created.revisionId }],

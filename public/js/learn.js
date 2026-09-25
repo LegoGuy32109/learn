@@ -20,8 +20,12 @@ import {
   regionView,
 } from "../../src/client/learning/views.js";
 import { backButton, bind, CLOSE, icon } from "../../src/client/ui/controls.js";
+import { openFlow } from "../../src/client/learning/session.js";
 
 /** @typedef {import("../../src/client/learning/session.js").Session} Session */
+/** @typedef {import("./app.js").Nav} Nav */
+/** @typedef {import("../../src/client/learning/flow.js").Flow} Flow */
+/** @typedef {import("../../src/shared/learning/progress.js").Progress} Progress */
 
 /** A fresh seed and attempt ID for a new Check or Wrap-up attempt. */
 function newAttempt() {
@@ -53,7 +57,7 @@ async function once(work) {
  * Enter the learning shell from the overview, resuming the saved checkpoint when one exists.
  * The overview's history entry becomes the learning shell's: browser Back leaves for the shelf.
  * @param {Session} session
- * @param {any} nav
+ * @param {Nav} nav
  */
 export async function startLearning(session, nav) {
   session.surface = "learn";
@@ -68,12 +72,12 @@ export async function startLearning(session, nav) {
 /**
  * @param {HTMLElement} root
  * @param {Session} session
- * @param {any} progress
- * @param {any} nav
+ * @param {Progress} progress
+ * @param {Nav} nav
  */
 export function renderLearning(root, session, progress, nav) {
   const lesson = session.lesson;
-  const flow = session.flow;
+  const flow = openFlow(session);
   const item = current(lesson, flow);
   const concept = activeConcept(lesson, flow);
   const close =
@@ -103,7 +107,7 @@ export function renderLearning(root, session, progress, nav) {
 /**
  * @param {string} action
  * @param {Session} session
- * @param {any} nav
+ * @param {Nav} nav
  */
 function handle(action, session, nav) {
   if (action === "shelf") {
@@ -121,14 +125,18 @@ function handle(action, session, nav) {
     return commit(
       session,
       nav,
-      advance(session.lesson, session.flow, newAttempt()),
+      advance(session.lesson, openFlow(session), newAttempt()),
     );
   }
   if (action === "corrective") {
-    return commit(session, nav, enterCorrective(session.lesson, session.flow));
+    return commit(
+      session,
+      nav,
+      enterCorrective(session.lesson, openFlow(session)),
+    );
   }
   if (action === "return") {
-    return commit(session, nav, leaveCorrective(session.flow));
+    return commit(session, nav, leaveCorrective(openFlow(session)));
   }
   if (action === "back") return goBack(session, nav);
 }
@@ -136,8 +144,8 @@ function handle(action, session, nav) {
 /**
  * Replace the flow, checkpoint it, and re-render.
  * @param {Session} session
- * @param {any} nav
- * @param {any} flow
+ * @param {Nav} nav
+ * @param {Flow} flow
  */
 async function commit(session, nav, flow) {
   session.flow = flow;
@@ -148,11 +156,11 @@ async function commit(session, nav, flow) {
 /**
  * Continue marks the Card Seen once and advances.
  * @param {Session} session
- * @param {any} nav
+ * @param {Nav} nav
  */
 async function continueCard(session, nav) {
   const lesson = session.lesson;
-  const flow = session.flow;
+  const flow = openFlow(session);
   const concept = lesson.concepts[flow.conceptIndex];
   const card = concept.cards[flow.cardIndex];
   const seen = session.hasEvent(
@@ -171,18 +179,19 @@ async function continueCard(session, nav) {
 /**
  * Evaluate an answer, persist the evidence, and show feedback.
  * @param {Session} session
- * @param {any} nav
+ * @param {Nav} nav
  * @param {unknown} answer
  * @param {boolean} idk
  */
 async function submit(session, nav, answer, idk) {
-  const result = submitAnswer(session.lesson, session.flow, answer, idk);
+  const flow = openFlow(session);
+  const result = submitAnswer(session.lesson, flow, answer, idk);
   await session.recordEvent("question_answered", {
-    flowKind: session.flow.flowKind,
+    flowKind: flow.flowKind,
     conceptId: result.question.conceptId,
     poolId: result.question.poolId,
     questionId: result.question.id,
-    attemptId: session.flow.attemptId,
+    attemptId: flow.attemptId,
     answer,
     correct: result.correct,
   });
@@ -194,13 +203,14 @@ async function submit(session, nav, answer, idk) {
  * in memory only, and a reload comes back at the checkpoint. At the first Card and on the Learned
  * summary it returns to the overview, on the same history entry so a reload shows the overview.
  * @param {Session} session
- * @param {any} nav
+ * @param {Nav} nav
  */
 async function goBack(session, nav) {
-  if (leavesShellOnBack(session.flow)) {
+  const flow = openFlow(session);
+  if (leavesShellOnBack(flow)) {
     session.flow = null;
     return nav.show("overview", nav.lessonPath, { replace: true });
   }
-  session.flow = stepBack(session.lesson, session.flow);
+  session.flow = stepBack(session.lesson, flow);
   await nav.refresh();
 }

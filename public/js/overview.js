@@ -1,4 +1,6 @@
 // @ts-check
+/** @typedef {import("./app.js").Nav} Nav */
+/** @typedef {import("../../src/shared/learning/progress.js").Progress} Progress */
 // Lesson overview surface: title, assumed knowledge, Concept count, progress and the Start or Resume
 // action. When the server has a newer revision than the one the learner has progress on, the overview
 // says so and offers two actions: continue this revision, or discard progress and start the new one.
@@ -15,8 +17,8 @@ import { startDrilling } from "./drill.js";
 /**
  * @param {HTMLElement} root
  * @param {import("../../src/client/learning/session.js").Session} session
- * @param {any} progress
- * @param {any} nav
+ * @param {Progress} progress
+ * @param {Nav} nav
  */
 export function renderOverview(root, session, progress, nav) {
   const lesson = session.lesson;
@@ -51,7 +53,7 @@ export function renderOverview(root, session, progress, nav) {
 /**
  * The two actions for an outdated revision, or the confirmation step once Discard was chosen.
  * Drill stays available on the old revision; it never touches progress.
- * @param {any} nav
+ * @param {Nav} nav
  * @param {string} continueLabel
  * @param {string} drillLabel
  */
@@ -77,7 +79,7 @@ function revisionChoice(nav, continueLabel, drillLabel) {
 /**
  * @param {string} action
  * @param {import("../../src/client/learning/session.js").Session} session
- * @param {any} nav
+ * @param {Nav} nav
  */
 function handle(action, session, nav) {
   if (action === "shelf") {

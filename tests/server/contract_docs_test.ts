@@ -1,6 +1,7 @@
 // The discovery contract must not drift from the code. These tests hold the JSON Schema, the
 // OpenAPI document, the diagnostics reference, the capability document and the generated files
 // to the resolver and the routes the server actually serves.
+import { parseJson, readJson } from "../support/json.ts";
 import {
   type AuthoredLesson,
   authoredLesson,
@@ -215,7 +216,7 @@ Deno.test("the JSON Schema is served, is the draft 2020-12 dialect and matches t
     new Request("http://local/api/v1/schemas/lesson/v1"),
   );
   assertEquals(response.status, 200);
-  const served = await response.json();
+  const served = await readJson<typeof lessonSchema>(response);
   assertEquals(served, JSON.parse(JSON.stringify(lessonSchema)));
   assertEquals(served.$schema, "https://json-schema.org/draft/2020-12/schema");
   assertEquals(served.$defs.concept.properties.options.minItems, 3);
@@ -234,7 +235,7 @@ Deno.test("the JSON Schema is served, is the draft 2020-12 dialect and matches t
       "short",
       "source",
       "provenance",
-    ]
+    ] as const
   ) assert(served.$defs[name], `$defs.${name} is documented`);
 });
 
@@ -270,13 +271,13 @@ Deno.test("the OpenAPI document validates against the OpenAPI 3.1 meta-schema", 
 });
 
 Deno.test("the OpenAPI examples validate against the component schemas they claim", async () => {
-  const document: OpenApiWalk = JSON.parse(
+  const document = parseJson<OpenApiWalk>(
     JSON.stringify(openapiDocument("https://learn.joshhale.me")),
   );
   const components = document.components.schemas;
   // Embed the components as $defs of one schema resource: drop the Lesson component's $id and repoint the refs.
   const embed = (value: unknown) =>
-    JSON.parse(
+    parseJson<Record<string, unknown>>(
       JSON.stringify(value, (key, item) => (key === "$id"
         ? undefined
         : typeof item === "string"
@@ -426,7 +427,9 @@ Deno.test("the OpenAPI document covers every route the server serves and nothing
 Deno.test("the served OpenAPI document uses the request origin as its server", async () => {
   const response = await app(new Request("http://local:8123/openapi.json"));
   assertEquals(response.status, 200);
-  const document = await response.json();
+  const document = await readJson<ReturnType<typeof openapiDocument>>(
+    response,
+  );
   assertEquals(document.servers, [{ url: "http://local:8123" }]);
   assertEquals(
     document.components.examples.capabilities.value.links.schema,
@@ -574,7 +577,7 @@ Deno.test("the capability document links every discovery artifact by absolute UR
   ) {
     const response = await app(new Request(`https://learn.example${path}`));
     assertEquals(response.status, 200);
-    const body = await response.json();
+    const body = await readJson<ReturnType<typeof capabilitiesFor>>(response);
     assertEquals(
       body,
       JSON.parse(JSON.stringify(capabilitiesFor("https://learn.example"))),
@@ -584,7 +587,7 @@ Deno.test("the capability document links every discovery artifact by absolute UR
       Object.keys(discoveryLinks).sort(),
     );
     for (
-      const [key, href] of Object.entries(body.links as Record<string, string>)
+      const [key, href] of Object.entries(body.links)
     ) {
       assert(
         href.startsWith("https://learn.example/"),
@@ -614,7 +617,7 @@ Deno.test("the capability document links every discovery artifact by absolute UR
         "validatorTypes",
         "resolver",
         "lessons",
-      ]
+      ] as const
     ) assert(body.links[required], `links.${required}`);
     assertEquals(body.authentication.environmentVariable, "LEARN_TOKEN");
     assertEquals(body.limits.maxDocumentBytes, MAX_DOCUMENT_BYTES);

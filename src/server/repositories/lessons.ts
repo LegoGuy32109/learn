@@ -1,5 +1,10 @@
 import type { Client, Row } from "../db.ts";
 import type {
+  RevisionListing,
+  RevisionStatus,
+  ShelfLessonReply,
+} from "../../shared/api/v1.d.ts";
+import type {
   Lesson,
   NormalizedLesson,
   Source,
@@ -15,24 +20,14 @@ export interface StoredRevision {
   lessonId: string;
   revisionId: string;
   revisionNumber: number;
-  status: "draft" | "published" | "superseded" | "withdrawn";
+  status: RevisionStatus;
   fingerprint: string;
   content: Lesson;
   createdAt: number;
 }
 
 /** One shelf card's worth of a lesson: its identity and its newest revision. Content is not included. */
-export interface ShelfLesson {
-  lessonId: string;
-  title: string;
-  conceptCount: number;
-  questionCount: number;
-  latestRevisionId: string;
-  latestRevisionNumber: number;
-  status: StoredRevision["status"];
-  /** When the newest revision was created, in milliseconds. The shelf sorts newest first. */
-  updatedAt: number;
-}
+export type ShelfLesson = ShelfLessonReply;
 
 export interface LessonRepository {
   featured(): Promise<Lesson>;
@@ -55,7 +50,7 @@ export interface LessonRepository {
     accountId: string,
     lessonId: string,
   ): Promise<StoredRevision | null>;
-  listMine(accountId: string): Promise<Array<Record<string, unknown>>>;
+  listMine(accountId: string): Promise<RevisionListing[]>;
   /** Every lesson the account owns, newest revision first. */
   shelf(accountId: string): Promise<ShelfLesson[]>;
   /**
@@ -97,10 +92,11 @@ function rowRevision(
   row: Row,
   sources: Source[] = [],
 ): StoredRevision {
-  const content: StoredContent = JSON.parse(String(row.content_json));
-  const provenance: NormalizedLesson["provenance"] = JSON.parse(
+  // Both columns are written by insert() below from a resolved lesson.
+  const content = JSON.parse(String(row.content_json)) as StoredContent;
+  const provenance = JSON.parse(
     String(row.provenance_json),
-  );
+  ) as NormalizedLesson["provenance"];
   return {
     lessonId: String(row.lesson_id),
     revisionId: String(row.id),
@@ -201,7 +197,7 @@ export class TursoLessonRepository implements LessonRepository {
     return result.rows.map((row) => ({
       lessonId: String(row.lesson_id),
       title: String(row.instructional_title),
-      ...counts(JSON.parse(String(row.content_json))),
+      ...counts(JSON.parse(String(row.content_json)) as StoredContent),
       latestRevisionId: String(row.revision_id),
       latestRevisionNumber: Number(row.revision_number),
       status: String(row.status) as StoredRevision["status"],
@@ -221,7 +217,7 @@ export class TursoLessonRepository implements LessonRepository {
     return result.rows.length ? await this.hydrate(result.rows[0]) : null;
   }
 
-  async listMine(accountId: string): Promise<Array<Record<string, unknown>>> {
+  async listMine(accountId: string): Promise<RevisionListing[]> {
     const result = await this.db.execute({
       sql:
         "SELECT l.id AS lesson_id, r.id AS revision_id, r.revision_number, r.status, r.instructional_title, r.fingerprint, r.created_at FROM lessons l JOIN lesson_revisions r ON r.lesson_id = l.id WHERE l.owner_account_id = ? ORDER BY r.created_at DESC",
@@ -424,7 +420,7 @@ export class FixtureLessonRepository implements LessonRepository {
     return Promise.resolve(this.newest(lessonId));
   }
 
-  listMine(accountId: string): Promise<Array<Record<string, unknown>>> {
+  listMine(accountId: string): Promise<RevisionListing[]> {
     return Promise.resolve(
       this.owned(accountId)
         .sort((a, b) => b.createdAt - a.createdAt)

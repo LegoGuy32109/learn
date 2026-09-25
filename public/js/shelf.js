@@ -1,4 +1,5 @@
 // @ts-check
+/** @typedef {import("./app.js").Nav} Nav */
 // Mine shelf surface: the account's lessons merged with what this device has cached, each with its
 // progress state and an Outdated mark when a newer revision exists; plus who is signed in.
 import {
@@ -21,7 +22,7 @@ const BOOK =
 
 /**
  * @param {HTMLElement} root
- * @param {any} nav
+ * @param {Nav} nav
  */
 export function renderShelf(root, nav) {
   /** @type {ShelfEntry[]} */
@@ -49,7 +50,7 @@ export function renderShelf(root, nav) {
  * A learning URL that cannot open: the lesson is not on this device and the viewer cannot load it.
  * A guest is asked to sign in; an owner is told why.
  * @param {HTMLElement} root
- * @param {any} nav
+ * @param {Nav} nav
  */
 export function renderLessonPrompt(root, nav) {
   const guest = !nav.account.signedIn;
@@ -103,7 +104,7 @@ function card(entry) {
 /**
  * Where the list came from. A guest sees only this device; a signed-in learner hears when the
  * server could not be reached.
- * @param {any} nav
+ * @param {Nav} nav
  */
 function statusLine(nav) {
   if (!nav.account.signedIn) return "";
@@ -119,7 +120,7 @@ function statusLine(nav) {
 
 /**
  * No lessons at all. A short explanation, never an error.
- * @param {any} nav
+ * @param {Nav} nav
  */
 function emptyShelf(nav) {
   let text =
@@ -164,7 +165,7 @@ function escape(text) {
 
 /**
  * @param {string} action
- * @param {any} nav
+ * @param {Nav} nav
  */
 async function handle(action, nav) {
   if (action.startsWith("open:")) return nav.open(action.slice("open:".length));

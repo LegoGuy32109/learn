@@ -134,11 +134,12 @@ export const FIXTURE_ACCOUNT = { id: FIXTURE_OWNER_ID, displayName: "Josh" };
  * storage. Tests override members, for example `auth`, to exercise one route group.
  */
 export async function fixtureDependencies(): Promise<Dependencies> {
-  const fixture: Lesson = JSON.parse(
+  // The bundled demo fixture; tests/shared/learning_test.ts holds it to the Lesson shape.
+  const fixture = JSON.parse(
     await Deno.readTextFile(
       new URL("../fixtures/lessons/browser-http-cache.json", import.meta.url),
     ),
-  );
+  ) as Lesson;
   return {
     lessons: new FixtureLessonRepository(fixture),
     progress: new MemoryProgressRepository(),

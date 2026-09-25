@@ -3,6 +3,7 @@
 // Reads LEARN_OWNER_TOKEN (an owner-scoped bearer token) and LEARN_BASE_URL from the
 // environment. The link is printed once, works for ten minutes, and signs in one phone.
 
+import { field, isRecord } from "../src/shared/json.js";
 import { redactBearerTokens } from "../src/server/identity/redaction.ts";
 
 const HELP = `Usage: deno task invite:mint [--base-url <url>] [--json]
@@ -62,13 +63,20 @@ export async function mintInvite(
     );
   }
   if (!response.ok) {
+    const detail = field(body, "detail") ?? field(body, "title");
     throw new Error(
       `The site answered ${response.status}: ${
-        body.detail ?? body.title ?? "request failed"
+        typeof detail === "string" ? detail : "request failed"
       }`,
     );
   }
-  return body;
+  if (
+    !isRecord(body) || typeof body.url !== "string" ||
+    typeof body.path !== "string" || typeof body.expiresAt !== "number"
+  ) {
+    throw new Error("The site answered without a url, path and expiresAt");
+  }
+  return { url: body.url, path: body.path, expiresAt: body.expiresAt };
 }
 
 if (import.meta.main) {

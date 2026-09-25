@@ -86,7 +86,11 @@ function payloadOf(event: SyncEvent): Record<string, unknown> {
 }
 
 function rowEvent(row: Record<string, unknown>): StoredSyncEvent {
-  const payload = JSON.parse(String(row.payload_json));
+  // Written by payloadOf above: the event's fields outside the envelope.
+  const payload = JSON.parse(String(row.payload_json)) as Record<
+    string,
+    unknown
+  >;
   return {
     seq: Number(row.seq),
     receivedAt: Number(row.received_at),

@@ -37,7 +37,7 @@ const STATE_NAMES = {
   learned: "Learned",
 };
 
-/** @param {any} progress */
+/** @param {import("../../shared/learning/progress.js").Progress} progress */
 export function stateName(progress) {
   return /** @type {Record<string, string>} */ (STATE_NAMES)[progress.state];
 }

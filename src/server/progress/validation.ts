@@ -23,14 +23,8 @@ const UUID_V4 =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const FLOW_KINDS = new Set(["check", "wrap_up"]);
 
-/** One rejected event, with the JSON Pointer of the field at fault relative to the events array. */
-export interface EventRejection {
-  index: number;
-  id: string | null;
-  code: string;
-  path: string;
-  message: string;
-}
+export type { EventRejection } from "../../shared/api/v1.d.ts";
+import type { EventRejection } from "../../shared/api/v1.d.ts";
 
 /** A learning or navigation event as the browser stores it. */
 export type SyncEvent = Record<string, unknown> & {

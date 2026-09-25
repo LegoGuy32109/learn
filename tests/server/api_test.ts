@@ -1,4 +1,6 @@
 import { assertEquals } from "@std/assert";
+import { parseJson, readJson } from "../support/json.ts";
+import { capabilitiesFor } from "../../src/server/api-docs/capabilities.ts";
 import type { Resolution } from "../../src/shared/authoring/resolver.js";
 import { DEMO_LESSON as lesson } from "../support/demo-lesson.ts";
 import { createApp, fixtureDependencies } from "../../src/app.ts";
@@ -22,7 +24,11 @@ Deno.test("capability discovery is public", async () => {
     new Request("http://local/.well-known/learn-joshhale.json"),
   );
   assertEquals(response.status, 200);
-  assertEquals((await response.json()).invokesModels, false);
+  assertEquals(
+    (await readJson<ReturnType<typeof capabilitiesFor>>(response))
+      .invokesModels,
+    false,
+  );
 });
 
 Deno.test("resolver reports diagnostics without authentication", async () => {
@@ -34,7 +40,7 @@ Deno.test("resolver reports diagnostics without authentication", async () => {
     }),
   );
   assertEquals(response.status, 422);
-  assertEquals((await response.json()).valid, false);
+  assertEquals((await readJson<Resolution>(response)).valid, false);
 });
 
 async function resolve(body: BodyInit, headers: Record<string, string> = {}) {
@@ -58,7 +64,7 @@ Deno.test("the demo path: a 90-word Card and an always-longest key return 422 wi
     await fixture("authoring/invalid/demo-path-two-diagnostics.json"),
   );
   assertEquals(response.status, 422);
-  const body: Resolution = await response.json();
+  const body = await readJson<Resolution>(response);
   assertEquals(body.valid, false);
   assertEquals(body.fingerprint, null);
   assertEquals(
@@ -77,7 +83,7 @@ Deno.test("a lesson with only warnings resolves 200 and includes them", async ()
     await fixture("authoring/valid/warning-single-paragraph-card.json"),
   );
   assertEquals(response.status, 200);
-  const body: Resolution = await response.json();
+  const body = await readJson<Resolution>(response);
   assertEquals(body.valid, true);
   assertEquals(body.diagnostics.map((diagnostic) => diagnostic.severity), [
     "warning",
@@ -85,11 +91,13 @@ Deno.test("a lesson with only warnings resolves 200 and includes them", async ()
 });
 
 Deno.test("every authoring fixture gets the status its validity implies", async () => {
-  const manifest = JSON.parse(await fixture("authoring/manifest.json"));
+  const manifest = parseJson<Array<{ file: string; valid: boolean }>>(
+    await fixture("authoring/manifest.json"),
+  );
   for (const entry of manifest) {
     const response = await resolve(await fixture(entry.file));
     assertEquals(response.status, entry.valid ? 200 : 422, entry.file);
-    const body = await response.json();
+    const body = await readJson<Resolution>(response);
     assertEquals(body.valid, entry.valid, entry.file);
   }
 });
@@ -107,7 +115,7 @@ Deno.test("oversized, deeply nested and malformed bodies are rejected without a 
   );
   assertEquals(deep.status, 422);
   assertEquals(
-    ((await deep.json()) as Resolution).diagnostics.map((diagnostic) =>
+    (await readJson<Resolution>(deep)).diagnostics.map((diagnostic) =>
       diagnostic.code
     ),
     ["document.nesting"],
@@ -120,7 +128,7 @@ Deno.test("oversized, deeply nested and malformed bodies are rejected without a 
     '{"__proto__":{"valid":true},"constructor":{"prototype":{}},"schema":"lesson/v1"}',
   );
   assertEquals(polluted.status, 422);
-  assertEquals((await polluted.json()).valid, false);
+  assertEquals((await readJson<Resolution>(polluted)).valid, false);
 });
 
 Deno.test("draft persistence requires a bearer token", async () => {

@@ -1,9 +1,18 @@
 // The reads the phone shelf needs: the account's lessons newest first with each newest revision,
 // the revision content to cache, and the page shell that inlines the owner's lesson at a learning
 // URL. Every read accepts the browser session cookie or a `lessons:read` bearer token.
-import type { ShelfLesson } from "../../src/server/repositories/lessons.ts";
+import type {
+  LessonsReply,
+  Problem,
+  RevisionReply,
+  ShelfReply,
+} from "../../src/shared/api/v1.d.ts";
+import { parseJson, readJson } from "../support/json.ts";
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
-import { DEMO_LESSON as fixture } from "../support/demo-lesson.ts";
+import {
+  authoredLesson,
+  DEMO_LESSON as fixture,
+} from "../support/demo-lesson.ts";
 import { resolveLesson } from "../../src/shared/authoring/resolver.js";
 import {
   createApp,
@@ -55,12 +64,7 @@ async function harness() {
   };
   const create = async (title: string, token = OWNER, lessonId?: string) => {
     now += 1000;
-    const document = { ...structuredClone(fixture), title } as Record<
-      string,
-      unknown
-    >;
-    delete document.lessonId;
-    delete document.revisionId;
+    const document = authoredLesson(title);
     const path = lessonId
       ? `/api/v1/lessons/${lessonId}/revisions`
       : "/api/v1/lessons";
@@ -71,7 +75,7 @@ async function harness() {
     });
     const text = await response.text();
     assertEquals(response.status, 201, text);
-    return JSON.parse(text);
+    return parseJson<RevisionReply>(text);
   };
   return { app, call, bearer, cookie, create };
 }
@@ -89,7 +93,10 @@ Deno.test("the shelf needs an account: 401 for nobody, 403 for a token without l
     headers: h.bearer(WRITER_ONLY),
   });
   assertEquals(forbidden.status, 403);
-  assertStringIncludes((await forbidden.json()).detail, "lessons:read");
+  assertStringIncludes(
+    (await readJson<Problem>(forbidden)).detail,
+    "lessons:read",
+  );
   const bogus = await h.call("/api/v1/shelf", {
     headers: { cookie: "learn_session=v1.not.real" },
   });
@@ -114,7 +121,7 @@ Deno.test("the shelf lists the account's lessons newest first with each newest r
     const response = await h.call("/api/v1/shelf", { headers });
     assertEquals(response.status, 200);
     assertEquals(response.headers.get("cache-control"), "private, no-store");
-    const { lessons }: { lessons: ShelfLesson[] } = await response.json();
+    const { lessons } = await readJson<ShelfReply>(response);
     assertEquals(lessons.map((lesson) => lesson.title), [
       "A lesson from the laptop, revised",
       "Another lesson",
@@ -143,7 +150,7 @@ Deno.test("a revision and a lesson's newest revision are readable with the cooki
     { headers: cookie },
   );
   assertEquals(revision.status, 200);
-  const stored = await revision.json();
+  const stored = await readJson<RevisionReply>(revision);
   assertEquals(stored.content.title, "Cached on open");
   assertEquals(stored.content.lessonId, created.lessonId);
   assertEquals(stored.content.revisionId, created.revisionId);
@@ -152,7 +159,10 @@ Deno.test("a revision and a lesson's newest revision are readable with the cooki
     headers: cookie,
   });
   assertEquals(latest.status, 200);
-  assertEquals((await latest.json()).revisionId, created.revisionId);
+  assertEquals(
+    (await readJson<RevisionReply>(latest)).revisionId,
+    created.revisionId,
+  );
 
   const stranger = await h.call(
     `/api/v1/lessons/${created.lessonId}/revisions/${created.revisionId}`,
@@ -166,7 +176,7 @@ Deno.test("a revision and a lesson's newest revision are readable with the cooki
   const listed = await h.call("/api/v1/lessons", { headers: cookie });
   assertEquals(listed.status, 200);
   assert(
-    ((await listed.json()) as { revisions: Array<{ revisionId: string }> })
+    (await readJson<LessonsReply>(listed))
       .revisions.some((entry) => entry.revisionId === created.revisionId),
   );
 });

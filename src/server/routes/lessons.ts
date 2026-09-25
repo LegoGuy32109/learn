@@ -1,6 +1,7 @@
 // Lesson API: public resolution, authenticated immutable drafts, and the reads the phone shelf
 // needs. The resolver always reruns here. Writes take a bearer token; reads take the browser
 // session cookie or a bearer token, through the one current-account resolver.
+import type { LessonsReply, ShelfReply } from "../../shared/api/v1.d.ts";
 import { resolveLesson } from "../../shared/authoring/resolver.js";
 import type { Principal } from "../auth.ts";
 import type { Dependencies } from "../dependencies.ts";
@@ -94,17 +95,21 @@ export function lessonRoutes(dependencies: Dependencies): Route[] {
     route("GET", "/api/v1/lessons", async (request) => {
       const accountId = await reader(request, dependencies);
       if (accountId instanceof Response) return accountId;
-      return privateJson({
-        revisions: await dependencies.lessons.listMine(accountId),
-      });
+      return privateJson(
+        {
+          revisions: await dependencies.lessons.listMine(accountId),
+        } satisfies LessonsReply,
+      );
     }),
 
     route("GET", "/api/v1/shelf", async (request) => {
       const accountId = await reader(request, dependencies);
       if (accountId instanceof Response) return accountId;
-      return privateJson({
-        lessons: await dependencies.lessons.shelf(accountId),
-      });
+      return privateJson(
+        {
+          lessons: await dependencies.lessons.shelf(accountId),
+        } satisfies ShelfReply,
+      );
     }),
 
     route("POST", "/api/v1/lessons", async (request) => {

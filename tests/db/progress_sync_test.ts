@@ -4,9 +4,15 @@
 // failure. Nothing here prints a token.
 
 import type {
-  EventRejection,
-  SyncEvent,
-} from "../../src/server/progress/validation.ts";
+  Problem,
+  PullReply,
+  PushReply,
+  RejectedReply,
+  StaleEpochReply,
+} from "../../src/shared/api/v1.d.ts";
+import type { MarkedCheckpointReply } from "../support/api.ts";
+import { readJson } from "../support/json.ts";
+import type { SyncEvent } from "../../src/server/progress/validation.ts";
 import { assert, assertEquals } from "@std/assert";
 import {
   authoredLesson,
@@ -111,8 +117,7 @@ Deno.test("progress sync in an ephemeral database", async (t) => {
           { headers },
         );
         assertEquals(response.status, 200);
-        const page: { events: SyncEvent[]; cursor: string; hasMore: boolean } =
-          await response.json();
+        const page = await readJson<PullReply>(response);
         events.push(...page.events);
         cursor = page.cursor;
         if (!page.hasMore) break;
@@ -120,9 +125,11 @@ Deno.test("progress sync in an ephemeral database", async (t) => {
       return events;
     };
     const checkpoint = async () =>
-      (await call(`/api/v1/progress/checkpoint?revision=${REVISION}&epoch=0`, {
-        headers: cookieHeader,
-      })).json();
+      await readJson<MarkedCheckpointReply>(
+        await call(`/api/v1/progress/checkpoint?revision=${REVISION}&epoch=0`, {
+          headers: cookieHeader,
+        }),
+      );
 
     await t.step(
       "migration 003 applied; 001 and 002 are untouched",
@@ -186,14 +193,20 @@ Deno.test("progress sync in an ephemeral database", async (t) => {
       async () => {
         const first = await push("learning-events", evidence);
         assertEquals(first.status, 200);
-        assertEquals((await first.json()).accepted, evidence.length);
+        assertEquals(
+          (await readJson<PushReply>(first)).accepted,
+          evidence.length,
+        );
         const again = await push(
           "learning-events",
           evidence,
           bearer(writer.token),
         );
         assertEquals(
-          await again.json().then((body) => [body.accepted, body.duplicates]),
+          await readJson<PushReply>(again).then((body) => [
+            body.accepted,
+            body.duplicates,
+          ]),
           [0, evidence.length],
         );
         const rows = await db.execute({
@@ -311,7 +324,7 @@ Deno.test("progress sync in an ephemeral database", async (t) => {
         ]);
         assertEquals(rejected.status, 422);
         assertEquals(
-          ((await rejected.json()) as { rejections: EventRejection[] })
+          (await readJson<RejectedReply>(rejected))
             .rejections.map((entry) => entry.code),
           ["question.unknown"],
         );
@@ -326,7 +339,10 @@ Deno.test("progress sync in an ephemeral database", async (t) => {
           }),
         });
         assertEquals(unknown.status, 404);
-        assertEquals((await unknown.json()).code, "revision.unknown");
+        assertEquals(
+          (await readJson<Problem>(unknown)).code,
+          "revision.unknown",
+        );
       },
     );
 
@@ -366,12 +382,12 @@ Deno.test("progress sync in an ephemeral database", async (t) => {
           "2026-09-22T12:00:00.000Z",
         );
         assertEquals((await push("navigation-events", [ahead])).status, 200);
-        assertEquals((await checkpoint()).checkpoint.marker, "ahead");
+        assertEquals((await checkpoint()).checkpoint?.marker, "ahead");
         assertEquals((await push("navigation-events", [stale])).status, 200);
-        assertEquals((await checkpoint()).checkpoint.marker, "ahead");
+        assertEquals((await checkpoint()).checkpoint?.marker, "ahead");
         const later = checkpointed(ids, "later", "2026-09-22T11:00:00.000Z");
         assertEquals((await push("navigation-events", [later])).status, 200);
-        assertEquals((await checkpoint()).checkpoint.marker, "later");
+        assertEquals((await checkpoint()).checkpoint?.marker, "later");
         const low = checkpointed(
           ids,
           "low",
@@ -388,7 +404,7 @@ Deno.test("progress sync in an ephemeral database", async (t) => {
           (await push("navigation-events", [low, high])).status,
           200,
         );
-        assertEquals((await checkpoint()).checkpoint.marker, "high");
+        assertEquals((await checkpoint()).checkpoint?.marker, "high");
       },
     );
 
@@ -432,7 +448,7 @@ Deno.test("progress sync in an ephemeral database", async (t) => {
           1,
         );
         assertEquals(advanced.status, 200);
-        assertEquals((await advanced.json()).stream.epoch, 1);
+        assertEquals((await readJson<PushReply>(advanced)).stream?.epoch, 1);
         const stream = await db.execute({
           sql:
             "SELECT epoch, lesson_revision_id FROM progress_streams WHERE account_id = ? AND lesson_id = ?",
@@ -444,9 +460,9 @@ Deno.test("progress sync in an ephemeral database", async (t) => {
         ], [1, REVISION]);
         const stale = await push("learning-events", [event("lesson_started")]);
         assertEquals(stale.status, 409);
-        const body = await stale.json();
+        const body = await readJson<StaleEpochReply>(stale);
         assertEquals(body.code, "epoch.stale");
-        assertEquals(body.stream.epoch, 1);
+        assertEquals(body.stream?.epoch, 1);
         const stalePull = await call(
           `/api/v1/progress/navigation-events?revision=${REVISION}&epoch=0`,
           { headers: cookieHeader },

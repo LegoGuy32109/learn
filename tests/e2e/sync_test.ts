@@ -4,6 +4,8 @@
 // Concepts learned with no event duplicated or lost. A stale checkpoint pushed late never moves a
 // device backward. A third device learns with every sync request failing: learning completes, every
 // event stays in the outbox, and the four sync states show as the network changes.
+import type { CheckpointReply, PushReply } from "../../src/shared/api/v1.d.ts";
+import { readJson } from "../support/json.ts";
 import type {
   LearningEvent,
   QuestionAnswered,
@@ -282,12 +284,16 @@ Deno.test({
         },
       );
       expect(pushed.status).toBe(200);
-      expect((await pushed.json()).accepted).toBe(1);
-      const canonical = await (await fetch(
-        `${origin}/api/v1/progress/checkpoint?revision=${REVISION}&epoch=0`,
-        { headers: { cookie: `learn_session=${cookieValue}` } },
-      )).json();
-      expect(canonical.checkpoint.screen).toBe("summary");
+      expect((await readJson<PushReply>(pushed)).accepted).toBe(1);
+      const canonical = await readJson<
+        CheckpointReply & { checkpoint: { screen: string } | null }
+      >(
+        await fetch(
+          `${origin}/api/v1/progress/checkpoint?revision=${REVISION}&epoch=0`,
+          { headers: { cookie: `learn_session=${cookieValue}` } },
+        ),
+      );
+      expect(canonical.checkpoint?.screen).toBe("summary");
       for (const [page, context] of [[b, deviceB], [a, deviceA]] as const) {
         await page.goto(`${origin}/`);
         await page.getByRole("button", { name: new RegExp(fixture.title) })
@@ -406,11 +412,9 @@ Deno.test({
           `${origin}/api/v1/progress/learning-events?revision=${REVISION}&epoch=0&limit=3&cursor=${cursor}`,
           { headers: { cookie } },
         );
-        const body: {
-          events: LearningEvent[];
-          cursor: string;
-          hasMore: boolean;
-        } = await response.json();
+        const body = await readJson<
+          { events: LearningEvent[]; cursor: string; hasMore: boolean }
+        >(response);
         pulled.push(...body.events);
         cursor = body.cursor;
         if (!body.hasMore) break;

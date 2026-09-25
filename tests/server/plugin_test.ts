@@ -31,7 +31,14 @@ import {
   pluginFiles,
   pluginTree,
 } from "../../src/server/plugin/files.ts";
-import { exampleLesson } from "../../src/server/plugin/texts.ts";
+import {
+  exampleLesson,
+  marketplaceManifest,
+  pluginManifest,
+} from "../../src/server/plugin/texts.ts";
+import { capabilitiesFor } from "../../src/server/api-docs/capabilities.ts";
+import { diagnosticsReference } from "../../src/shared/authoring/diagnostics.js";
+import { parseJson, readJson } from "../support/json.ts";
 import {
   ARCHIVE_FILE,
   DEFAULT_PUBLIC_ORIGIN,
@@ -69,7 +76,9 @@ Deno.test("the committed plugin directory is exactly what the sources generate (
 Deno.test("the public origin is one https value and every generated text that names an origin uses it", () => {
   assertMatch(PUBLIC_ORIGIN, /^https:\/\/[^/]+$/);
   assertEquals(DEFAULT_PUBLIC_ORIGIN, "https://learn.joshhale.me");
-  const manifest = JSON.parse(text(`${PLUGIN_ROOT}.claude-plugin/plugin.json`));
+  const manifest = parseJson<ReturnType<typeof pluginManifest>>(
+    text(`${PLUGIN_ROOT}.claude-plugin/plugin.json`),
+  );
   assertEquals(manifest.homepage, `${PUBLIC_ORIGIN}/plugin`);
   for (
     const path of Object.keys(generated.files).filter((path) =>
@@ -92,7 +101,9 @@ Deno.test("generation is deterministic and the marketplace pins the archive it s
   const again = await pluginFiles();
   assertEquals(again.files, generated.files);
   assertEquals(again.commit, generated.commit);
-  const marketplace = JSON.parse(text(`${PLUGIN_ROOT}marketplace.json`));
+  const marketplace = parseJson<ReturnType<typeof marketplaceManifest>>(
+    text(`${PLUGIN_ROOT}marketplace.json`),
+  );
   assertEquals(marketplace.name, MARKETPLACE_NAME);
   assertEquals(
     marketplace.plugins.length,
@@ -115,7 +126,9 @@ Deno.test("generation is deterministic and the marketplace pins the archive it s
     ).join(""),
     generated.archiveSha256,
   );
-  const manifest = JSON.parse(text(`${PLUGIN_ROOT}.claude-plugin/plugin.json`));
+  const manifest = parseJson<ReturnType<typeof pluginManifest>>(
+    text(`${PLUGIN_ROOT}.claude-plugin/plugin.json`),
+  );
   assertEquals(manifest.name, PLUGIN_NAME);
   assertEquals(manifest.version, marketplace.plugins[0].version);
 });
@@ -277,14 +290,20 @@ Deno.test("the plugin routes serve the page, the manifests, the skill, the archi
 });
 
 Deno.test("the capability document points at the plugin with absolute links that resolve", async () => {
-  const body =
-    await (await app(new Request("https://learn.example/api/v1/capabilities")))
-      .json();
+  const body = await readJson<ReturnType<typeof capabilitiesFor>>(
+    await app(new Request("https://learn.example/api/v1/capabilities")),
+  );
   assertEquals(body.links.plugin, "https://learn.example/plugin");
   assertEquals(body.plugin.name, PLUGIN_NAME);
   assertEquals(body.plugin.tokenEnvironmentVariable, "LEARN_TOKEN");
   for (
-    const key of ["page", "marketplace", "manifest", "archive", "skillDocument"]
+    const key of [
+      "page",
+      "marketplace",
+      "manifest",
+      "archive",
+      "skillDocument",
+    ] as const
   ) {
     const href: string = body.plugin[key];
     assert(href.startsWith("https://learn.example/plugin"), `${key}: ${href}`);
@@ -405,9 +424,11 @@ Deno.test("the skill's texts are the plugin's texts adapted for lesson/v1 and ca
     diagnostics,
     await Deno.readTextFile(new URL("docs/diagnostics.md", repo)),
   );
-  const catalog = JSON.parse(text(`${skill}references/diagnostics.json`));
+  const catalog = parseJson<typeof diagnosticsReference>(
+    text(`${skill}references/diagnostics.json`),
+  );
   assertEquals(
-    catalog.diagnostics.map((entry: { code: string }) => entry.code),
+    catalog.diagnostics.map((entry) => entry.code),
     DIAGNOSTIC_CODES,
   );
 

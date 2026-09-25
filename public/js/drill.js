@@ -25,8 +25,11 @@ import {
   regionView,
 } from "../../src/client/learning/views.js";
 import { backButton, bind, CLOSE, icon } from "../../src/client/ui/controls.js";
+import { openDrillFlow } from "../../src/client/learning/session.js";
 
 /** @typedef {import("../../src/client/learning/session.js").Session} Session */
+/** @typedef {import("./app.js").Nav} Nav */
+/** @typedef {import("../../src/client/learning/drill-flow.js").DrillFlow} DrillFlow */
 
 /** A fresh seed and run ID for a new drill run. */
 function newRun() {
@@ -56,7 +59,7 @@ async function once(work) {
 /**
  * Enter the drill from the overview, resuming an open run when one exists.
  * @param {Session} session
- * @param {any} nav
+ * @param {Nav} nav
  */
 export async function startDrilling(session, nav) {
   session.surface = "drill";
@@ -71,11 +74,11 @@ export async function startDrilling(session, nav) {
 /**
  * @param {HTMLElement} root
  * @param {Session} session
- * @param {any} nav
+ * @param {Nav} nav
  */
 export function renderDrill(root, session, nav) {
   const lesson = session.lesson;
-  const flow = session.drillFlow;
+  const flow = openDrillFlow(session);
   const outcomes = reduceDrill(lesson, session.drillEvents, flow.runId);
   const close =
     `<button class="close" data-action="overview" aria-label="Close drill">${
@@ -110,13 +113,14 @@ export function renderDrill(root, session, nav) {
 /**
  * @param {string} action
  * @param {Session} session
- * @param {any} nav
+ * @param {Nav} nav
  */
 function handle(action, session, nav) {
   if (action === "overview") return leave(session, nav);
   if (action === "back") {
-    if (session.drillFlow.screen === "corrective") {
-      return commit(session, nav, leaveCorrective(session.drillFlow));
+    const flow = openDrillFlow(session);
+    if (flow.screen === "corrective") {
+      return commit(session, nav, leaveCorrective(flow));
     }
     return leave(session, nav);
   }
@@ -127,17 +131,17 @@ function handle(action, session, nav) {
   }
   if (action === "idk") return submit(session, nav, null, true);
   if (action === "advance") {
-    return commit(session, nav, advanceDrill(session.drillFlow));
+    return commit(session, nav, advanceDrill(openDrillFlow(session)));
   }
   if (action === "corrective") {
     return commit(
       session,
       nav,
-      enterCorrective(session.lesson, session.drillFlow),
+      enterCorrective(session.lesson, openDrillFlow(session)),
     );
   }
   if (action === "return") {
-    return commit(session, nav, leaveCorrective(session.drillFlow));
+    return commit(session, nav, leaveCorrective(openDrillFlow(session)));
   }
 }
 
@@ -145,7 +149,7 @@ function handle(action, session, nav) {
  * Leave the drill for the overview. A finished run is closed; an unfinished run stays resumable.
  * The drill's history entry becomes the overview's, so browser Back does not reopen the drill.
  * @param {Session} session
- * @param {any} nav
+ * @param {Nav} nav
  */
 async function leave(session, nav) {
   if (session.drillFlow?.screen === "summary") await session.endDrill();
@@ -156,8 +160,8 @@ async function leave(session, nav) {
 /**
  * Replace the drill flow, checkpoint it in the drill stream, and re-render.
  * @param {Session} session
- * @param {any} nav
- * @param {any} flow
+ * @param {Nav} nav
+ * @param {DrillFlow} flow
  */
 async function commit(session, nav, flow) {
   session.drillFlow = flow;
@@ -168,14 +172,15 @@ async function commit(session, nav, flow) {
 /**
  * Evaluate an answer with the learning flow's rules, record it as drill evidence, and show feedback.
  * @param {Session} session
- * @param {any} nav
+ * @param {Nav} nav
  * @param {unknown} answer
  * @param {boolean} idk
  */
 async function submit(session, nav, answer, idk) {
-  const result = submitAnswer(session.lesson, session.drillFlow, answer, idk);
+  const flow = openDrillFlow(session);
+  const result = submitAnswer(session.lesson, flow, answer, idk);
   await session.recordDrillEvent(DRILL_ANSWERED, {
-    runId: session.drillFlow.runId,
+    runId: flow.runId,
     conceptId: result.question.conceptId,
     poolId: result.question.poolId,
     questionId: result.question.id,

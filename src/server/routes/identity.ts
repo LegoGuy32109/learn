@@ -1,6 +1,7 @@
 // Identity routes: owner-minted invite links, passkey registration and sign-in
 // ceremonies, and the browser session they issue. Agents keep using bearer tokens;
 // these routes give a browser the same account through a signed cookie.
+import type { InviteReply, SessionReply } from "../../shared/api/v1.d.ts";
 import type { Dependencies } from "../dependencies.ts";
 import { json, jsonBody, problem } from "../http.ts";
 import { INVITE_PATH_PREFIX, PasskeyError } from "../identity/passkeys.ts";
@@ -62,7 +63,7 @@ export function identityRoutes(dependencies: Dependencies): Route[] {
     displayName: string,
   ): Promise<Response> => {
     const cookie = await sessions.issue(request, { accountId, displayName });
-    return json({ signedIn: true, displayName }, 200, {
+    return json({ signedIn: true, displayName } satisfies SessionReply, 200, {
       "set-cookie": cookie,
       "cache-control": "private, no-store",
     });
@@ -95,7 +96,11 @@ export function identityRoutes(dependencies: Dependencies): Route[] {
         );
         const url = new URL(minted.path, request.url).href;
         return json(
-          { url, path: minted.path, expiresAt: minted.expiresAt },
+          {
+            url,
+            path: minted.path,
+            expiresAt: minted.expiresAt,
+          } satisfies InviteReply,
           201,
           { "cache-control": "private, no-store" },
         );
@@ -202,7 +207,7 @@ export function identityRoutes(dependencies: Dependencies): Route[] {
         {
           signedIn: session != null,
           displayName: session?.displayName ?? null,
-        },
+        } satisfies SessionReply,
         200,
         { "cache-control": "private, no-store" },
       );
@@ -211,10 +216,14 @@ export function identityRoutes(dependencies: Dependencies): Route[] {
     route("DELETE", "/api/v1/session", (request) => {
       const refused = crossSite(request);
       if (refused) return refused;
-      return json({ signedIn: false, displayName: null }, 200, {
-        "set-cookie": sessions.clear(request),
-        "cache-control": "private, no-store",
-      });
+      return json(
+        { signedIn: false, displayName: null } satisfies SessionReply,
+        200,
+        {
+          "set-cookie": sessions.clear(request),
+          "cache-control": "private, no-store",
+        },
+      );
     }),
   ];
 }

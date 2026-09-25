@@ -17,6 +17,7 @@ import type {
   Invite,
 } from "../repositories/identity.ts";
 import { base64Url, fromBase64Url, sha256Hex } from "./encoding.ts";
+import { field } from "../../shared/json.js";
 import type { RelyingParty } from "./relying-party.ts";
 
 export const INVITE_TTL_MS = 10 * 60 * 1000;
@@ -63,8 +64,11 @@ function decodeClientDataChallenge(clientDataJSON: unknown): string | null {
   const bytes = fromBase64Url(clientDataJSON);
   if (!bytes) return null;
   try {
-    const parsed = JSON.parse(new TextDecoder().decode(bytes));
-    return typeof parsed.challenge === "string" ? parsed.challenge : null;
+    const challenge = field(
+      JSON.parse(new TextDecoder().decode(bytes)),
+      "challenge",
+    );
+    return typeof challenge === "string" ? challenge : null;
   } catch {
     return null;
   }

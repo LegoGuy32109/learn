@@ -1,3 +1,4 @@
+import { field, isRecord } from "../src/shared/json.js";
 // Creates the learn-prod Turso database once and writes its connection to the
 // ignored .env.prod file. The database uses the same engine setting as
 // learn-local and learn-dev. The token is minted only when .env.prod has none,
@@ -42,13 +43,15 @@ interface TursoBody extends DatabaseInfo {
 async function json(response: Response): Promise<TursoBody> {
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
+    const reason = field(body, "error") ?? field(body, "message");
     throw new Error(
       `Turso API ${response.status}: ${
-        body.error ?? body.message ?? "request failed"
+        typeof reason === "string" ? reason : "request failed"
       }`,
     );
   }
-  return body;
+  // The Turso Platform API's documented reply; each caller checks the field it needs.
+  return (isRecord(body) ? body : {}) as TursoBody;
 }
 
 async function ensureDatabase(): Promise<

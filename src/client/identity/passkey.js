@@ -2,6 +2,7 @@
 // Passkey registration and sign-in in the browser, with no client dependency.
 // The server issues the options and verifies the credential; this module only
 // runs the WebAuthn ceremony between the two calls and reports a plain outcome.
+import { isRecord } from "../../shared/json.js";
 
 /** @typedef {{ ok: true, displayName: string } | { ok: false, message: string }} Outcome */
 
@@ -32,7 +33,7 @@ function bufferToBase64Url(value) {
 
 /**
  * Prefer the native JSON parser; older browsers get a manual decode.
- * @param {any} optionsJson
+ * @param {PublicKeyCredentialCreationOptionsJSON} optionsJson
  * @returns {PublicKeyCredentialCreationOptions}
  */
 function parseCreationOptions(optionsJson) {
@@ -44,7 +45,7 @@ function parseCreationOptions(optionsJson) {
     challenge: base64UrlToBuffer(optionsJson.challenge),
     user: { ...optionsJson.user, id: base64UrlToBuffer(optionsJson.user.id) },
     excludeCredentials: (optionsJson.excludeCredentials ?? []).map((
-      /** @type {any} */ credential,
+      credential,
     ) => ({
       id: base64UrlToBuffer(credential.id),
       type: "public-key",
@@ -54,7 +55,7 @@ function parseCreationOptions(optionsJson) {
 }
 
 /**
- * @param {any} optionsJson
+ * @param {PublicKeyCredentialRequestOptionsJSON} optionsJson
  * @returns {PublicKeyCredentialRequestOptions}
  */
 function parseRequestOptions(optionsJson) {
@@ -65,7 +66,7 @@ function parseRequestOptions(optionsJson) {
     ...optionsJson,
     challenge: base64UrlToBuffer(optionsJson.challenge),
     allowCredentials: (optionsJson.allowCredentials ?? []).map((
-      /** @type {any} */ credential,
+      credential,
     ) => ({
       id: base64UrlToBuffer(credential.id),
       type: "public-key",
@@ -77,13 +78,18 @@ function parseRequestOptions(optionsJson) {
 /**
  * Serialize a credential the way the server expects. Prefers the native `toJSON`.
  * @param {PublicKeyCredential} credential
- * @returns {any}
+ * @returns {unknown}
  */
 function encodeCredential(credential) {
   const native =
     /** @type {{ toJSON?: () => unknown }} */ (/** @type {unknown} */ (credential));
   if (typeof native.toJSON === "function") return native.toJSON();
-  const response = /** @type {any} */ (credential.response);
+  // A registration carries an attestation response and a sign-in an assertion response; the
+  // fields below are read only when present.
+  const response =
+    /** @type {AuthenticatorResponse & Partial<AuthenticatorAttestationResponse> & Partial<AuthenticatorAssertionResponse>} */ (
+      credential.response
+    );
   /** @type {Record<string, unknown>} */
   const encoded = {
     clientDataJSON: bufferToBase64Url(response.clientDataJSON),
@@ -128,9 +134,16 @@ function friendlyError(error, verb) {
 }
 
 /**
+ * A server reply: the body the endpoint documents on success, or a problem with an optional detail.
+ * @template T
+ * @typedef {{ ok: true, status: number, body: T } | { ok: false, status: number, body: { detail?: unknown } }} Posted
+ */
+
+/**
+ * POST JSON. The caller names the success body its endpoint documents.
  * @param {string} path
  * @param {unknown} payload
- * @returns {Promise<{ ok: boolean, status: number, body: any }>}
+ * @returns {Promise<Posted<unknown>>}
  */
 async function post(path, payload) {
   const response = await fetch(path, {
@@ -138,11 +151,13 @@ async function post(path, payload) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(payload),
   });
-  const body = await response.json().catch(() => ({}));
-  return { ok: response.ok, status: response.status, body };
+  const body = await response.json().catch(() => null);
+  return response.ok
+    ? { ok: true, status: response.status, body }
+    : { ok: false, status: response.status, body: isRecord(body) ? body : {} };
 }
 
-/** @param {{ status: number, body: any }} failed @param {string} fallback */
+/** @param {{ body: { detail?: unknown } }} failed @param {string} fallback */
 function problemMessage(failed, fallback) {
   return typeof failed.body?.detail === "string"
     ? failed.body.detail
@@ -161,9 +176,10 @@ export async function registerWithInvite(invite) {
       message: "Passkeys are not supported in this browser.",
     };
   }
-  const options = await post("/api/v1/passkeys/registration-options", {
-    invite,
-  });
+  const options =
+    /** @type {Posted<{ options: PublicKeyCredentialCreationOptionsJSON }>} */ (
+      await post("/api/v1/passkeys/registration-options", { invite })
+    );
   if (!options.ok) {
     return {
       ok: false,
@@ -181,10 +197,12 @@ export async function registerWithInvite(invite) {
   if (!(credential instanceof PublicKeyCredential)) {
     return { ok: false, message: "Could not register the passkey. Try again." };
   }
-  const verified = await post("/api/v1/passkeys/registrations", {
-    invite,
-    credential: encodeCredential(credential),
-  });
+  const verified = /** @type {Posted<{ displayName: string }>} */ (
+    await post("/api/v1/passkeys/registrations", {
+      invite,
+      credential: encodeCredential(credential),
+    })
+  );
   if (!verified.ok) {
     return {
       ok: false,
@@ -205,7 +223,10 @@ export async function signInWithPasskey() {
       message: "Passkeys are not supported in this browser.",
     };
   }
-  const options = await post("/api/v1/passkeys/authentication-options", {});
+  const options =
+    /** @type {Posted<{ options: PublicKeyCredentialRequestOptionsJSON }>} */ (
+      await post("/api/v1/passkeys/authentication-options", {})
+    );
   if (!options.ok) {
     return {
       ok: false,
@@ -226,9 +247,11 @@ export async function signInWithPasskey() {
       message: "Could not sign in with the passkey. Try again.",
     };
   }
-  const verified = await post("/api/v1/passkeys/authentications", {
-    credential: encodeCredential(credential),
-  });
+  const verified = /** @type {Posted<{ displayName: string }>} */ (
+    await post("/api/v1/passkeys/authentications", {
+      credential: encodeCredential(credential),
+    })
+  );
   if (!verified.ok) {
     return {
       ok: false,

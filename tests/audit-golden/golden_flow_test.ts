@@ -15,6 +15,8 @@
 // with `audit-`, deletes nothing, and lists what it created in tests/audit-golden/last-run.md.
 //
 // Run: deno task audit:golden          (LEARN_BASE_URL optional; the owner token is read from .env.prod)
+import type { RevisionReply } from "../../src/shared/api/v1.d.ts";
+import { readJson } from "../support/json.ts";
 import {
   type Browser,
   type BrowserContext,
@@ -268,7 +270,7 @@ async function shelfAndLearningLoop(browser: Browser, signedIn: SignedIn) {
         },
         body: lessonDocument(title),
       });
-      const body = await response.json();
+      const body = await readJson<RevisionReply>(response);
       expect(response.status).toBe(201);
       lessonId = body.lessonId;
       useLesson(body.content);
@@ -350,7 +352,7 @@ async function offlineAndSecondDevice(browser: Browser, signedIn: SignedIn) {
         },
         body: lessonDocument(title),
       });
-      const body = await response.json();
+      const body = await readJson<RevisionReply>(response);
       expect(response.status).toBe(201);
       lessonId = body.lessonId;
       revisionId = body.revisionId;
@@ -504,7 +506,11 @@ async function offlineAndSecondDevice(browser: Browser, signedIn: SignedIn) {
             let body: { learningEvents?: number; checkpoint?: unknown } | null =
               null;
             try {
-              body = JSON.parse(text);
+              // Runs in the page, where the test helpers are not loaded.
+              body = JSON.parse(text) as {
+                learningEvents?: number;
+                checkpoint?: unknown;
+              };
             } catch {
               // left null; the raw text is returned below for evidence.
             }

@@ -37,8 +37,8 @@ const STORES = ["learning_events", "navigation_events"];
  * @typedef {object} SyncStore
  * @property {() => Promise<import("../storage/repository.js").OutboxEntry[]>} outbox
  * @property {(ids: string[]) => Promise<void>} acknowledge
- * @property {(store: string) => Promise<any[]>} events
- * @property {(store: string, events: any[]) => Promise<void>} appendRemote
+ * @property {(store: string) => Promise<import("../learning/session.js").RecordedEvent[]>} events
+ * @property {(store: string, events: import("../learning/session.js").RecordedEvent[]) => Promise<void>} appendRemote
  * @property {(key: string) => Promise<string>} cursor
  * @property {(key: string, cursor: string) => Promise<void>} saveCursor
  * @property {(stream: import("../storage/repository.js").ProgressStream) => Promise<void>} saveStream

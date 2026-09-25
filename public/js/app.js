@@ -9,6 +9,7 @@
 // the surface from that record and the flows from the saved checkpoints; the URL and the surface
 // on screen never disagree.
 import { createSession } from "../../src/client/learning/session.js";
+import { field } from "../../src/shared/json.js";
 import { localRepository } from "../../src/client/storage/repository.js";
 import {
   buildShelf,
@@ -32,8 +33,14 @@ import { renderDrill } from "./drill.js";
 /** @typedef {import("../../src/client/library/shelf-model.js").ShelfEntry} ShelfEntry */
 /** @typedef {import("../../src/client/library/shelf-model.js").RemoteLesson} RemoteLesson */
 
+/** The values the server inlined into this page. */
+const page =
+  /** @type {typeof globalThis & import("./globals.d.ts").PageGlobals} */ (
+    globalThis
+  );
+
 /** @type {{ signedIn: boolean, displayName: string | null, message?: string }} */
-let account = (/** @type {any} */ (window)).__SESSION__ ??
+let account = page.__SESSION__ ??
   { signedIn: false, displayName: null };
 const root = /** @type {HTMLElement} */ (document.querySelector("#app"));
 
@@ -154,6 +161,8 @@ async function openEntry(entry) {
     entry,
   );
   await localRepository.saveStream(stream);
+  // ensureCached answered no failure, so the revision is on the entry.
+  if (!entry.lesson) return "Could not load this lesson.";
   const session = createSession(entry.lesson, stream, {
     onEvidence: () => sync.kick(),
   });
@@ -188,6 +197,7 @@ async function adoptRemoteEpoch() {
   location.assign(`/learn/${encodeURIComponent(stream.id)}`);
 }
 
+/** The navigation surface every page renders against. @typedef {typeof nav} Nav */
 const nav = {
   /** The signed-in account as the server rendered it; sign-in and sign-out replace it. */
   get account() {
@@ -351,7 +361,10 @@ async function render() {
 
 /** Browser Back or Forward: the entry we land on says which surface it showed. */
 globalThis.addEventListener("popstate", async (event) => {
-  await restoreFromLocation(event.state?.surface);
+  const surface = event instanceof PopStateEvent
+    ? field(event.state, "surface")
+    : undefined;
+  await restoreFromLocation(typeof surface === "string" ? surface : undefined);
   await render();
 });
 
@@ -423,7 +436,7 @@ async function openFromUrl(lessonId, recorded) {
 }
 
 async function main() {
-  const inlined = (/** @type {any} */ (window)).__LESSON__;
+  const inlined = page.__LESSON__;
   if (inlined) await localRepository.seed(inlined);
   await loadShelf();
   await restoreFromLocation(history.state?.surface);

@@ -4,6 +4,18 @@ import {
   assertNotEquals,
   assertStringIncludes,
 } from "@std/assert";
+import { parseJson, readJson } from "../support/json.ts";
+import type { Lesson } from "../../src/shared/lessons/types.d.ts";
+
+/** The fields of public/manifest.webmanifest this test reads. */
+interface WebManifest {
+  name: string;
+  start_url: string;
+  display: string;
+  theme_color: string;
+  icons: Array<{ src: string; sizes: string }>;
+}
+
 import { DEMO_LESSON as lesson } from "../support/demo-lesson.ts";
 import { createApp, fixtureDependencies } from "../../src/app.ts";
 import { FixtureLessonRepository } from "../../src/server/repositories/lessons.ts";
@@ -40,12 +52,12 @@ Deno.test("the manifest is installable: name, 192 and 512 icons, start URL, stan
     response.headers.get("content-type") ?? "",
     "application/manifest+json",
   );
-  const manifest = await response.json();
+  const manifest = await readJson<WebManifest>(response);
   assertEquals(manifest.name, "learn");
   assertEquals(manifest.start_url, "/");
   assertEquals(manifest.display, "standalone");
   assertEquals(manifest.theme_color, "#eae2d3");
-  const sizes = manifest.icons.map((icon: { sizes: string }) => icon.sizes);
+  const sizes = manifest.icons.map((icon) => icon.sizes);
   assert(sizes.includes("192x192"));
   assert(sizes.includes("512x512"));
   for (const icon of manifest.icons) {
@@ -84,7 +96,7 @@ Deno.test("the served worker carries the build hash and precache list and is nev
   const text = await response.text();
   const hash = text.match(/const BUILD_HASH = "([0-9a-f]{12})";/)?.[1];
   assert(hash, "worker must embed a 12-hex build hash");
-  const precache: string[] = JSON.parse(
+  const precache = parseJson<string[]>(
     text.match(/const PRECACHE = (\[.*?\]);/)?.[1] ?? "null",
   );
   assert(precache.includes(SHELL_PATH));
@@ -151,7 +163,7 @@ Deno.test("the inlined lesson keeps ordinary spaces and escapes only the line se
   assertEquals(inlined.includes(" "), false);
   assertEquals(inlined.includes(" "), false);
   assertEquals(
-    JSON.parse(inlined.replaceAll("\\u2028", " ")).title,
+    parseJson<Lesson>(inlined.replaceAll("\\u2028", " ")).title,
     lesson.title,
   );
 });

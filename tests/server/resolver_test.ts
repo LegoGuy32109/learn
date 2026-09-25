@@ -1,5 +1,9 @@
 import { assert, assertEquals } from "@std/assert";
-import { DEMO_LESSON as lesson } from "../support/demo-lesson.ts";
+import {
+  type AuthoredLesson,
+  authoredLesson,
+  DEMO_LESSON as lesson,
+} from "../support/demo-lesson.ts";
 import manifest from "../../fixtures/authoring/manifest.json" with {
   type: "json",
 };
@@ -244,4 +248,32 @@ Deno.test("adversarial documents are rejected without a crash or a hang", async 
   const result = await resolveLesson(polluted);
   assertEquals(result.valid, false);
   assertEquals(({} as { valid?: unknown }).valid, undefined);
+});
+
+Deno.test("an ID must be a string: an array holding a valid UUID is rejected, not coerced", async () => {
+  const cases: Array<[string, (input: AuthoredLesson) => void]> = [
+    ["concept.id", (input) => {
+      Object.assign(input.concepts[0], { id: [input.concepts[0].id] });
+    }],
+    ["pool.id", (input) => {
+      Object.assign(input.concepts[0], { poolId: [input.concepts[0].poolId] });
+    }],
+    ["card.id", (input) => {
+      const card = input.concepts[0].cards[0];
+      Object.assign(card, { id: [card.id] });
+    }],
+    ["question.id", (input) => {
+      Object.assign(input.questions[0], { id: [input.questions[0].id] });
+    }],
+  ];
+  for (const [code, mutate] of cases) {
+    const input = authoredLesson(lesson.title);
+    mutate(input);
+    const result = await resolveLesson(input);
+    assertEquals(result.valid, false, code);
+    assert(
+      result.diagnostics.some((diagnostic) => diagnostic.code === code),
+      `${code} is reported for an array-wrapped ID`,
+    );
+  }
 });

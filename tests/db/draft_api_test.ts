@@ -1,5 +1,10 @@
 import { assert, assertEquals } from "@std/assert";
-import type { ShelfLesson } from "../../src/server/repositories/lessons.ts";
+import type {
+  LessonsReply,
+  RevisionReply,
+  ShelfReply,
+} from "../../src/shared/api/v1.d.ts";
+import { readJson } from "../support/json.ts";
 import { DEMO_LESSON as lesson } from "../support/demo-lesson.ts";
 import { createApp } from "../../src/app.ts";
 import { createDb } from "../../src/server/db.ts";
@@ -31,14 +36,17 @@ Deno.test("authenticated draft API persists idempotently in Turso", async () => 
   try {
     const first = await app(request());
     assertEquals(first.status, 201);
-    const created = await first.json();
+    const created = await readJson<RevisionReply>(first);
     lessonId = created.lessonId;
     assert(created.revisionId);
     assertEquals(created.status, "draft");
 
     const repeated = await app(request());
     assertEquals(repeated.status, 201);
-    assertEquals((await repeated.json()).revisionId, created.revisionId);
+    assertEquals(
+      (await readJson<RevisionReply>(repeated)).revisionId,
+      created.revisionId,
+    );
 
     const read = await app(
       new Request(
@@ -47,12 +55,11 @@ Deno.test("authenticated draft API persists idempotently in Turso", async () => 
       ),
     );
     assertEquals(read.status, 200);
-    const revision = await read.json();
+    const revision = await readJson<RevisionReply>(read);
     assertEquals(revision.content.sources[0].locator, input.sources[0].locator);
-    assertEquals(
-      revision.content.provenance.session_reference,
-      "database-integration-test",
-    );
+    const provenance = revision.content.provenance;
+    assert(provenance.status === "provided", "the draft carries provenance");
+    assertEquals(provenance.session_reference, "database-integration-test");
 
     const listed = await app(
       new Request("http://local/api/v1/lessons", {
@@ -61,7 +68,7 @@ Deno.test("authenticated draft API persists idempotently in Turso", async () => 
     );
     assertEquals(listed.status, 200);
     assert(
-      ((await listed.json()) as { revisions: Array<{ revisionId: string }> })
+      (await readJson<LessonsReply>(listed))
         .revisions.some((revision) =>
           revision.revisionId === created.revisionId
         ),
@@ -74,7 +81,7 @@ Deno.test("authenticated draft API persists idempotently in Turso", async () => 
       }),
     );
     assertEquals(shelf.status, 200);
-    const { lessons }: { lessons: ShelfLesson[] } = await shelf.json();
+    const { lessons } = await readJson<ShelfReply>(shelf);
     assertEquals(lessons[0].lessonId, created.lessonId);
     assertEquals(lessons[0].latestRevisionId, created.revisionId);
     assertEquals(lessons[0].latestRevisionNumber, 1);
@@ -97,7 +104,7 @@ Deno.test("authenticated draft API persists idempotently in Turso", async () => 
       }),
     );
     assertEquals(revised.status, 201);
-    const second = await revised.json();
+    const second = await readJson<RevisionReply>(revised);
     assertEquals(second.revisionNumber, 2);
 
     const owner = await db.execute({
@@ -115,8 +122,7 @@ Deno.test("authenticated draft API persists idempotently in Turso", async () => 
       }),
     );
     assertEquals(byCookie.status, 200);
-    const afterRevision =
-      ((await byCookie.json()) as { lessons: ShelfLesson[] }).lessons;
+    const afterRevision = (await readJson<ShelfReply>(byCookie)).lessons;
     assertEquals(afterRevision[0].lessonId, created.lessonId);
     assertEquals(afterRevision[0].latestRevisionId, second.revisionId);
     assertEquals(afterRevision[0].latestRevisionNumber, 2);
@@ -135,7 +141,7 @@ Deno.test("authenticated draft API persists idempotently in Turso", async () => 
     );
     assertEquals(cookieRead.status, 200);
     assertEquals(
-      (await cookieRead.json()).content.revisionId,
+      (await readJson<RevisionReply>(cookieRead)).content.revisionId,
       created.revisionId,
     );
     const latest = await app(
@@ -144,7 +150,10 @@ Deno.test("authenticated draft API persists idempotently in Turso", async () => 
       }),
     );
     assertEquals(latest.status, 200);
-    assertEquals((await latest.json()).revisionId, second.revisionId);
+    assertEquals(
+      (await readJson<RevisionReply>(latest)).revisionId,
+      second.revisionId,
+    );
   } finally {
     if (lessonId) {
       await db.execute({

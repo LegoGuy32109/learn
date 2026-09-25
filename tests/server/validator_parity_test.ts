@@ -1,6 +1,7 @@
 // The downloadable validator is generated from the shared resolver. This test runs the generated
 // file in a real subprocess, from a temporary directory with no network access, and compares its
 // result JSON byte for byte with the in-process resolver for every fixture.
+import { parseJson } from "../support/json.ts";
 import type { Resolution } from "../../src/shared/authoring/resolver.js";
 import { assert, assertEquals } from "@std/assert";
 import manifest from "../../fixtures/authoring/manifest.json" with {
@@ -25,7 +26,7 @@ console.log(results.join("\\n"));
 `;
 
 async function adversarialDocuments(): Promise<Record<string, string>> {
-  const demo = JSON.parse(
+  const demo = parseJson<Record<string, unknown>>(
     await Deno.readTextFile(
       new URL("fixtures/lessons/browser-http-cache.json", repo),
     ),
@@ -119,7 +120,10 @@ Deno.test("the generated validator and the shared resolver return byte-equivalen
       files.map((
         path,
         index,
-      ) => [path.slice(directory.length + 1), JSON.parse(lines[index])]),
+      ) => [
+        path.slice(directory.length + 1),
+        parseJson<Resolution>(lines[index]),
+      ]),
     );
     assertEquals(
       byName["generated-oversized.json"].diagnostics.map((d) => d.code),

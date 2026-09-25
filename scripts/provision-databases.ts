@@ -1,3 +1,4 @@
+import { field, isRecord } from "../src/shared/json.js";
 const apiKey = Deno.env.get("TURSO_API_KEY");
 const org = Deno.env.get("TURSO_ORG_SLUG");
 if (!apiKey || !org) {
@@ -31,13 +32,15 @@ interface TursoBody extends DatabaseInfo {
 async function json(response: Response): Promise<TursoBody> {
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
+    const reason = field(body, "error") ?? field(body, "message");
     throw new Error(
       `Turso API ${response.status}: ${
-        body.error ?? body.message ?? "request failed"
+        typeof reason === "string" ? reason : "request failed"
       }`,
     );
   }
-  return body;
+  // The Turso Platform API's documented reply; each caller checks the field it needs.
+  return (isRecord(body) ? body : {}) as TursoBody;
 }
 
 async function databases(): Promise<DatabaseInfo[]> {

@@ -1,6 +1,7 @@
 // Create and destroy an isolated `learn-test-<uuid>` Turso database for one test run.
 // Requires TURSO_API_KEY and TURSO_ORG_SLUG. Never logs the database token.
 
+import { field, isRecord } from "../../../src/shared/json.js";
 import { type Client, createClient } from "@tursodatabase/serverless/compat";
 import { migrateDatabase } from "../../../src/server/migrations.ts";
 
@@ -45,15 +46,17 @@ interface TursoDatabase {
 }
 
 async function json(response: Response): Promise<TursoBody> {
-  const body = await response.json().catch(() => ({}));
+  const body = await response.json().catch(() => null);
   if (!response.ok) {
+    const reason = field(body, "error") ?? field(body, "message");
     throw new Error(
       `Turso API ${response.status}: ${
-        body.error ?? body.message ?? "request failed"
+        typeof reason === "string" ? reason : "request failed"
       }`,
     );
   }
-  return body;
+  // The Turso Platform API's documented reply; each caller checks the field it needs.
+  return (isRecord(body) ? body : {}) as TursoBody;
 }
 
 async function waitUntilReady(db: Client): Promise<void> {

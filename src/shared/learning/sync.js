@@ -40,7 +40,7 @@ export function frontierCount(checkpointEvent, accepted) {
   if (!Array.isArray(frontier)) return 0;
   let count = 0;
   for (const id of frontier) {
-    if (accepted.has(id)) count += 1;
+    if (typeof id === "string" && accepted.has(id)) count += 1;
   }
   return count;
 }

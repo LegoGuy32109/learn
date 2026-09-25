@@ -53,7 +53,8 @@ function metadata(row: Record<string, unknown>): TokenMetadata {
   return {
     name: String(row.name),
     prefix: String(row.token_prefix),
-    scopes: JSON.parse(String(row.scopes_json)),
+    // Written by this module when the token was minted.
+    scopes: JSON.parse(String(row.scopes_json)) as string[],
     createdAt: Number(row.created_at),
     lastUsedAt: optional(row.last_used_at),
     expiresAt: optional(row.expires_at),

@@ -3,6 +3,8 @@
 // offline, opens the learning URL as owner and as guest, sees Outdated after a second revision,
 // keeps the old revision, then discards with confirmation and starts the new one from Not started.
 // A guest with no network and nothing cached sees an empty shelf with an explanation.
+import type { RevisionReply } from "../../src/shared/api/v1.d.ts";
+import { readJson } from "../support/json.ts";
 import type { StoreName, Stores } from "../support/stores.ts";
 import { chromium, expect, type Page } from "@playwright/test";
 import {
@@ -116,8 +118,9 @@ Deno.test({
       );
 
       // An agent creates a lesson on the laptop. The phone refreshes and sees it first, Not started.
-      const created = await (await agent("/api/v1/lessons", document(TITLE)))
-        .json();
+      const created = await readJson<RevisionReply>(
+        await agent("/api/v1/lessons", document(TITLE)),
+      );
       expect(created.revisionNumber).toBe(1);
       await page.getByRole("button", { name: "Refresh shelf" }).click();
       await expect(page.locator(".lesson")).toHaveCount(2);
@@ -197,10 +200,12 @@ Deno.test({
       await stranger.close();
 
       // The agent creates a second revision. Back online, the shelf marks the lesson Outdated.
-      const revised = await (await agent(
-        `/api/v1/lessons/${created.lessonId}/revisions`,
-        document(REVISED),
-      )).json();
+      const revised = await readJson<RevisionReply>(
+        await agent(
+          `/api/v1/lessons/${created.lessonId}/revisions`,
+          document(REVISED),
+        ),
+      );
       expect(revised.revisionNumber).toBe(2);
       await page.goto(`${origin}/`);
       await expect(page.locator(".lesson").first()).toContainText(TITLE);

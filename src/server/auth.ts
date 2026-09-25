@@ -54,7 +54,10 @@ export class TokenAuthenticator implements Authenticator {
       return UNAUTHENTICATED;
     }
     const scopes = JSON.parse(String(row.scopes_json));
-    if (!Array.isArray(scopes)) return UNAUTHENTICATED;
+    if (
+      !Array.isArray(scopes) ||
+      !scopes.every((scope): scope is string => typeof scope === "string")
+    ) return UNAUTHENTICATED;
     await this.db.execute({
       sql: "UPDATE api_tokens SET last_used_at = ? WHERE id = ?",
       args: [now, String(row.id)],

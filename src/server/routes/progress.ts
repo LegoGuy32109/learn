@@ -2,6 +2,14 @@
 // canonical checkpoint rebuilt from the navigation stream by the shared selection rule. Every route
 // resolves the account through the one current-account resolver, so the browser session cookie and
 // a bearer token both work. Pushes are idempotent: an event is stored once however often it arrives.
+import type {
+  CheckpointReply,
+  PullReply,
+  PushReply,
+  RejectedReply,
+  StaleEpochReply,
+  StreamState,
+} from "../../shared/api/v1.d.ts";
 import { frontierCount, selectCheckpoint } from "../../shared/learning/sync.js";
 import type { Dependencies } from "../dependencies.ts";
 import { json, jsonBody, problem } from "../http.ts";
@@ -138,13 +146,13 @@ function staleEpoch(stream: ProgressStream): Response {
     {
       code: "epoch.stale",
       stream: publicStream(stream),
-    },
+    } satisfies Pick<StaleEpochReply, "code" | "stream">,
   );
 }
 
 function publicStream(
   stream: ProgressStream | null,
-): { lessonId: string; lessonRevisionId: string; epoch: number } | null {
+): StreamState | null {
   return stream
     ? {
       lessonId: stream.lessonId,
@@ -172,7 +180,7 @@ function pullPage(
   hasMore: boolean,
   cursorIn: number,
   stream: ProgressStream | null,
-) {
+): PullReply {
   const last = events.at(-1)?.seq ?? cursorIn;
   return {
     events: events.map((stored) => stored.event),
@@ -236,7 +244,10 @@ export function progressRoutes(dependencies: Dependencies): Route[] {
             422,
             "Events rejected",
             "One or more events do not belong to this Lesson Revision. Nothing was stored.",
-            { code: "events.rejected", rejections: validated.rejections },
+            {
+              code: "events.rejected",
+              rejections: validated.rejections,
+            } satisfies Pick<RejectedReply, "code" | "rejections">,
           );
         }
         const scope = {
@@ -252,11 +263,13 @@ export function progressRoutes(dependencies: Dependencies): Route[] {
           Date.now(),
         );
         if (!outcome.ok) return staleEpoch(outcome.stream);
-        return privateJson({
-          accepted: outcome.accepted,
-          duplicates: outcome.duplicates,
-          stream: publicStream(outcome.stream),
-        });
+        return privateJson(
+          {
+            accepted: outcome.accepted,
+            duplicates: outcome.duplicates,
+            stream: publicStream(outcome.stream),
+          } satisfies PushReply,
+        );
       },
     );
 
@@ -360,12 +373,14 @@ export function progressRoutes(dependencies: Dependencies): Route[] {
         { checkpoint },
         new Set(learningEvents.map((event) => event.id)),
       );
-      return privateJson({
-        checkpoint,
-        frontier,
-        learningEvents: learningEvents.length,
-        stream: publicStream(read.stream),
-      });
+      return privateJson(
+        {
+          checkpoint,
+          frontier,
+          learningEvents: learningEvents.length,
+          stream: publicStream(read.stream),
+        } satisfies CheckpointReply,
+      );
     }),
   ];
 }

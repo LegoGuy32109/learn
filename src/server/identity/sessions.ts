@@ -4,6 +4,7 @@
 // to the same account identity.
 
 import { base64Url, fromBase64Url } from "./encoding.ts";
+import { isRecord } from "../../shared/json.js";
 
 export const SESSION_COOKIE = "learn_session";
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -104,21 +105,28 @@ export class HmacSessionCookies implements SessionCookies {
       new TextEncoder().encode(payload),
     );
     if (!valid) return null;
-    let session: BrowserSession;
+    let parsed: unknown;
     try {
-      session = JSON.parse(new TextDecoder().decode(payloadBytes));
+      parsed = JSON.parse(new TextDecoder().decode(payloadBytes));
     } catch {
       return null;
     }
     if (
-      typeof session.accountId !== "string" ||
-      typeof session.displayName !== "string"
+      !isRecord(parsed) ||
+      typeof parsed.accountId !== "string" ||
+      typeof parsed.displayName !== "string"
     ) return null;
+    const expiresAt = parsed.expiresAt;
     if (
-      !Number.isSafeInteger(session.expiresAt) ||
-      session.expiresAt <= this.clock()
+      typeof expiresAt !== "number" || !Number.isSafeInteger(expiresAt) ||
+      expiresAt <= this.clock()
     ) return null;
-    return session;
+    return {
+      accountId: parsed.accountId,
+      displayName: parsed.displayName,
+      issuedAt: Number(parsed.issuedAt),
+      expiresAt,
+    };
   }
 
   async issue(

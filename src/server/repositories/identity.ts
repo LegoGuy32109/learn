@@ -82,7 +82,8 @@ function rowCredential(row: Record<string, unknown>): PasskeyCredential {
     signCount: Number(row.sign_count),
     transports: row.transports_json == null
       ? null
-      : JSON.parse(String(row.transports_json)),
+      // Written by insertCredential below.
+      : JSON.parse(String(row.transports_json)) as string[],
     createdAt: Number(row.created_at),
     lastUsedAt: optionalNumber(row.last_used_at),
   };

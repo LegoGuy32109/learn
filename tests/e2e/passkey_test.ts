@@ -1,6 +1,8 @@
 // Phone-sized passkey flow through a real Chromium with a virtual platform authenticator:
 // open a one-time invite, register a passkey, land on the shelf signed in, reload and stay
 // signed in, sign out to the guest shelf, and sign back in with the passkey.
+import type { InviteReply } from "../../src/shared/api/v1.d.ts";
+import { readJson } from "../support/json.ts";
 import { chromium, expect } from "@playwright/test";
 import {
   createApp,
@@ -54,7 +56,7 @@ Deno.test({
         headers: { authorization: `Bearer ${OWNER}` },
       });
       expect(minted.status).toBe(201);
-      const invite = await minted.json();
+      const invite = await readJson<InviteReply>(minted);
       expect(invite.url.startsWith(`${BASE}/sign-in/`)).toBe(true);
 
       await page.goto(invite.url);

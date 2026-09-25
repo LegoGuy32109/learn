@@ -10,6 +10,9 @@
 //
 // The site under attack is LEARN_BASE_URL, defaulting to the deployed origin. The duplicate-draft
 // attacks need LEARN_TOKEN (or LEARN_OWNER_TOKEN); without one they are recorded as skipped.
+import { parseJson, readJson } from "../../support/json.ts";
+import { type AuthoredLesson, DEMO_LESSON } from "../../support/demo-lesson.ts";
+import type { Problem, RevisionReply } from "../../../src/shared/api/v1.d.ts";
 import type { Resolution } from "../../../src/shared/authoring/resolver.js";
 import { Ajv2020 } from "ajv/2020";
 import addFormatsModule from "ajv-formats";
@@ -176,7 +179,10 @@ async function runAudit(directory: string) {
   await check(
     "download · GET /api/v1/schemas/lesson/v1 is draft 2020-12",
     () => {
-      equal([servedSchema.status, JSON.parse(servedSchema.body).$schema], [
+      equal([
+        servedSchema.status,
+        parseJson<{ $schema?: string }>(servedSchema.body).$schema,
+      ], [
         200,
         "https://json-schema.org/draft/2020-12/schema",
       ], "served schema");
@@ -185,7 +191,9 @@ async function runAudit(directory: string) {
   await check(
     "download · GET /api/v1/diagnostics lists every code with a schema flag",
     () => {
-      const catalog = JSON.parse(servedCatalog.body);
+      const catalog = parseJson<{ diagnostics: CatalogEntry[] }>(
+        servedCatalog.body,
+      );
       assert(
         Array.isArray(catalog.diagnostics) && catalog.diagnostics.length > 50,
         "the catalog is a list of diagnostics",
@@ -199,9 +207,9 @@ async function runAudit(directory: string) {
     },
   );
 
-  const schema = JSON.parse(servedSchema.body);
+  const schema = parseJson<Record<string, unknown>>(servedSchema.body);
   const catalogByCode = new Map<string, { schema: boolean; severity: string }>(
-    (JSON.parse(servedCatalog.body) as { diagnostics: CatalogEntry[] })
+    parseJson<{ diagnostics: CatalogEntry[] }>(servedCatalog.body)
       .diagnostics.map((
         entry,
       ) => [entry.code, { schema: entry.schema, severity: entry.severity }]),
@@ -219,7 +227,7 @@ async function runAudit(directory: string) {
   }
 
   // Two documents too large or too deep to commit are built here and attacked with the rest.
-  const base = JSON.parse(
+  const base = parseJson<AuthoredLesson>(
     await Deno.readTextFile(new URL("audit-lesson.json", here)),
   );
   const generated: Record<string, string> = {
@@ -317,7 +325,7 @@ async function runAudit(directory: string) {
       },
     );
 
-    const parsed: Resolution = JSON.parse(local);
+    const parsed = parseJson<Resolution>(local);
     const codes: string[] = parsed.diagnostics.map((diagnostic) =>
       diagnostic.code
     );
@@ -418,7 +426,7 @@ async function runAudit(directory: string) {
   await check(
     "hostile-document · 1,000,001 bytes · the validator reports document.size alone",
     () => {
-      const parsed: Resolution = JSON.parse(
+      const parsed = parseJson<Resolution>(
         byName.get("generated-size-limit-plus-one.json") ?? "{}",
       );
       equal(
@@ -439,7 +447,7 @@ async function runAudit(directory: string) {
         oversizedRemote.type.includes("application/problem+json"),
         `413 content type was ${oversizedRemote.type}`,
       );
-      const body = JSON.parse(oversizedRemote.body);
+      const body = parseJson<Problem>(oversizedRemote.body);
       equal(
         [body.status, body.title],
         [413, "Request too large"],
@@ -460,7 +468,7 @@ async function runAudit(directory: string) {
   await check(
     "hostile-document · exactly 1,000,000 bytes · accepted by the API and the validator alike",
     () => {
-      const parsed: Resolution = JSON.parse(
+      const parsed = parseJson<Resolution>(
         byName.get("generated-size-limit-exact.json") ?? "{}",
       );
       equal(
@@ -481,7 +489,7 @@ async function runAudit(directory: string) {
   await check(
     "hostile-document · 200 levels deep · document.nesting alone, from the API and the validator",
     () => {
-      const parsed: Resolution = JSON.parse(
+      const parsed = parseJson<Resolution>(
         byName.get("generated-nesting-200-bare.json") ?? "{}",
       );
       equal(parsed.diagnostics.map((diagnostic) => diagnostic.code), [
@@ -549,7 +557,7 @@ async function runAudit(directory: string) {
         "the API and the resolver differ on a prototype-pollution body",
       );
       equal(
-        JSON.parse(local).valid,
+        parseJson<Resolution>(local).valid,
         false,
         "the hostile document must be rejected",
       );
@@ -576,14 +584,17 @@ async function openapiCoverage() {
     () => {
       equal(served.status, 200, "openapi status");
       equal(
-        JSON.parse(served.body).servers,
+        parseJson<{ servers?: unknown }>(served.body).servers,
         [{ url: ORIGIN }],
         "openapi servers",
       );
     },
   );
-  const document: { paths: Record<string, Record<string, unknown>> } = JSON
-    .parse(served.body);
+  const document = parseJson<
+    { paths: Record<string, Record<string, unknown>> }
+  >(
+    served.body,
+  );
 
   // Every documented route must answer something other than 404-with-no-route.
   const sample = "6f1c1c2a-3b1e-4b6f-9a1c-2f6d8e4b7a10";
@@ -716,10 +727,10 @@ async function openapiCoverage() {
   }
 
   // Routes the plugin page and the capability document advertise, which the document must cover.
-  const capabilities = JSON.parse(
-    (await fetchText("/api/v1/capabilities")).body,
-  );
-  for (const url of capabilities.authentication.publicRoutes as string[]) {
+  const capabilities = parseJson<
+    { authentication: { publicRoutes: string[] } }
+  >((await fetchText("/api/v1/capabilities")).body);
+  for (const url of capabilities.authentication.publicRoutes) {
     const path = new URL(url).pathname;
     await check(
       `openapi · the capability document's public route ${path} is in the OpenAPI document`,
@@ -739,7 +750,7 @@ async function openapiCoverage() {
 async function draftAttacks() {
   const token = Deno.env.get("LEARN_TOKEN") ??
     Deno.env.get("LEARN_OWNER_TOKEN");
-  const valid = JSON.parse(
+  const valid = parseJson<AuthoredLesson>(
     await Deno.readTextFile(new URL("fixtures/valid-audit-lesson.json", here)),
   );
 
@@ -762,10 +773,10 @@ async function draftAttacks() {
       "drafts · the same valid lesson twice with the same token returns the same revision",
       async () => {
         const first = await post(valid);
-        const created = await first.json();
+        const created = await readJson<RevisionReply>(first);
         equal(first.status, 201, "first submission status");
         const second = await post(valid);
-        const repeated = await second.json();
+        const repeated = await readJson<RevisionReply>(second);
         equal(second.status, 201, "second submission status");
         equal([repeated.lessonId, repeated.revisionId], [
           created.lessonId,
@@ -811,11 +822,7 @@ async function draftAttacks() {
   // Cross-account isolation runs against the composed routes with two accounts. The deployed
   // database holds one account, and this ticket does not create another one there.
   const dependencies = await fixtureDependencies();
-  const demo = JSON.parse(
-    await Deno.readTextFile(
-      new URL("../../../fixtures/lessons/browser-http-cache.json", here),
-    ),
-  );
+  const demo = DEMO_LESSON;
   const lessons = new FixtureLessonRepository(demo);
   const app = createApp({
     ...dependencies,
@@ -847,14 +854,20 @@ async function draftAttacks() {
   await check(
     "drafts · the same lesson from a second account is a separate lesson, not the first account's",
     async () => {
-      const first = await (await submit("token-a", valid)).json();
-      const again = await (await submit("token-a", valid)).json();
+      const first = await readJson<RevisionReply>(
+        await submit("token-a", valid),
+      );
+      const again = await readJson<RevisionReply>(
+        await submit("token-a", valid),
+      );
       equal(
         again.revisionId,
         first.revisionId,
         "the same account retrying must get the same revision",
       );
-      const other = await (await submit("token-b", valid)).json();
+      const other = await readJson<RevisionReply>(
+        await submit("token-b", valid),
+      );
       assert(
         other.lessonId !== first.lessonId,
         "a second account must not be handed the first account's lesson",
@@ -874,7 +887,9 @@ async function draftAttacks() {
   await check(
     "drafts · a second account cannot read the first account's revision",
     async () => {
-      const first = await (await submit("token-a", valid)).json();
+      const first = await readJson<RevisionReply>(
+        await submit("token-a", valid),
+      );
       const read = await app(
         new Request(
           `http://local/api/v1/lessons/${first.lessonId}/revisions/${first.revisionId}`,
@@ -889,7 +904,9 @@ async function draftAttacks() {
   await check(
     "drafts · a second account cannot add a revision to the first account's lesson",
     async () => {
-      const first = await (await submit("token-a", valid)).json();
+      const first = await readJson<RevisionReply>(
+        await submit("token-a", valid),
+      );
       const response = await app(
         new Request(`http://local/api/v1/lessons/${first.lessonId}/revisions`, {
           method: "POST",

@@ -22,14 +22,15 @@ import { evidenceFor } from "../learning/session.js";
  * @property {number} conceptCount
  * @property {number} questionCount
  * @property {string} revisionId       The revision this device opens: pinned by the stream, else the newest known
- * @property {any|null} lesson         The pinned revision's content when cached on this device
+ * @property {import("../../shared/lessons/types.d.ts").Lesson|null} lesson  The pinned revision's content when cached on this device
  * @property {number} epoch
- * @property {any} progress            Reduced from local evidence for the pinned revision and epoch
+ * @property {import("../../shared/learning/progress.js").Progress} progress  Reduced from local evidence for the pinned revision and epoch
  * @property {string|null} latestRevisionId  The server's newest revision, when the server answered
  * @property {boolean} outdated        Progress exists on an older revision than the server's newest
  * @property {number} updatedAt        Sort key, newest first
  */
 
+/** @type {import("../../shared/learning/progress.js").Progress} */
 const NOT_STARTED = Object.freeze({
   state: "not_started",
   cardsSeen: new Set(),
@@ -43,7 +44,7 @@ const NOT_STARTED = Object.freeze({
  * @param {import("../storage/repository.js").CachedRevision[]} input.cached  Every revision on this device
  * @param {RemoteLesson[]|null} input.remote   The server's list, or null for a guest or an unreachable server
  * @param {import("../storage/repository.js").ProgressStream[]} input.streams
- * @param {any[]} input.learningEvents  Every learning event on this device
+ * @param {import("../learning/session.js").RecordedEvent[]} input.learningEvents  Every learning event on this device
  * @returns {ShelfEntry[]}
  */
 export function buildShelf({ cached, remote, streams, learningEvents }) {
@@ -110,7 +111,7 @@ export function buildShelf({ cached, remote, streams, learningEvents }) {
  * @param {import("../storage/repository.js").CachedRevision[]} revisions
  * @param {import("../storage/repository.js").ProgressStream|null} stream
  * @param {RemoteLesson|null} server
- * @param {any[]} learningEvents
+ * @param {import("../learning/session.js").RecordedEvent[]} learningEvents
  * @returns {string}
  */
 function pinnedRevision(revisions, stream, server, learningEvents) {

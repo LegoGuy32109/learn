@@ -3,6 +3,14 @@
 // ceremony run by the software authenticator, and the rows they leave behind.
 // The database is deleted in `finally`. Nothing here prints a token.
 
+import type {
+  AuthenticationOptionsReply,
+  InviteReply,
+  Problem,
+  RegistrationOptionsReply,
+  SessionReply,
+} from "../../src/shared/api/v1.d.ts";
+import { readJson } from "../support/json.ts";
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { createApp } from "../../src/app.ts";
 import { TokenAdmin } from "../../src/server/identity/token-admin.ts";
@@ -96,7 +104,7 @@ Deno.test("passkey sign-in in an ephemeral database", async (t) => {
         await invalid.body?.cancel();
         const minted = await mint(owner.token);
         assertEquals(minted.status, 201);
-        const body = await minted.json();
+        const body = await readJson<InviteReply>(minted);
         inviteToken = String(body.path).slice("/sign-in/".length);
         assertEquals(body.expiresAt, now + INVITE_TTL_MS);
         const row = await db.execute(
@@ -123,7 +131,9 @@ Deno.test("passkey sign-in in an ephemeral database", async (t) => {
           invite: inviteToken,
         });
         assertEquals(options.status, 200);
-        const { options: creation } = await options.json();
+        const { options: creation } = await readJson<RegistrationOptionsReply>(
+          options,
+        );
         const wrongOrigin = await authenticator.register(creation, {
           origin: "https://evil.example",
           rpId: "localhost",
@@ -139,7 +149,10 @@ Deno.test("passkey sign-in in an ephemeral database", async (t) => {
           credential: await authenticator.register(creation, RP),
         });
         assertEquals(replayed.status, 401);
-        assertStringIncludes((await replayed.json()).detail, "challenge");
+        assertStringIncludes(
+          (await readJson<Problem>(replayed)).detail,
+          "challenge",
+        );
         assertEquals(
           (await db.execute("SELECT COUNT(*) AS n FROM passkey_credentials"))
             .rows[0].n,
@@ -154,13 +167,18 @@ Deno.test("passkey sign-in in an ephemeral database", async (t) => {
         const options = await post("/api/v1/passkeys/registration-options", {
           invite: inviteToken,
         });
-        const { options: creation } = await options.json();
+        const { options: creation } = await readJson<RegistrationOptionsReply>(
+          options,
+        );
         const registered = await post("/api/v1/passkeys/registrations", {
           invite: inviteToken,
           credential: await authenticator.register(creation, RP),
         });
         assertEquals(registered.status, 200);
-        assertEquals((await registered.json()).displayName, "Josh Hale");
+        assertEquals(
+          (await readJson<SessionReply>(registered)).displayName,
+          "Josh Hale",
+        );
         const setCookie = registered.headers.get("set-cookie") ?? "";
         assertStringIncludes(setCookie, "HttpOnly");
         assertStringIncludes(setCookie, "SameSite=Lax");
@@ -184,7 +202,7 @@ Deno.test("passkey sign-in in an ephemeral database", async (t) => {
         );
 
         const session = await call("/api/v1/session", { headers: { cookie } });
-        assertEquals(await session.json(), {
+        assertEquals(await readJson<SessionReply>(session), {
           signedIn: true,
           displayName: "Josh Hale",
         });
@@ -197,7 +215,7 @@ Deno.test("passkey sign-in in an ephemeral database", async (t) => {
         const used = await call(`/sign-in/${inviteToken}`);
         assertEquals(used.status, 410);
         assertStringIncludes(await used.text(), "already used");
-        const late = await (await mint(owner.token)).json();
+        const late = await readJson<InviteReply>(await mint(owner.token));
         now += INVITE_TTL_MS;
         const expired = await call(late.path);
         assertEquals(expired.status, 410);
@@ -212,7 +230,9 @@ Deno.test("passkey sign-in in an ephemeral database", async (t) => {
           "/api/v1/passkeys/authentication-options",
           {},
         );
-        const { options: request } = await options.json();
+        const { options: request } = await readJson<AuthenticationOptionsReply>(
+          options,
+        );
         const credential = await authenticator.assert(request, RP);
         const signedIn = await post("/api/v1/passkeys/authentications", {
           credential,
@@ -248,12 +268,12 @@ Deno.test("passkey sign-in in an ephemeral database", async (t) => {
         const tampered = await call("/api/v1/session", {
           headers: { cookie: cookie.slice(0, -3) + "xyz" },
         });
-        assertEquals(await tampered.json(), {
+        assertEquals(await readJson<SessionReply>(tampered), {
           signedIn: false,
           displayName: null,
         });
         const intact = await call("/api/v1/session", { headers: { cookie } });
-        assertEquals((await intact.json()).signedIn, true);
+        assertEquals((await readJson<SessionReply>(intact)).signedIn, true);
         const signedOut = await call("/api/v1/session", {
           method: "DELETE",
           headers: { cookie, origin: ORIGIN },

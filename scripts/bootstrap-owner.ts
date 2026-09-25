@@ -49,7 +49,8 @@ const prior = await db.execute({
 });
 if (prior.rows.length) {
   const prefix = String(prior.rows[0].token_prefix);
-  const scopes: string[] = JSON.parse(String(prior.rows[0].scopes_json));
+  // Written by the token module when the owner token was minted.
+  const scopes = JSON.parse(String(prior.rows[0].scopes_json)) as string[];
   const missing = OWNER_SCOPES.filter((scope) => !scopes.includes(scope));
   if (missing.length) {
     // The owner CLI token is the one credential that mints phone invites; give an older one the scope it predates.

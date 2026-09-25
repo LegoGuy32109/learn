@@ -7,22 +7,31 @@ import { reduceCheckpoint } from "./checkpoint.js";
 export const DRILL_ANSWERED = "drill_question_answered";
 export const DRILL_CHECKPOINTED = "drill_checkpointed";
 
+/** @typedef {import("../lessons/types.d.ts").Lesson} Lesson */
+/** @typedef {import("./types.d.ts").DrillAnswered} DrillAnswered */
+
+/**
+ * @param {{ type: string }} event
+ * @returns {event is DrillAnswered}
+ */
+const isDrillAnswer = (event) => event.type === DRILL_ANSWERED;
+
 /**
  * Every Question ID in the lesson exactly once, in the order fixed by `seed`.
- * @param {any} lesson
+ * @param {Lesson} lesson
  * @param {number} seed
  * @returns {string[]}
  */
 export function drillQueue(lesson, seed) {
-  const ids = lesson.questions.map((/** @type {any} */ question) =>
-    question.id
-  );
+  const ids = lesson.questions.map((question) => question.id);
   return shuffled(ids, seed);
 }
 
 /**
  * The drill resume position, or null when no drill run is open.
- * @param {any[]} events
+ * @template Checkpoint
+ * @param {ReadonlyArray<{ type: string, occurredAt: string, checkpoint?: Checkpoint | null }>} events
+ * @returns {Checkpoint | null}
  */
 export function reduceDrillCheckpoint(events) {
   return reduceCheckpoint(events, DRILL_CHECKPOINTED);
@@ -31,23 +40,21 @@ export function reduceDrillCheckpoint(events) {
 /**
  * What happened to each Concept during one drill run. Counts describe outcomes for the summary;
  * they are never a score.
- * @param {any} lesson
- * @param {any[]} events
+ * @param {Lesson} lesson
+ * @param {ReadonlyArray<{ type: string }>} events  Events of other types are ignored
  * @param {string} runId
  * @returns {{ id: string, title: string, questions: number, asked: number, retrieved: number, missed: number, unknown: number }[]}
  */
 export function reduceDrill(lesson, events, runId) {
-  const answers = events.filter((event) =>
-    event.type === DRILL_ANSWERED && event.runId === runId
+  const answers = events.filter(isDrillAnswer).filter((event) =>
+    event.runId === runId
   );
-  return lesson.concepts.map((/** @type {any} */ concept) => {
+  return lesson.concepts.map((concept) => {
     const own = answers.filter((event) => event.conceptId === concept.id);
-    const questions = lesson.questions.filter((/** @type {any} */ question) =>
+    const questions = lesson.questions.filter((question) =>
       question.conceptId === concept.id
     ).length;
-    const retrieved = own.filter((event) =>
-      event.correct
-    ).length;
+    const retrieved = own.filter((event) => event.correct).length;
     const unknown = own.filter((event) => event.idk).length;
     return {
       id: concept.id,

@@ -16,6 +16,7 @@
 // The application itself never runs a migration (docs/turso-databases.md); apply one with
 // `deno task db:migrate:prod` first.
 
+import { isRecord } from "../src/shared/json.js";
 import { pendingProductionMigrations } from "./production-migrations.ts";
 
 const ORG = "legoguy32109";
@@ -75,7 +76,8 @@ if (!result.success) {
 
 let summary: Record<string, unknown> = {};
 try {
-  summary = JSON.parse(stdout.split("\n").at(-1) ?? "{}");
+  const parsed = JSON.parse(stdout.split("\n").at(-1) ?? "{}");
+  if (isRecord(parsed)) summary = parsed;
 } catch {
   console.log(stdout);
 }

@@ -7,6 +7,14 @@
 // created in tests/audit-prod/last-run.md.
 //
 // Run: deno task audit:prod            (LEARN_BASE_URL optional; token from .env.prod)
+import type {
+  AuthenticationOptionsReply,
+  Problem,
+  RevisionReply,
+  ShelfReply,
+} from "../../src/shared/api/v1.d.ts";
+import type { capabilitiesFor } from "../../src/server/api-docs/capabilities.ts";
+import { parseJson } from "../support/json.ts";
 import {
   type Browser,
   type BrowserContext,
@@ -222,7 +230,9 @@ async function transportAndSecurity() {
       expect(capabilities.response.headers.get("content-type") ?? "").toMatch(
         /^application\/json/,
       );
-      const body = JSON.parse(capabilities.text);
+      const body = parseJson<ReturnType<typeof capabilitiesFor>>(
+        capabilities.text,
+      );
       expect(body.apiVersion).toBe("v1");
       expect(body.links.validator).toBe(`${BASE}/tools/lesson-validator.js`);
       return capabilities.evidence;
@@ -236,7 +246,10 @@ async function transportAndSecurity() {
       expect(wellKnown.response.headers.get("content-type") ?? "").toMatch(
         /^application\/json/,
       );
-      expect(JSON.parse(wellKnown.text).links.self).toBe(
+      expect(
+        parseJson<ReturnType<typeof capabilitiesFor>>(wellKnown.text).links
+          .self,
+      ).toBe(
         `${BASE}/api/v1/capabilities`,
       );
       return wellKnown.evidence;
@@ -272,7 +285,9 @@ async function transportAndSecurity() {
       expect(schema.response.headers.get("content-type") ?? "").toMatch(
         /^application\/json/,
       );
-      expect(JSON.parse(schema.text).$schema).toContain("2020-12");
+      expect(parseJson<{ $schema: string }>(schema.text).$schema).toContain(
+        "2020-12",
+      );
       return schema.evidence;
     },
   );
@@ -284,7 +299,9 @@ async function transportAndSecurity() {
       expect(openapi.response.headers.get("content-type") ?? "").toMatch(
         /^application\/json/,
       );
-      expect(JSON.stringify(JSON.parse(openapi.text).servers)).toContain(BASE);
+      expect(
+        JSON.stringify(parseJson<{ servers: unknown }>(openapi.text).servers),
+      ).toContain(BASE);
       return openapi.evidence;
     },
   );
@@ -357,7 +374,9 @@ async function transportAndSecurity() {
     "csrf · a passkey ceremony started from another site is refused with 403",
     () => {
       expect(crossSite.response.status).toBe(403);
-      expect(JSON.parse(crossSite.text).title).toBe("Cross-site request");
+      expect(parseJson<Problem>(crossSite.text).title).toBe(
+        "Cross-site request",
+      );
       return crossSite.evidence;
     },
   );
@@ -370,7 +389,9 @@ async function transportAndSecurity() {
     "passkeys · authentication options name this host as the relying party",
     () => {
       expect(sameSite.response.status).toBe(200);
-      expect(JSON.parse(sameSite.text).options.rpId).toBe(HOST);
+      expect(
+        parseJson<AuthenticationOptionsReply>(sameSite.text).options.rpId,
+      ).toBe(HOST);
       return sameSite.evidence;
     },
   );
@@ -427,7 +448,9 @@ async function transportAndSecurity() {
       expect(listed.response.headers.get("cache-control")).toBe(
         "private, no-store",
       );
-      expect(Array.isArray(JSON.parse(listed.text).lessons)).toBe(true);
+      expect(Array.isArray(parseJson<ShelfReply>(listed.text).lessons)).toBe(
+        true,
+      );
       return listed.evidence;
     },
   );
@@ -886,7 +909,7 @@ async function signIn(browser: Browser): Promise<SignedIn> {
       "invite · registration options for the used invite are refused with a 410 problem document",
       () => {
         expect(reusedOptions.response.status).toBe(410);
-        expect(JSON.parse(reusedOptions.text).title).toBe(
+        expect(parseJson<Problem>(reusedOptions.text).title).toBe(
           "Invite already used",
         );
         return reusedOptions.evidence;
@@ -966,7 +989,7 @@ async function shelf(browser: Browser, signedIn: SignedIn) {
     });
     const text = await response.text();
     recordBody(`agent: POST ${path}`, response.status, text);
-    return { response, text, json: JSON.parse(text) };
+    return { response, text, json: parseJson<RevisionReply>(text) };
   };
   const title = auditTitle("");
   const revisedTitle = `${title} (revision 2)`;

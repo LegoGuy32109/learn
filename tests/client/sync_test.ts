@@ -3,6 +3,7 @@
 // backoff and idempotent; a lost response after acceptance duplicates nothing; pulls union by id and
 // hand the reducers the union; a 409 never moves the local stream, only the explicit adoption does;
 // and every request failing leaves every event in the outbox with a sensible state.
+import type { RecordedEvent } from "../../src/client/learning/session.js";
 import { assert, assertEquals } from "@std/assert";
 import {
   BATCH_SIZE,
@@ -21,8 +22,8 @@ const REVISION = "0b7e5b4e-8c2d-4f1a-b3e6-1d9a7c5e2f33";
 const LESSON = "6f1c1c2a-3b1e-4b6f-9a1c-2f6d8e4b7a10";
 const SCOPE = { lessonId: LESSON, lessonRevisionId: REVISION, epoch: 0 };
 
-/** An event as the sync layer handles it: identified by ID, otherwise opaque. */
-type Synced = { id: string } & Record<string, unknown>;
+/** An event as the sync layer handles it: the recorded envelope, otherwise opaque. */
+type Synced = RecordedEvent;
 
 /** The IndexedDB repository's sync surface over plain maps, with the same semantics. */
 function memoryRepository() {

@@ -2,6 +2,8 @@
 // real-process smoke through main.ts and scripts/tokens.ts.
 // Every assertion message and log line goes through redaction.
 
+import type { TokenMetadata } from "../../src/server/identity/token-admin.ts";
+import { parseJson } from "../support/json.ts";
 import type { Client, Row } from "../../src/server/db.ts";
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { DEMO_LESSON as lesson } from "../support/demo-lesson.ts";
@@ -341,7 +343,9 @@ async function realProcessSmoke(url: string, authToken: string): Promise<void> {
       "--json",
     ]);
     assertEquals(minted.code, 0, redactBearerTokens(minted.stderr));
-    const { token, metadata } = JSON.parse(minted.stdout);
+    const { token, metadata } = parseJson<
+      { token: string; metadata: TokenMetadata }
+    >(minted.stdout);
     assert(
       typeof token === "string" &&
         token.startsWith(`learn_pat_${metadata.prefix}_`),

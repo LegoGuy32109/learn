@@ -8,6 +8,8 @@
 //
 // This is a verification suite: it never fixes anything it finds. A confirmed defect is filed by hand
 // as a new ticket file under issues/.
+import type { PushReply } from "../../src/shared/api/v1.d.ts";
+import { parseJson, readJson } from "../support/json.ts";
 import type { StoreName, Stores } from "../support/stores.ts";
 import { type Browser, chromium, expect, type Page } from "@playwright/test";
 import type { Client } from "../../src/server/db.ts";
@@ -597,12 +599,14 @@ Deno.test({
             );
             assertEquals(pushed.status, 200);
             await pushed.body?.cancel();
-            const served = await (await fetch(
-              `${origin}/api/v1/progress/checkpoint?revision=${lesson.revisionId}&epoch=0`,
-              { headers: cookieHeader },
-            )).json();
+            const served = await readJson<ServedCheckpoint>(
+              await fetch(
+                `${origin}/api/v1/progress/checkpoint?revision=${lesson.revisionId}&epoch=0`,
+                { headers: cookieHeader },
+              ),
+            );
             assertEquals(
-              served.checkpoint.marker,
+              served.checkpoint?.marker,
               "tie-high",
               "equal frontiers and equal clocks break the tie by the greater event id",
             );
@@ -854,10 +858,12 @@ Deno.test({
             // poll the server's own account until it agrees, rather than trusting one status read.
             const seen: { before: ServedCheckpoint | null } = { before: null };
             await expect.poll(async () => {
-              const served: ServedCheckpoint = await (await fetch(
-                `${origin}/api/v1/progress/checkpoint?revision=${lesson.revisionId}&epoch=0`,
-                { headers: cookieHeader },
-              )).json();
+              const served = await readJson<ServedCheckpoint>(
+                await fetch(
+                  `${origin}/api/v1/progress/checkpoint?revision=${lesson.revisionId}&epoch=0`,
+                  { headers: cookieHeader },
+                ),
+              );
               seen.before = served;
               return served.checkpoint?.screen;
             }, { timeout: 20000 }).toBe("summary");
@@ -900,12 +906,14 @@ Deno.test({
               },
             );
             assertEquals(pushed.status, 200);
-            assertEquals((await pushed.json()).accepted, 1);
+            assertEquals((await readJson<PushReply>(pushed)).accepted, 1);
 
-            const after: ServedCheckpoint = await (await fetch(
-              `${origin}/api/v1/progress/checkpoint?revision=${lesson.revisionId}&epoch=0`,
-              { headers: cookieHeader },
-            )).json();
+            const after = await readJson<ServedCheckpoint>(
+              await fetch(
+                `${origin}/api/v1/progress/checkpoint?revision=${lesson.revisionId}&epoch=0`,
+                { headers: cookieHeader },
+              ),
+            );
             assertEquals(
               after.checkpoint?.screen,
               "summary",
@@ -981,7 +989,7 @@ Deno.test({
                 if (route.request().method() !== "POST") {
                   return route.continue();
                 }
-                const posted: { events?: Array<{ id: string }> } = JSON.parse(
+                const posted = parseJson<{ events?: Array<{ id: string }> }>(
                   route.request().postData() ?? "{}",
                 );
                 learningIds.push(

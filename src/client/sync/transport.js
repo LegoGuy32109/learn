@@ -2,7 +2,7 @@
 // The sync routes as the browser calls them. The session cookie travels with every request. Every
 // failure, including no network, is a plain outcome the client acts on; nothing here throws.
 
-/** @typedef {{ lessonId: string, lessonRevisionId: string, epoch: number }} StreamState */
+/** @typedef {import("../../shared/api/v1.d.ts").StreamState} StreamState */
 
 /**
  * @typedef {object} Failure
@@ -14,7 +14,31 @@
  */
 
 /** @typedef {{ ok: true, accepted: number, duplicates: number, stream: StreamState|null }} Pushed */
-/** @typedef {{ ok: true, events: any[], cursor: string, hasMore: boolean, stream: StreamState|null }} Pulled */
+/** @typedef {import("../learning/session.js").RecordedEvent} RecordedEvent */
+/** @typedef {{ ok: true, events: RecordedEvent[], cursor: string, hasMore: boolean, stream: StreamState|null }} Pulled */
+
+import { field, isRecord } from "../../shared/json.js";
+
+/**
+ * @param {unknown} value
+ * @returns {value is StreamState}
+ */
+function isStreamState(value) {
+  return isRecord(value) && typeof value.lessonId === "string" &&
+    typeof value.lessonRevisionId === "string" &&
+    typeof value.epoch === "number";
+}
+
+/**
+ * An event as a pull returns it. The sync layer unions by `id` and the reducers narrow by `type`,
+ * so those two are checked here; the server validated the rest when the event was pushed.
+ * @param {unknown} value
+ * @returns {value is RecordedEvent}
+ */
+function isPulledEvent(value) {
+  return isRecord(value) && typeof value.id === "string" &&
+    typeof value.type === "string";
+}
 
 /** The route each IndexedDB store syncs with. */
 const PATHS = {
@@ -27,15 +51,18 @@ const PATHS = {
  * @returns {Promise<Failure>}
  */
 async function failure(response) {
-  const body = await response.json().catch(() => ({}));
+  const body = await response.json().catch(() => null);
+  const code = field(body, "code");
+  const detail = field(body, "detail");
+  const stream = field(body, "stream");
   return {
     ok: false,
     status: response.status,
-    code: typeof body.code === "string" ? body.code : "http",
-    message: typeof body.detail === "string"
-      ? body.detail
+    code: typeof code === "string" ? code : "http",
+    message: typeof detail === "string"
+      ? detail
       : `The server answered ${response.status}.`,
-    stream: body.stream && typeof body.stream === "object" ? body.stream : null,
+    stream: isStreamState(stream) ? stream : null,
   };
 }
 
@@ -62,7 +89,7 @@ export function createTransport(
      * stores each ID once and reports the repeats as duplicates.
      * @param {string} store
      * @param {{ lessonRevisionId: string, epoch: number }} scope
-     * @param {any[]} events
+     * @param {RecordedEvent[]} events
      * @returns {Promise<Pushed|Failure>}
      */
     async push(store, scope, events) {
@@ -91,7 +118,7 @@ export function createTransport(
       }
       if (!response.ok) return failure(response);
       const body = await response.json().catch(() => null);
-      if (!body) {
+      if (!isRecord(body)) {
         return {
           ok: false,
           status: response.status,
@@ -104,7 +131,7 @@ export function createTransport(
         ok: true,
         accepted: Number(body.accepted ?? 0),
         duplicates: Number(body.duplicates ?? 0),
-        stream: body.stream ?? null,
+        stream: isStreamState(body.stream) ? body.stream : null,
       };
     },
 
@@ -134,7 +161,10 @@ export function createTransport(
       }
       if (!response.ok) return failure(response);
       const body = await response.json().catch(() => null);
-      if (!body || !Array.isArray(body.events)) {
+      if (
+        !isRecord(body) || !Array.isArray(body.events) ||
+        !body.events.every(isPulledEvent)
+      ) {
         return {
           ok: false,
           status: response.status,
@@ -148,7 +178,7 @@ export function createTransport(
         events: body.events,
         cursor: String(body.cursor ?? cursor),
         hasMore: body.hasMore === true,
-        stream: body.stream ?? null,
+        stream: isStreamState(body.stream) ? body.stream : null,
       };
     },
   };

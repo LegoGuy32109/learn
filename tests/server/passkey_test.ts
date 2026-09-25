@@ -2,6 +2,14 @@
 // identity repository. A software authenticator runs the ceremonies so the tests can
 // choose the origin, the relying-party ID and the challenge they present.
 
+import type {
+  AuthenticationOptionsReply,
+  InviteReply,
+  Problem,
+  RegistrationOptionsReply,
+  SessionReply,
+} from "../../src/shared/api/v1.d.ts";
+import { readJson } from "../support/json.ts";
 import {
   assert,
   assertEquals,
@@ -74,12 +82,13 @@ async function harness(
       },
       body: JSON.stringify(payload),
     });
-  const mint = async (token = OWNER) => {
+  /** Mint an invite. The body is what the caller expects: the invite by default, or a problem. */
+  const mint = async <T = InviteReply>(token = OWNER) => {
     const response = await call("/api/v1/sign-in-invites", {
       method: "POST",
       headers: { authorization: `Bearer ${token}` },
     });
-    return { status: response.status, body: await response.json() };
+    return { status: response.status, body: await readJson<T>(response) };
   };
   return {
     app,
@@ -108,7 +117,9 @@ async function registerThrough(
     invite,
   });
   assertEquals(options.status, 200);
-  const { options: creation } = await options.json();
+  const { options: creation } = await readJson<RegistrationOptionsReply>(
+    options,
+  );
   const credential = await authenticator.register(creation, ceremony);
   return h.post("/api/v1/passkeys/registrations", { invite, credential });
 }
@@ -121,7 +132,9 @@ async function signInThrough(
 ) {
   const options = await h.post("/api/v1/passkeys/authentication-options", {});
   assertEquals(options.status, 200);
-  const { options: request } = await options.json();
+  const { options: request } = await readJson<AuthenticationOptionsReply>(
+    options,
+  );
   const credential = await authenticator.assert(request, ceremony, signCount);
   return h.post("/api/v1/passkeys/authentications", { credential });
 }
@@ -132,7 +145,7 @@ Deno.test("minting an invite needs an owner-scoped token: 401 invalid, 403 witho
   const anonymous = await h.call("/api/v1/sign-in-invites", { method: "POST" });
   assertEquals(anonymous.status, 401);
   await anonymous.body?.cancel();
-  const forbidden = await h.mint(READER);
+  const forbidden = await h.mint<Problem>(READER);
   assertEquals(forbidden.status, 403);
   assertStringIncludes(forbidden.body.detail, "account:owner");
   const minted = await h.mint();
@@ -188,7 +201,7 @@ Deno.test("an invite page registers once, then reports used, expired or unknown 
     invite: late.path.slice("/sign-in/".length),
   });
   assertEquals(expiredApi.status, 410);
-  assertStringIncludes((await expiredApi.json()).detail, "expired");
+  assertStringIncludes((await readJson<Problem>(expiredApi)).detail, "expired");
 });
 
 Deno.test("registration then sign-in issue a signed HttpOnly SameSite=Lax cookie that the shell honours", async () => {
@@ -201,7 +214,7 @@ Deno.test("registration then sign-in issue a signed HttpOnly SameSite=Lax cookie
     authenticator,
   );
   assertEquals(registered.status, 200);
-  assertEquals((await registered.json()).displayName, "Josh");
+  assertEquals((await readJson<SessionReply>(registered)).displayName, "Josh");
   const setCookie = registered.headers.get("set-cookie");
   assert(setCookie);
   assertStringIncludes(setCookie, `${SESSION_COOKIE}=v1.`);
@@ -228,7 +241,10 @@ Deno.test("registration then sign-in issue a signed HttpOnly SameSite=Lax cookie
   const session = await h.call("/api/v1/session", {
     headers: cookieHeader(setCookie),
   });
-  assertEquals(await session.json(), { signedIn: true, displayName: "Josh" });
+  assertEquals(await readJson<SessionReply>(session), {
+    signedIn: true,
+    displayName: "Josh",
+  });
 
   const signedOut = await h.call("/api/v1/session", {
     method: "DELETE",
@@ -240,7 +256,7 @@ Deno.test("registration then sign-in issue a signed HttpOnly SameSite=Lax cookie
 
   const signedIn = await signInThrough(h, authenticator);
   assertEquals(signedIn.status, 200);
-  assertEquals((await signedIn.json()).displayName, "Josh");
+  assertEquals((await readJson<SessionReply>(signedIn)).displayName, "Josh");
   const after = await h.repository.credential(authenticator.id);
   assertEquals(after?.signCount, 1);
   assertEquals(after?.lastUsedAt, Date.parse("2026-09-21T12:00:00Z"));
@@ -280,7 +296,7 @@ Deno.test("a tampered or expired cookie signs the browser out", async () => {
       headers: { cookie: `${SESSION_COOKIE}=${candidate}` },
     });
     assertEquals(
-      await response.json(),
+      await readJson<SessionReply>(response),
       { signedIn: false, displayName: null },
       `accepted ${candidate.slice(0, 20)}`,
     );
@@ -288,12 +304,12 @@ Deno.test("a tampered or expired cookie signs the browser out", async () => {
   const intact = await h.call("/api/v1/session", {
     headers: cookieHeader(setCookie),
   });
-  assertEquals((await intact.json()).signedIn, true);
+  assertEquals((await readJson<SessionReply>(intact)).signedIn, true);
   h.advance(SESSION_TTL_MS);
   const expired = await h.call("/api/v1/session", {
     headers: cookieHeader(setCookie),
   });
-  assertEquals((await expired.json()).signedIn, false);
+  assertEquals((await readJson<SessionReply>(expired)).signedIn, false);
 });
 
 Deno.test("cookies are Secure everywhere except plain localhost", async () => {
@@ -325,7 +341,9 @@ Deno.test("a replayed challenge is rejected for registration and for sign-in", a
   const options = await h.post("/api/v1/passkeys/registration-options", {
     invite: minted.path.slice("/sign-in/".length),
   });
-  const { options: creation } = await options.json();
+  const { options: creation } = await readJson<RegistrationOptionsReply>(
+    options,
+  );
   const wrongOrigin = await authenticator.register(creation, {
     origin: "https://evil.example",
     rpId: "localhost",
@@ -342,7 +360,7 @@ Deno.test("a replayed challenge is rejected for registration and for sign-in", a
     credential: replayed,
   });
   assertEquals(second.status, 401);
-  assertStringIncludes((await second.json()).detail, "challenge");
+  assertStringIncludes((await readJson<Problem>(second)).detail, "challenge");
   assertEquals(
     (await h.call(minted.path)).status,
     200,
@@ -358,7 +376,9 @@ Deno.test("a replayed challenge is rejected for registration and for sign-in", a
   await registered.body?.cancel();
 
   const request = await h.post("/api/v1/passkeys/authentication-options", {});
-  const { options: assertion } = await request.json();
+  const { options: assertion } = await readJson<AuthenticationOptionsReply>(
+    request,
+  );
   const credential = await authenticator.assert(assertion, RP);
   const ok = await h.post("/api/v1/passkeys/authentications", { credential });
   assertEquals(ok.status, 200);
@@ -367,7 +387,7 @@ Deno.test("a replayed challenge is rejected for registration and for sign-in", a
     credential,
   });
   assertEquals(again.status, 401);
-  assertStringIncludes((await again.json()).detail, "challenge");
+  assertStringIncludes((await readJson<Problem>(again)).detail, "challenge");
   assert(!again.headers.get("set-cookie"));
 });
 

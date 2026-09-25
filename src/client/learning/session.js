@@ -24,9 +24,11 @@ function now() {
 /**
  * Only evidence for this revision under this epoch counts. Events written before epochs existed
  * carry none and belong to epoch 0.
- * @param {any[]} events
+ * @template {{ lessonRevisionId?: unknown, epoch?: unknown }} E
+ * @param {E[]} events
  * @param {string} revisionId
  * @param {number} epoch
+ * @returns {E[]}
  */
 export function evidenceFor(events, revisionId, epoch) {
   return events.filter((event) =>
@@ -35,25 +37,54 @@ export function evidenceFor(events, revisionId, epoch) {
 }
 
 /**
+ * An event as this session records it: the envelope every stream shares, plus the fields its type
+ * carries. The shared reducers narrow by `type` before they read those fields.
+ * @typedef {{ id: string, type: string, lessonRevisionId: string, epoch: number, occurredAt: string } & Record<string, unknown>} RecordedEvent
+ */
+
+/** @typedef {import("./flow.js").Flow & { learningEventFrontier: string[] }} Checkpoint */
+/** @typedef {import("./drill-flow.js").DrillFlow & { drillEventFrontier: string[] }} DrillCheckpoint */
+
+/**
  * @typedef {object} Session
- * @property {any} lesson
- * @property {any[]} learningEvents
- * @property {any} flow
- * @property {any} savedCheckpoint
- * @property {any[]} drillEvents
- * @property {any} drillFlow
- * @property {any} savedDrillCheckpoint
+ * @property {Lesson} lesson
+ * @property {RecordedEvent[]} learningEvents
+ * @property {import("./flow.js").Flow | null} flow
+ * @property {Checkpoint | null} savedCheckpoint
+ * @property {RecordedEvent[]} drillEvents
+ * @property {import("./drill-flow.js").DrillFlow | null} drillFlow
+ * @property {DrillCheckpoint | null} savedDrillCheckpoint
  * @property {"shelf"|"overview"|"learn"|"drill"} surface
  * @property {() => Promise<void>} load
  * @property {(type: string, data?: Record<string, unknown>) => Promise<void>} recordEvent
  * @property {() => Promise<void>} saveCheckpoint
- * @property {() => Promise<any>} rebuildProgress
- * @property {(type: string, predicate?: (event: any) => boolean) => boolean} hasEvent
+ * @property {() => Promise<import("../../shared/learning/progress.js").Progress>} rebuildProgress
+ * @property {(type: string, predicate?: (event: RecordedEvent) => boolean) => boolean} hasEvent
  * @property {(type: string, data?: Record<string, unknown>) => Promise<void>} recordDrillEvent
  * @property {() => Promise<void>} saveDrillCheckpoint
  * @property {() => Promise<void>} endDrill
  * @property {() => Promise<boolean>} reload  Re-read evidence after a merge; true when the resume checkpoint changed
  */
+
+/**
+ * The open learning flow. The learning surface renders, and its actions run, only while one is open.
+ * @param {Session} session
+ * @returns {import("./flow.js").Flow}
+ */
+export function openFlow(session) {
+  if (!session.flow) throw new Error("No learning flow is open");
+  return session.flow;
+}
+
+/**
+ * The open drill run. The drill surface renders, and its actions run, only while one is open.
+ * @param {Session} session
+ * @returns {import("./drill-flow.js").DrillFlow}
+ */
+export function openDrillFlow(session) {
+  if (!session.drillFlow) throw new Error("No drill run is open");
+  return session.drillFlow;
+}
 
 /**
  * @param {Lesson} lesson
@@ -116,7 +147,10 @@ export function createSession(lesson, stream = { epoch: 0 }, hooks = {}) {
         lesson.revisionId,
         EPOCH,
       );
-      session.savedCheckpoint = await localRepository.projection(checkpointKey);
+      // This key holds the learning checkpoint this session wrote.
+      session.savedCheckpoint = /** @type {Checkpoint | null} */ (
+        (await localRepository.projection(checkpointKey)) ?? null
+      );
       if (!session.savedCheckpoint) {
         session.savedCheckpoint = await rebuildCheckpoint();
         if (session.savedCheckpoint) {
@@ -126,8 +160,9 @@ export function createSession(lesson, stream = { epoch: 0 }, hooks = {}) {
           );
         }
       }
-      session.savedDrillCheckpoint = await localRepository.projection(
-        drillCheckpointKey,
+      // This key holds the drill checkpoint this session wrote.
+      session.savedDrillCheckpoint = /** @type {DrillCheckpoint | null} */ (
+        (await localRepository.projection(drillCheckpointKey)) ?? null
       );
       if (!session.savedDrillCheckpoint) {
         session.savedDrillCheckpoint = reduceDrillCheckpoint(

@@ -17,9 +17,10 @@ type AuditDocument = Omit<NormalizedLesson, "schemaVersion"> & {
 };
 
 const here = new URL("./", import.meta.url);
-const base: AuditDocument = JSON.parse(
+// A committed fixture this generator reads and mutates; the audit resolves it as valid.
+const base = JSON.parse(
   await Deno.readTextFile(new URL("audit-lesson.json", here)),
-);
+) as AuditDocument;
 
 export interface Attack {
   file: string;

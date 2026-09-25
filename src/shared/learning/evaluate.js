@@ -11,18 +11,17 @@ const DECIMAL = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/;
 /**
  * Decide whether a submitted answer is correct. MCQ answers are option IDs from the Concept's
  * shared option set and are compared with the Question's key.
- * @param {any} lesson
- * @param {any} question
+ * @param {import("../lessons/types.d.ts").Lesson} lesson
+ * @param {import("../lessons/types.d.ts").Question} question
  * @param {unknown} answer
  */
 export function evaluateAnswer(lesson, question, answer) {
   if (question.type === "mcq") {
-    const concept = lesson.concepts.find((/** @type {any} */ candidate) =>
+    const concept = lesson.concepts.find((candidate) =>
       candidate.id === question.conceptId
     );
-    const known = concept?.options.some((/** @type {any} */ option) =>
-      option.id === answer
-    ) ?? false;
+    const known = concept?.options.some((option) => option.id === answer) ??
+      false;
     return known && answer === question.key;
   }
   if (question.type === "numeric") {

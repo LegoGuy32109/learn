@@ -5,7 +5,7 @@
  * A waiting update must not interrupt a Question the learner has not answered yet, in the learning
  * flow or in a drill. Cards, feedback, the shelf and the overview are all fine moments.
  * @param {"shelf"|"overview"|"learn"|"drill"} surface
- * @param {any} flow  The learner's flow on the learning or drill surface, or null
+ * @param {import("../learning/flow.js").Flow | import("../learning/drill-flow.js").DrillFlow | null} flow  The learner's flow on the learning or drill surface, or null
  * @returns {boolean}
  */
 export function canInterrupt(surface, flow) {

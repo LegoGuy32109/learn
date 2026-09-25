@@ -1,6 +1,20 @@
 import { assert, assertEquals } from "@std/assert";
+import { parseJson } from "../support/json.ts";
 
-const config = JSON.parse(
+/** The parts of deno.json these tests hold to account. */
+interface DenoConfig {
+  deploy: {
+    org: string;
+    app: string;
+    runtime: { type: string; entrypoint: string };
+    exclude: string[];
+  };
+  tasks: Record<string, string>;
+  /** Must stay absent: a top-level exclude would drop files from every tool, not only the upload. */
+  exclude?: unknown;
+}
+
+const config = parseJson<DenoConfig>(
   await Deno.readTextFile(new URL("../../deno.json", import.meta.url)),
 );
 

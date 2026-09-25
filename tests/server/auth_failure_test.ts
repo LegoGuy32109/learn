@@ -1,6 +1,8 @@
 // A database or network failure during authentication is a server error, not
 // an authentication error. Ticket 16 ruled this path out as the cause of the
 // post-deploy 401 and pinned the behavior here.
+import type { Problem } from "../../src/shared/api/v1.d.ts";
+import { readJson } from "../support/json.ts";
 import { assert, assertEquals, assertRejects } from "@std/assert";
 import {
   createApp,
@@ -84,7 +86,10 @@ Deno.test("a database failure on the token lookup answers 500 with a problem doc
       response.headers.get("content-type"),
       "application/problem+json; charset=utf-8",
     );
-    assertEquals((await response.json()).title, "Internal server error");
+    assertEquals(
+      (await readJson<Problem>(response)).title,
+      "Internal server error",
+    );
   } finally {
     console.error = previous;
   }
@@ -99,7 +104,7 @@ Deno.test("a database failure on the last_used_at update answers 500, not 401", 
       new Request("http://local/api/v1/lessons", { headers: bearer }),
     );
     assertEquals(response.status, 500);
-    assertEquals((await response.json()).status, 500);
+    assertEquals((await readJson<Problem>(response)).status, 500);
   } finally {
     console.error = previous;
   }

@@ -130,7 +130,7 @@ export function currentQuestion(lesson, flow) {
 /**
  * The Concept the current surface belongs to.
  * @param {Lesson} lesson
- * @param {Flow} flow
+ * @param {Position} flow
  */
 export function activeConcept(lesson, flow) {
   const item = current(lesson, flow);

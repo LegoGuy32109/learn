@@ -43,11 +43,16 @@ const UNBOUND_REFERENCE =
 /** @param {unknown} value */
 function object(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value)
-    ? /** @type {Record<string, any>} */ (value)
+    ? /** @type {Record<string, unknown>} */ (value)
     : null;
 }
 
-/** @param {unknown} value */
+/**
+ * A non-empty string. As a guard, true proves a string; false proves nothing about the type, and
+ * the resolver only reports in that branch.
+ * @param {unknown} value
+ * @returns {value is string}
+ */
 function text(value) {
   return typeof value === "string" && value.trim().length > 0;
 }
@@ -58,12 +63,25 @@ function ownKeys(value) {
   return record ? Object.keys(record) : [];
 }
 
-/** @param {Record<string, any>} record @param {string} key */
+/** @param {Record<string, unknown>} record @param {string} key */
 function own(record, key) {
   return Object.hasOwn(record, key) ? record[key] : undefined;
 }
 
-/** @param {unknown} value */
+/**
+ * A UUIDv4 string. RegExp.test coerces its argument, so an array holding one UUID would pass a bare
+ * `UUID_V4.test(value)`; the type is checked first.
+ * @param {unknown} value
+ * @returns {value is string}
+ */
+function uuid(value) {
+  return typeof value === "string" && UUID_V4.test(value);
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is string}
+ */
 function localId(value) {
   return typeof value === "string" && LOCAL_ID.test(value) &&
     !RESERVED_NAMES.has(value);
@@ -192,7 +210,7 @@ class Report {
 function resolveConcept(report, raw, index, lesson) {
   const concept = object(raw) ?? {};
   const path = `/concepts/${index}`;
-  if (!UUID_V4.test(concept.id ?? "") || lesson.conceptIds.has(concept.id)) {
+  if (!uuid(concept.id) || lesson.conceptIds.has(concept.id)) {
     report.error(
       "concept.id",
       `${path}/id`,
@@ -214,7 +232,7 @@ function resolveConcept(report, raw, index, lesson) {
     );
   }
   if (
-    !UUID_V4.test(concept.poolId ?? "") || lesson.poolIds.has(concept.poolId)
+    !uuid(concept.poolId) || lesson.poolIds.has(concept.poolId)
   ) {
     report.error(
       "pool.id",
@@ -293,7 +311,7 @@ function resolveConcept(report, raw, index, lesson) {
   cards.forEach((rawCard, cardIndex) => {
     const card = object(rawCard) ?? {};
     const cardPath = `${path}/cards/${cardIndex}`;
-    if (!UUID_V4.test(card.id ?? "") || lesson.cardIds.has(card.id)) {
+    if (!uuid(card.id) || lesson.cardIds.has(card.id)) {
       report.error(
         "card.id",
         `${cardPath}/id`,
@@ -368,7 +386,10 @@ function resolveConcept(report, raw, index, lesson) {
         "Write the misconception statement as the belief itself.",
       );
     }
-    if (!cardIds.has(misconception.correctingCardId)) {
+    if (
+      typeof misconception.correctingCardId !== "string" ||
+      !cardIds.has(misconception.correctingCardId)
+    ) {
       report.error(
         "misconception.card",
         `${misconceptionPath}/correctingCardId`,
@@ -411,14 +432,16 @@ function resolveQuestion(report, raw, index, concepts, questionIds) {
   const question = object(raw) ?? {};
   const path = `/questions/${index}`;
   const result = { mcq: false, keyLongest: false };
-  if (!UUID_V4.test(question.id ?? "") || questionIds.has(question.id)) {
+  if (!uuid(question.id) || questionIds.has(question.id)) {
     report.error(
       "question.id",
       `${path}/id`,
       "Question ID must be a unique UUIDv4.",
     );
   } else questionIds.add(question.id);
-  const concept = concepts.get(question.conceptId);
+  const concept = typeof question.conceptId === "string"
+    ? concepts.get(question.conceptId)
+    : undefined;
   if (!concept) {
     report.error(
       "question.concept",
@@ -433,7 +456,7 @@ function resolveQuestion(report, raw, index, concepts, questionIds) {
       "Question must reference the Pool of its Concept.",
     );
   }
-  if (!QUESTION_TYPES.has(question.type)) {
+  if (typeof question.type !== "string" || !QUESTION_TYPES.has(question.type)) {
     report.error(
       "question.type",
       `${path}/type`,
@@ -462,7 +485,10 @@ function resolveQuestion(report, raw, index, concepts, questionIds) {
   if (concept) {
     if (reserved) concept.reserved++;
     else concept.drawable++;
-    if (!concept.cardIds.has(question.correctingCardId)) {
+    if (
+      typeof question.correctingCardId !== "string" ||
+      !concept.cardIds.has(question.correctingCardId)
+    ) {
       report.error(
         "question.correctingCard",
         `${path}/correctingCardId`,
@@ -623,29 +649,25 @@ function resolveQuestion(report, raw, index, concepts, questionIds) {
   return result;
 }
 
-/** @param {Record<string, any>} concept */
+/** @param {import("../lessons/types.d.ts").ConceptInput} concept */
 function normalizeConcept(concept) {
   const normalized = {
     id: concept.id,
     title: concept.title.trim(),
     poolId: concept.poolId,
-    options: concept.options.map((/** @type {any} */ option) => ({
+    options: concept.options.map((option) => ({
       id: option.id,
       text: option.text.trim(),
     })),
-    misconceptions: (concept.misconceptions ?? []).map((
-      /** @type {any} */ misconception,
-    ) => ({
+    misconceptions: (concept.misconceptions ?? []).map((misconception) => ({
       id: misconception.id,
       statement: misconception.statement.trim(),
       correctingCardId: misconception.correctingCardId,
     })),
-    cards: concept.cards.map((/** @type {any} */ card) => ({
+    cards: concept.cards.map((card) => ({
       id: card.id,
       heading: card.heading.trim(),
-      body: card.body.map((/** @type {string} */ paragraph) =>
-        paragraph.trim()
-      ),
+      body: card.body.map((paragraph) => paragraph.trim()),
     })),
   };
   if (concept.statement !== undefined) {
@@ -654,7 +676,10 @@ function normalizeConcept(concept) {
   return normalized;
 }
 
-/** @param {Record<string, any>} question */
+/**
+ * @param {import("../lessons/types.d.ts").QuestionInput} question
+ * @returns {import("../lessons/types.d.ts").Question}
+ */
 function normalizeQuestion(question) {
   const base = {
     id: question.id,
@@ -665,22 +690,24 @@ function normalizeQuestion(question) {
     stem: question.stem.trim(),
     correctingCardId: question.correctingCardId,
   };
+  // Each branch restates `type` as its literal. The key is already in `base`, so its position in
+  // the normalized object, and so the stored JSON, does not move.
   if (question.type === "mcq") {
     const feedback = Object.fromEntries(
       Object.keys(question.feedback).sort().map((
         id,
       ) => [id, String(question.feedback[id]).trim()]),
     );
+    const authoredMap = question.map ?? {};
     const map = Object.fromEntries(
-      Object.keys(question.map ?? {}).sort().map((
-        id,
-      ) => [id, question.map[id]]),
+      Object.keys(authoredMap).sort().map((id) => [id, authoredMap[id]]),
     );
-    return { ...base, key: question.key, map, feedback };
+    return { ...base, type: question.type, key: question.key, map, feedback };
   }
   if (question.type === "numeric") {
     const numeric = {
       ...base,
+      type: question.type,
       answer: question.answer,
       tolerance: question.tolerance,
       feedback: question.feedback.trim(),
@@ -690,15 +717,14 @@ function normalizeQuestion(question) {
   }
   return {
     ...base,
+    type: question.type,
     answer: question.answer.trim(),
-    aliases: (question.aliases ?? []).map((/** @type {string} */ alias) =>
-      alias.trim()
-    ),
+    aliases: (question.aliases ?? []).map((alias) => alias.trim()),
     feedback: question.feedback.trim(),
   };
 }
 
-/** @param {Record<string, any>} source */
+/** @param {import("../lessons/types.d.ts").SourceInput} source */
 function normalizeSource(source) {
   return {
     type: source.type.trim(),
@@ -875,7 +901,10 @@ export async function resolveLesson(input) {
   });
 
   const provenance = object(source.provenance);
-  if (!provenance || !["provided", "declined"].includes(provenance.status)) {
+  if (
+    !provenance || typeof provenance.status !== "string" ||
+    !["provided", "declined"].includes(provenance.status)
+  ) {
     report.error(
       "provenance.required",
       "/provenance",
@@ -896,25 +925,41 @@ export async function resolveLesson(input) {
   const diagnostics = report.sorted();
   if (report.failed || !provenance) return rejected(report, diagnostics);
 
-  const normalizedProvenance = provenance.status === "declined"
+  // Every check above passed, so the document has the authored shape; normalization reads it as that.
+  const valid = /** @type {import("../lessons/types.d.ts").LessonInput} */ (
+    /** @type {unknown} */ (source)
+  );
+  const authoredProvenance = valid.provenance;
+  /** @type {import("../lessons/types.d.ts").Provenance} */
+  const normalizedProvenance = authoredProvenance.status === "declined"
     ? { status: "declined" }
-    : Object.fromEntries([
-      ["status", "provided"],
-      ...PROVENANCE_FIELDS.map((field) => [field, provenance[field].trim()]),
-    ]);
+    : /** @type {import("../lessons/types.d.ts").Provenance} */ (
+      Object.fromEntries([
+        ["status", "provided"],
+        ...PROVENANCE_FIELDS.map((
+          field,
+        ) => [field, authoredProvenance[field].trim()]),
+      ])
+    );
   /** @type {import("../lessons/types.d.ts").NormalizedLesson} */
   const normalizedLesson = {
     schemaVersion: 1,
-    title: source.title.trim(),
-    assumedKnowledge: source.assumedKnowledge.trim(),
+    title: valid.title.trim(),
+    assumedKnowledge: valid.assumedKnowledge.trim(),
     concepts: concepts.map((concept) =>
-      normalizeConcept(/** @type {Record<string, any>} */ (concept))
+      normalizeConcept(
+        /** @type {import("../lessons/types.d.ts").ConceptInput} */ (concept),
+      )
     ),
     questions: questions.map((question) =>
-      normalizeQuestion(/** @type {Record<string, any>} */ (question))
+      normalizeQuestion(
+        /** @type {import("../lessons/types.d.ts").QuestionInput} */ (question),
+      )
     ),
     sources: sources.map((record) =>
-      normalizeSource(/** @type {Record<string, any>} */ (record))
+      normalizeSource(
+        /** @type {import("../lessons/types.d.ts").SourceInput} */ (record),
+      )
     ),
     provenance: normalizedProvenance,
   };

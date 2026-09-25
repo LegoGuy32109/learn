@@ -21,15 +21,16 @@ import type { NormalizedLesson } from "../../shared/lessons/types.d.ts";
 /** The origin documents default to when no request origin is known. One value, set in src/server/plugin/links.ts. */
 export const CANONICAL_ORIGIN = PUBLIC_ORIGIN;
 
-/** A valid lesson/v1 document as an agent submits it, with no server-assigned IDs. */
-export const exampleLesson: NormalizedLesson = JSON.parse(
+/** A valid lesson/v1 document as an agent submits it, with no server-assigned IDs. A committed
+ * fixture; the resolve below throws unless it is valid. */
+export const exampleLesson = JSON.parse(
   await Deno.readTextFile(
     new URL(
       "../../../fixtures/authoring/valid/demo-without-ids.json",
       import.meta.url,
     ),
   ),
-);
+) as NormalizedLesson;
 
 const resolved = await resolveLesson(exampleLesson);
 if (!resolved.valid) {

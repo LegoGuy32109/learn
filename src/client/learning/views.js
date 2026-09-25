@@ -1,4 +1,6 @@
 // @ts-check
+/** @typedef {import("./flow.js").Flow | import("./drill-flow.js").DrillFlow} ShellFlow */
+/** @typedef {import("../../shared/learning/progress.js").Progress} Progress */
 /** @typedef {import("../../shared/lessons/types.d.ts").Card} Card */
 /** @typedef {import("../../shared/lessons/types.d.ts").Concept} Concept */
 /** @typedef {import("../../shared/lessons/types.d.ts").Lesson} Lesson */
@@ -28,7 +30,7 @@ function paragraphs(body) {
 /**
  * @param {Concept} concept
  * @param {Card} card
- * @param {any} flow
+ * @param {ShellFlow} flow
  */
 export function cardView(concept, card, flow) {
   const notice = flow.screen === "corrective"
@@ -97,7 +99,7 @@ function hashString(value) {
  * survives a reload of the same attempt yet differs between the Questions of one Concept.
  * @param {Concept} concept
  * @param {Question} question
- * @param {any} flow
+ * @param {{ seed: number }} flow
  */
 export function optionOrder(concept, question, flow) {
   return shuffled(
@@ -111,12 +113,12 @@ export function optionOrder(concept, question, flow) {
  * Answer button: `bind` in controls.js turns the form's submit event into the `submit` action.
  * @param {Concept} concept
  * @param {Question} question
- * @param {any} flow
+ * @param {ShellFlow} flow
  */
 function answerForm(concept, question, flow) {
   if (question.type === "mcq") {
     const options = optionOrder(concept, question, flow);
-    const buttons = options.map((/** @type {any} */ option) =>
+    const buttons = options.map((option) =>
       `<button class="opt" data-answer="${option.id}">${
         escape(option.text)
       }</button>`
@@ -133,7 +135,7 @@ function answerForm(concept, question, flow) {
 /**
  * @param {Concept} concept
  * @param {Question} question
- * @param {any} flow
+ * @param {ShellFlow} flow
  */
 export function questionView(concept, question, flow) {
   const kind = flow.flowKind === "check"
@@ -149,7 +151,7 @@ export function questionView(concept, question, flow) {
 
 /**
  * "Every question · 4 of 12" while drilling.
- * @param {any} flow
+ * @param {ShellFlow} flow
  */
 function drillKind(flow) {
   return `Every question · ${
@@ -186,23 +188,29 @@ export function summaryView(lesson) {
 /**
  * The replaceable region of the learning shell.
  * @param {Lesson} lesson
- * @param {any} flow
+ * @param {ShellFlow} flow
  * @param {Concept} concept
- * @param {any} item
+ * @param {Card | Question | undefined} item
  */
 export function regionView(lesson, flow, concept, item) {
   if (flow.screen === "summary") return summaryView(lesson);
   if (flow.screen === "card" || flow.screen === "corrective") {
+    if (!item || !("heading" in item)) {
+      throw new Error(`The ${flow.screen} screen has no Card to show`);
+    }
     return cardView(concept, item, flow);
   }
   if (flow.feedback) return feedbackView(flow.feedback);
+  if (!item || !("stem" in item)) {
+    throw new Error("The question screen has no Question to show");
+  }
   return questionView(concept, item, flow);
 }
 
 /**
  * The clamped correcting Card shown under the action row after a wrong or unknown answer.
  * @param {Lesson} lesson
- * @param {any} flow
+ * @param {ShellFlow} flow
  */
 export function afterFooterView(lesson, flow) {
   if (flow.screen !== "question" || !flow.feedback?.cardId) return "";
@@ -212,7 +220,7 @@ export function afterFooterView(lesson, flow) {
 
 /**
  * The mobile action row under the region.
- * @param {any} flow
+ * @param {ShellFlow} flow
  */
 export function footerView(flow) {
   const back = backButton("back", "Back");
@@ -252,7 +260,7 @@ const STARTED_FILL = 40;
 
 /**
  * @param {Concept} concept
- * @param {any} progress
+ * @param {Progress} progress
  */
 function conceptFill(concept, progress) {
   // A Concept always has at least two Cards.
@@ -265,10 +273,10 @@ function conceptFill(concept, progress) {
   return 0;
 }
 
-/** @param {any} flow */
+/** @param {import("./flow.js").Flow} flow */
 function wrapUpFill(flow) {
   const total = flow.wrapTotal || 1;
-  const answered = flow.wrapTotal - flow.queue.length +
+  const answered = total - flow.queue.length +
     (flow.feedback?.correct ? 1 : 0);
   return Math.min(100, Math.round(100 * (answered / total)));
 }
@@ -310,8 +318,8 @@ export function drillRailView(lesson, outcomes) {
 /**
  * Segmented Concept rail, with one extra segment during the Wrap-up.
  * @param {Lesson} lesson
- * @param {any} flow
- * @param {any} progress
+ * @param {import("./flow.js").Flow | null} flow
+ * @param {Progress} progress
  */
 export function railView(lesson, flow, progress) {
   const segments = lesson.concepts.map((concept) =>
