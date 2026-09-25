@@ -59,7 +59,7 @@ async function fixture(file: string) {
   );
 }
 
-Deno.test("the demo path: a 90-word Card and an always-longest key return 422 with two diagnostics", async () => {
+Deno.test("the demo path: a Card under the word floor and an always-longest key return 422 with two diagnostics", async () => {
   const response = await resolve(
     await fixture("authoring/invalid/demo-path-two-diagnostics.json"),
   );

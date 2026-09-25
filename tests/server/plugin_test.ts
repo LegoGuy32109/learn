@@ -490,7 +490,7 @@ Deno.test("validate.mjs runs the bundled resolver: exit 0 with OK on the demo le
     bad.stdout,
     "FAIL card.words at /concepts/0/cards/0/body:",
   );
-  assertStringIncludes(bad.stdout, "fix: Write 120 to 200 words");
+  assertStringIncludes(bad.stdout, "fix: Write 80 to 200 words");
   assertStringIncludes(bad.stdout, "FAILED: 2 error(s), 0 warning(s)");
   const usage = await run("deno", [
     "run",

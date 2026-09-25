@@ -206,8 +206,8 @@ export const DIAGNOSTICS = [
     path: "/concepts/<i>/cards/<j>/body",
     schema: false,
     meaning:
-      "The Card is under 120 or over 200 words after inline HTML tags are stripped.",
-    fix: "Write 120 to 200 words across the Card's paragraphs.",
+      "The Card is under 80 or over 200 words after inline HTML tags are stripped.",
+    fix: "Write 80 to 200 words across the Card's paragraphs.",
   },
   {
     code: "card.paragraphs.single",

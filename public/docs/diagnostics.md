@@ -49,7 +49,7 @@ ID of the Concept.
 | `card.id` | error | `/concepts/<i>/cards/<j>/id` | resolver only | The Card ID is not a UUIDv4 or repeats another Card's ID anywhere in the lesson. | Generate a fresh UUIDv4 for each Card. |
 | `card.heading` | error | `/concepts/<i>/cards/<j>/heading` | schema and resolver | The Card heading is missing or blank. | Give the Card a heading that states its one idea. |
 | `card.body.paragraphs` | error | `/concepts/<i>/cards/<j>/body` | schema and resolver | body is not a non-empty array of paragraph strings. | Write body as an array of paragraphs, one string each. |
-| `card.words` | error | `/concepts/<i>/cards/<j>/body` | resolver only | The Card is under 120 or over 200 words after inline HTML tags are stripped. | Write 120 to 200 words across the Card's paragraphs. |
+| `card.words` | error | `/concepts/<i>/cards/<j>/body` | resolver only | The Card is under 80 or over 200 words after inline HTML tags are stripped. | Write 80 to 200 words across the Card's paragraphs. |
 | `misconception.id` | error | `/concepts/<i>/misconceptions/<j>/id` | resolver only | The misconception ID repeats another misconception's ID in the Concept. | Use a short unique slug that names the belief, such as fresh_means_newest. |
 | `misconception.id.invalid` | error | `/concepts/<i>/misconceptions/<j>/id` | schema and resolver | The misconception ID is missing, does not match ^[A-Za-z0-9_-]{1,64}$, or is a reserved name. | Use a short unique slug that names the belief, such as fresh_means_newest. |
 | `misconception.statement` | error | `/concepts/<i>/misconceptions/<j>/statement` | schema and resolver | The statement is missing or blank. | Write the belief itself, as the learner would hold it. |

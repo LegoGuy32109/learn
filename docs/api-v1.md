@@ -111,7 +111,7 @@ demo fixture `fixtures/lessons/browser-http-cache.json`; the rules are:
   entries. The statement is written as the belief itself. The Card must be in
   the same Concept. Every misconception must be used by some MCQ distractor.
 - A Card `body` is an array of paragraph strings. Inline HTML such as
-  `<code>` and `<em>` is allowed. Cards are 120 to 200 words after tags are
+  `<code>` and `<em>` is allowed. Cards are 80 to 200 words after tags are
   stripped, and should have at least two paragraphs.
 - Questions stay at the top level with `conceptId` and `poolId`. Every
   Question carries `reserved` (default `false`) and `correctingCardId` in its
@@ -152,7 +152,7 @@ Author-quality codes ported from the plugin validator:
 
 | Code | Severity | Rule |
 | --- | --- | --- |
-| `card.words` | error | Card word count outside 120 to 200 after stripping inline HTML |
+| `card.words` | error | Card word count outside 80 to 200 after stripping inline HTML |
 | `concept.options.ratio` | error | Longest to shortest option length ratio above 1.35 |
 | `lesson.key.longest` | error | Key is the longest option in more than one third of MCQs, lesson-wide |
 | `question.stem.unbound` | error | Stem contains an unbound reference such as "the above" |

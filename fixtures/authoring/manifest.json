@@ -146,14 +146,14 @@
     "note": ""
   },
   {
-    "file": "authoring/invalid/card-ninety-words.json",
+    "file": "authoring/invalid/card-below-floor.json",
     "valid": false,
     "schemaRejects": false,
     "codes": [
       "card.words"
     ],
     "exact": true,
-    "note": "90 words."
+    "note": "57 words."
   },
   {
     "file": "authoring/invalid/option-ratio.json",

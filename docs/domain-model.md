@@ -9,7 +9,7 @@
   references, author-at-creation, provenance, schema version, and fingerprint.
 - **Concept**: The unit of checking, learning, and later retention. It contains
   at least two Cards and one or more Question Pools.
-- **Card**: One teaching idea, written as an array of paragraphs of 120 to 200
+- **Card**: One teaching idea, written as an array of paragraphs of 80 to 200
   words in total. A Card becomes Seen only when the learner chooses Continue.
   Shown as a correction, a Card is clamped to its first paragraph.
 - **Option set**: Exactly three options with stable IDs, owned by a Concept and

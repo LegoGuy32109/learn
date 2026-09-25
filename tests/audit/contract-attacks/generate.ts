@@ -10,6 +10,10 @@ import type {
   NumericQuestion,
   Question,
 } from "../../../src/shared/lessons/types.d.ts";
+import {
+  CARD_WORDS_MAX,
+  CARD_WORDS_MIN,
+} from "../../../src/shared/authoring/resolver.js";
 
 /** The audit lesson as an agent writes it: `schema` names the version, and no server IDs. */
 type AuditDocument = Omit<NormalizedLesson, "schemaVersion"> & {
@@ -350,25 +354,25 @@ await fixture("key-longest-every-mcq", "key-longest", {
   }
 });
 
-for (const words of [119, 201]) {
+for (const words of [CARD_WORDS_MIN - 1, CARD_WORDS_MAX + 1]) {
   await fixture(`card-${words}-words`, "card-words", {
     valid: false,
     codes: ["card.words"],
   }, (lesson) => lesson.concepts[2].cards[0].body = bodyOf(words));
 }
-for (const words of [120, 200]) {
+for (const words of [CARD_WORDS_MIN, CARD_WORDS_MAX]) {
   await fixture(`card-${words}-words`, "card-words", {
     valid: true,
     codes: [],
     note: "Boundary value; the range is inclusive.",
   }, (lesson) => lesson.concepts[2].cards[0].body = bodyOf(words));
 }
-await fixture("card-119-words-plus-tags", "card-words", {
+await fixture(`card-${CARD_WORDS_MIN - 1}-words-plus-tags`, "card-words", {
   valid: false,
   codes: ["card.words"],
   note: "Inline tags add characters but not words.",
 }, (lesson) => {
-  const body = bodyOf(119);
+  const body = bodyOf(CARD_WORDS_MIN - 1);
   lesson.concepts[2].cards[0].body = body.map((paragraph) =>
     `<code>${paragraph}</code> <em>${paragraph.split(" ")[0]}</em>`.replace(
       /<em>word\d+<\/em>/,

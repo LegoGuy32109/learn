@@ -51,7 +51,7 @@ One lesson document authored by an external agent. This schema is necessary but 
           "heading": "A blocking sleep costs you the whole worker",
           "body": [
             "First paragraph. The claim, then the mechanism.",
-            "Second paragraph. A concrete instance: six blocking sleeps of 300ms on one worker print at about 1800ms. Then the consequence. 120 to 200 words across the whole Card."
+            "Second paragraph. A concrete instance: six blocking sleeps of 300ms on one worker print at about 1800ms. Then the consequence. 80 to 200 words across the whole Card."
           ]
         },
         {
@@ -153,7 +153,7 @@ One lesson document authored by an external agent. This schema is necessary but 
 ```
 
 The example has one Concept so it fits on a page. A real lesson has three to
-five, and every Card body runs 120 to 200 words. Concept, Pool, Card and
+five, and every Card body runs 80 to 200 words. Concept, Pool, Card and
 Question IDs are UUIDv4 generated once; option and misconception IDs are short
 slugs local to their Concept.
 
@@ -240,7 +240,7 @@ Unknown fields are rejected by the schema as likely typos.
 | --- | --- | --- | --- |
 | `id` | yes | [uuid](#uuid) |  |
 | `heading` | yes | [text](#text) |  |
-| `body` | yes | array of [text](#text) (min 1) | Paragraphs. Inline HTML such as <code> and <em> is allowed. 120 to 200 words across the Card after tags are stripped. Write at least two paragraphs; the corrective view shows only the first. |
+| `body` | yes | array of [text](#text) (min 1) | Paragraphs. Inline HTML such as <code> and <em> is allowed. 80 to 200 words across the Card after tags are stripped. Write at least two paragraphs; the corrective view shows only the first. |
 
 Unknown fields are rejected by the schema as likely typos.
 

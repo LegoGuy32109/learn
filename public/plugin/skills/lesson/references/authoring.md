@@ -95,10 +95,12 @@ Card shown after "I don't know".
 
 ## Cards
 
-Target **120 to 200 words**, two to four paragraphs. The spec everyone writes
-is "30 to 60 seconds", which is not a unit anything can emit. Convert it once,
-here, and write to the word count. The count is taken after inline HTML tags
-such as `<code>` and `<em>` are stripped.
+Target **80 to 200 words**, two to four paragraphs. The floor is not a
+reading time. It is the least room a Card needs for a claim, its mechanism and
+one concrete instance, which is what lets it correct a wrong answer. Shorter is
+better above the floor: never pad to reach it, and cut anything that does not
+teach. The count is taken after inline HTML tags such as `<code>` and
+`<em>` are stripped.
 
 A Card is `{ "id", "heading", "body" }` where `body` is an array of paragraph
 strings. Write at least two paragraphs: after a wrong answer the app shows the
@@ -215,7 +217,7 @@ Seen, Learned and Retained.
 | `concept.options.ratio` | error | The longest option is more than 1.35 times the length of the shortest, so length signals the key. |
 | `lesson.key.longest` | error | The key is the longest option in more than one third of the lesson's MCQs, so length signals the answer. |
 | `concept.cards.minimum` | error | The Concept has fewer than two Cards. |
-| `card.words` | error | The Card is under 120 or over 200 words after inline HTML tags are stripped. |
+| `card.words` | error | The Card is under 80 or over 200 words after inline HTML tags are stripped. |
 | `card.paragraphs.single` | warning | The Card has one paragraph, so the clamped corrective view has nothing to expand. |
 | `misconception.card` | error | correctingCardId is not the ID of a Card in the same Concept. |
 | `misconception.unused` | error | No MCQ distractor in the Concept maps to this misconception. |

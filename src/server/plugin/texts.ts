@@ -367,10 +367,12 @@ Card shown after "I don't know".
 
 ## Cards
 
-Target **${CARD_WORDS_MIN} to ${CARD_WORDS_MAX} words**, two to four paragraphs. The spec everyone writes
-is "30 to 60 seconds", which is not a unit anything can emit. Convert it once,
-here, and write to the word count. The count is taken after inline HTML tags
-such as \`<code>\` and \`<em>\` are stripped.
+Target **${CARD_WORDS_MIN} to ${CARD_WORDS_MAX} words**, two to four paragraphs. The floor is not a
+reading time. It is the least room a Card needs for a claim, its mechanism and
+one concrete instance, which is what lets it correct a wrong answer. Shorter is
+better above the floor: never pad to reach it, and cut anything that does not
+teach. The count is taken after inline HTML tags such as \`<code>\` and
+\`<em>\` are stripped.
 
 A Card is \`{ "id", "heading", "body" }\` where \`body\` is an array of paragraph
 strings. Write at least two paragraphs: after a wrong answer the app shows the

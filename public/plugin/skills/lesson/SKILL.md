@@ -46,7 +46,7 @@ the single most important thing on that page.
 ### 3. Write lesson.json
 
 Three to five Concepts. Per Concept: one shared set of exactly 3 options,
-the misconceptions those options encode, two to four Cards of 120 to
+the misconceptions those options encode, two to four Cards of 80 to
 200 words each, and a Pool of at least 3 drawable Questions plus one
 marked `"reserved": true`. Questions live at the top level and name their
 Concept and its Pool. Every Concept, Pool, Card and Question ID is a fresh

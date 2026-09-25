@@ -23,7 +23,7 @@ const SOURCE_FIELDS = ["type", "title", "locator"];
 export const MAX_DOCUMENT_BYTES = 1_000_000;
 export const MAX_DOCUMENT_DEPTH = 32;
 export const OPTION_COUNT = 3;
-export const CARD_WORDS_MIN = 120;
+export const CARD_WORDS_MIN = 80;
 export const CARD_WORDS_MAX = 200;
 export const OPTION_RATIO_MAX = 1.35;
 export const KEY_LONGEST_MAX = 1 / 3;
@@ -1190,7 +1190,7 @@ export const lessonSchema = /** @type {const} */ ({
           minItems: 1,
           items: { $ref: "#/$defs/text" },
           description:
-            "Paragraphs. Inline HTML such as <code> and <em> is allowed. 120 to 200 words across the Card after tags are stripped. Write at least two paragraphs; the corrective view shows only the first.",
+            "Paragraphs. Inline HTML such as <code> and <em> is allowed. 80 to 200 words across the Card after tags are stripped. Write at least two paragraphs; the corrective view shows only the first.",
         },
       },
     },

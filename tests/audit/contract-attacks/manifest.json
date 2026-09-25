@@ -1,33 +1,5 @@
 [
   {
-    "file": "card-119-words-plus-tags.json",
-    "group": "card-words",
-    "valid": false,
-    "codes": [
-      "card.words"
-    ],
-    "exact": true,
-    "note": "Inline tags add characters but not words."
-  },
-  {
-    "file": "card-119-words.json",
-    "group": "card-words",
-    "valid": false,
-    "codes": [
-      "card.words"
-    ],
-    "exact": true,
-    "note": ""
-  },
-  {
-    "file": "card-120-words.json",
-    "group": "card-words",
-    "valid": true,
-    "codes": [],
-    "exact": true,
-    "note": "Boundary value; the range is inclusive."
-  },
-  {
     "file": "card-200-words.json",
     "group": "card-words",
     "valid": true,
@@ -44,6 +16,34 @@
     ],
     "exact": true,
     "note": ""
+  },
+  {
+    "file": "card-79-words-plus-tags.json",
+    "group": "card-words",
+    "valid": false,
+    "codes": [
+      "card.words"
+    ],
+    "exact": true,
+    "note": "Inline tags add characters but not words."
+  },
+  {
+    "file": "card-79-words.json",
+    "group": "card-words",
+    "valid": false,
+    "codes": [
+      "card.words"
+    ],
+    "exact": true,
+    "note": ""
+  },
+  {
+    "file": "card-80-words.json",
+    "group": "card-words",
+    "valid": true,
+    "codes": [],
+    "exact": true,
+    "note": "Boundary value; the range is inclusive."
   },
   {
     "file": "deixis-as-mentioned.json",
