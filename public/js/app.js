@@ -29,9 +29,11 @@ import { renderLessonPrompt, renderShelf } from "./shelf.js";
 import { renderOverview } from "./overview.js";
 import { renderLearning } from "./learn.js";
 import { renderDrill } from "./drill.js";
+import { renderSettings } from "./settings.js";
 
 /** @typedef {import("../../src/client/library/shelf-model.js").ShelfEntry} ShelfEntry */
 /** @typedef {import("../../src/client/library/shelf-model.js").RemoteLesson} RemoteLesson */
+/** Every surface the shell can show. The settings surface, like the prompt, has no lesson. @typedef {"shelf"|"overview"|"learn"|"drill"|"prompt"|"settings"} Surface */
 
 /** The values the server inlined into this page. */
 const page =
@@ -63,7 +65,7 @@ document.addEventListener("visibilitychange", () => {
 });
 
 const state = {
-  /** @type {"shelf"|"overview"|"learn"|"drill"|"prompt"} */
+  /** @type {Surface} */
   surface: "shelf",
   /** @type {ShelfEntry[]} */
   shelf: [],
@@ -239,16 +241,18 @@ const nav = {
    * Switch surface and keep the history entry in step. A path pushes a new entry, or with `replace`
    * rewrites the current one; without a path the URL stays and only the entry's surface changes.
    * Either way the entry records the surface on screen, so a reload brings that surface back.
-   * @param {"shelf"|"overview"|"learn"|"drill"|"prompt"} surface
+   * @param {Surface} surface
    * @param {string} [path]
    * @param {{ replace?: boolean }} [options]
    */
   async show(surface, path, { replace = false } = {}) {
     state.surface = surface;
     if (state.session) {
-      state.session.surface = surface === "prompt" ? "shelf" : surface;
+      state.session.surface = surface === "prompt" || surface === "settings"
+        ? "shelf"
+        : surface;
     }
-    if (surface === "shelf") {
+    if (surface === "shelf" || surface === "settings") {
       state.session = null;
       sync.attach(null);
     }
@@ -333,7 +337,9 @@ const nav = {
 
 const pwa = installPwa({
   canInterrupt: () => {
-    const surface = state.surface === "prompt" ? "shelf" : state.surface;
+    const surface = state.surface === "prompt" || state.surface === "settings"
+      ? "shelf"
+      : state.surface;
     const flow = state.surface === "drill"
       ? state.session?.drillFlow
       : state.session?.flow;
@@ -347,6 +353,8 @@ async function render() {
     renderShelf(root, nav);
   } else if (state.surface === "prompt") {
     renderLessonPrompt(root, nav);
+  } else if (state.surface === "settings") {
+    renderSettings(root, nav);
   } else if (state.session) {
     const progress = await state.session.rebuildProgress();
     if (state.surface === "overview") {
@@ -374,6 +382,12 @@ globalThis.addEventListener("popstate", async (event) => {
  * @param {string|undefined} recorded  The surface the history entry recorded, if any
  */
 async function restoreFromLocation(recorded) {
+  if (location.pathname === "/settings") {
+    state.surface = "settings";
+    state.session = null;
+    state.confirmingDiscard = false;
+    return;
+  }
   const match = location.pathname.match(/^\/learn\/([^/]+)/);
   if (!match) {
     state.surface = "shelf";

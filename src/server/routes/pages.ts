@@ -34,5 +34,6 @@ export function pageRoutes(dependencies: Dependencies): Route[] {
   return [
     route("GET", "/", shell),
     route("GET", "/learn/*", shell),
+    route("GET", "/settings", shell),
   ];
 }

@@ -634,22 +634,9 @@ async function openapiCoverage() {
   // exactly the invariant tests/server/contract_docs_test.ts already holds for the code in this
   // worktree; it is re-asserted here as a rerunnable audit check, not skipped.
   const { composeRoutes } = await import("../../../src/app.ts");
-  const { openapiDocument } = await import(
+  const { BROWSER_ONLY_PATHS, openapiDocument } = await import(
     "../../../src/server/api-docs/openapi.ts"
   );
-  const browserOnly = new Set([
-    "/",
-    "/learn/*",
-    "/css/*",
-    "/js/*",
-    "/icons/*",
-    "/src/client/*",
-    "/src/shared/*",
-    "/shell",
-    "/manifest.webmanifest",
-    "/sw.js",
-    "/sw-routing.js",
-  ]);
   const localDocument = openapiDocument("https://learn.joshhale.me");
   const routes = composeRoutes(await fixtureDependencies());
   const documented = new Set<string>();
@@ -676,7 +663,7 @@ async function openapiCoverage() {
     }
   }
   for (const route of routes) {
-    if (browserOnly.has(route.pattern.pathname)) continue;
+    if (BROWSER_ONLY_PATHS.has(route.pattern.pathname)) continue;
     await check(
       `openapi (local) · ${route.method} ${route.pattern.pathname} is documented`,
       () => {

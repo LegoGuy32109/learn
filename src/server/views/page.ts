@@ -1,3 +1,10 @@
+import {
+  ACCENTS,
+  DEFAULT_THEME,
+  THEME_COLORS,
+  THEME_KEY,
+} from "../../shared/theme.js";
+
 /** Serialize a value for an inline script without letting it close the script element. */
 export function inlineJson(value: unknown): string {
   return JSON.stringify(value)
@@ -22,6 +29,20 @@ export interface PageSession {
   displayName: string | null;
 }
 
+/**
+ * The saved theme, applied before the stylesheets paint anything so a forced light page never
+ * flashes dark first. It runs after the theme-color tags so it can retarget them. It mirrors
+ * applyTheme in src/client/ui/theme.js, which applies a change while the page is open; anything it
+ * cannot read leaves the server's default in place.
+ */
+export function themeBoot(): string {
+  const accents = JSON.stringify(ACCENTS);
+  const colors = JSON.stringify(THEME_COLORS);
+  return `(()=>{try{const t=JSON.parse(localStorage.getItem(${
+    JSON.stringify(THEME_KEY)
+  })||"null")||{},r=document.documentElement;if(${accents}.includes(t.accent))r.dataset.accent=t.accent;if(t.mode==="light"||t.mode==="dark"){r.dataset.theme=t.mode;for(const m of document.querySelectorAll('meta[name="theme-color"]'))m.setAttribute("content",${colors}[t.mode])}}catch{}})()`;
+}
+
 /** The HTML document every server-rendered page shares: head, stylesheets, body and scripts. */
 export function document(
   body: string,
@@ -30,8 +51,9 @@ export function document(
   const head = [
     '<meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">',
-    '<meta name="theme-color" content="#eae2d3" media="(prefers-color-scheme: light)">',
-    '<meta name="theme-color" content="#1c1812" media="(prefers-color-scheme: dark)">',
+    `<meta name="theme-color" content="${THEME_COLORS.light}" media="(prefers-color-scheme: light)">`,
+    `<meta name="theme-color" content="${THEME_COLORS.dark}" media="(prefers-color-scheme: dark)">`,
+    `<script>${themeBoot()}</script>`,
     `<title>${escapeHtml(options.title ?? "learn")}</title>`,
     '<link rel="manifest" href="/manifest.webmanifest">',
     '<link rel="icon" href="/icons/icon-192.png" type="image/png">',
@@ -42,7 +64,7 @@ export function document(
     '<link rel="stylesheet" href="/css/app.css">',
     '<link rel="stylesheet" href="/css/sync.css">',
   ].join("");
-  return `<!doctype html><html lang="en" data-accent="bronze"><head>${head}</head><body>${body}</body></html>`;
+  return `<!doctype html><html lang="en" data-accent="${DEFAULT_THEME.accent}"><head>${head}</head><body>${body}</body></html>`;
 }
 
 /**

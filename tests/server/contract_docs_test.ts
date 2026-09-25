@@ -31,7 +31,10 @@ import {
   capabilitiesFor,
   discoveryLinks,
 } from "../../src/server/api-docs/capabilities.ts";
-import { openapiDocument } from "../../src/server/api-docs/openapi.ts";
+import {
+  BROWSER_ONLY_PATHS,
+  openapiDocument,
+} from "../../src/server/api-docs/openapi.ts";
 import { generatedFiles } from "../../src/server/api-docs/generated.ts";
 import { FixtureLessonRepository } from "../../src/server/repositories/lessons.ts";
 import { RejectingAuthenticator } from "../../src/server/auth.ts";
@@ -358,20 +361,6 @@ Deno.test("the OpenAPI examples validate against the component schemas they clai
   );
 });
 
-const browserOnly = new Set([
-  "/",
-  "/learn/*",
-  "/css/*",
-  "/js/*",
-  "/icons/*",
-  "/src/client/*",
-  "/src/shared/*",
-  "/shell",
-  "/manifest.webmanifest",
-  "/sw.js",
-  "/sw-routing.js",
-]);
-
 Deno.test("the OpenAPI document covers every route the server serves and nothing it does not", async () => {
   const routes = composeRoutes({
     ...await fixtureDependencies(),
@@ -407,7 +396,7 @@ Deno.test("the OpenAPI document covers every route the server serves and nothing
     }
   }
   for (const route of routes) {
-    if (browserOnly.has(route.pattern.pathname)) continue;
+    if (BROWSER_ONLY_PATHS.has(route.pattern.pathname)) continue;
     assert(
       documented.has(`${route.method} ${route.pattern.pathname}`),
       `${route.method} ${route.pattern.pathname} is served but not documented in OpenAPI`,

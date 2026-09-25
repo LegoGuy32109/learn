@@ -17,6 +17,8 @@ import {
 
 const REFRESH =
   "M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4 M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4";
+const GEAR =
+  "M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0";
 const BOOK =
   "M19 4v16h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12z M19 16h-12a2 2 0 0 0 -2 2 M9 8h6";
 
@@ -32,8 +34,12 @@ export function renderShelf(root, nav) {
       icon(REFRESH)
     }</button>`
     : "";
+  const settings =
+    `<button class="iconbtn" data-action="settings" aria-label="Settings">${
+      icon(GEAR)
+    }</button>`;
   const head =
-    `<div class="libhead"><div><p class="eyebrow">Your learning</p><h1 class="libtitle">Mine</h1></div>${refresh}</div>`;
+    `<div class="libhead"><div><p class="eyebrow">Your learning</p><h1 class="libtitle">Mine</h1></div>${refresh}${settings}</div>`;
   const status = statusLine(nav);
   const notice = nav.notice
     ? `<p class="notice" role="alert">${escape(nav.notice)}</p>`
@@ -171,6 +177,7 @@ async function handle(action, nav) {
   if (action.startsWith("open:")) return nav.open(action.slice("open:".length));
   if (action === "refresh") return nav.reloadShelf();
   if (action === "shelf") return nav.show("shelf", "/");
+  if (action === "settings") return nav.show("settings", "/settings");
   if (action === "sign-in") {
     const outcome = await signInWithPasskey();
     if (outcome.ok) {

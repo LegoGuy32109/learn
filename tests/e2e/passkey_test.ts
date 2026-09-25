@@ -174,8 +174,8 @@ Deno.test({
         "Signed in as Josh",
       );
 
+      // Signing out reloads the page itself, and the closed site answers with its private page.
       await page.getByRole("button", { name: "Sign out" }).click();
-      await page.reload();
       await expect(page.getByText("This site is private.")).toBeVisible();
 
       await page.getByRole("button", { name: "Sign in with a passkey" })

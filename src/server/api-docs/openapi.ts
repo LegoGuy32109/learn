@@ -393,6 +393,25 @@ const progressPullResponses = {
 };
 
 /** Build the OpenAPI document for one origin. Documents served by the app use the request origin. */
+/**
+ * Route patterns served to browsers rather than to API clients: page shells, static assets and the
+ * PWA files. They are deliberately absent from the OpenAPI document; every other route must be in it.
+ */
+export const BROWSER_ONLY_PATHS: ReadonlySet<string> = new Set([
+  "/",
+  "/learn/*",
+  "/settings",
+  "/css/*",
+  "/js/*",
+  "/icons/*",
+  "/src/client/*",
+  "/src/shared/*",
+  "/shell",
+  "/manifest.webmanifest",
+  "/sw.js",
+  "/sw-routing.js",
+]);
+
 export function openapiDocument(origin: string = CANONICAL_ORIGIN) {
   return {
     openapi: "3.1.0",

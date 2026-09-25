@@ -206,7 +206,7 @@ Deno.test("the learning URL inlines the owner's newest revision for the signed-i
 Deno.test("a closed site shows a visitor who is not signed in no lesson, and the owner their lessons", async () => {
   const h = await harness("closed");
   const created = await h.create("Only the owner sees this inlined");
-  for (const path of ["/", `/learn/${created.lessonId}`]) {
+  for (const path of ["/", `/learn/${created.lessonId}`, "/settings"]) {
     const guest = await h.call(path);
     assertEquals(guest.status, 200);
     const guestHtml = await guest.text();
